@@ -36,6 +36,9 @@ alias gc='git commit'
 alias gp='git push'
 alias gl='git pull'
 
+# GAM aliases
+alias gam="/Users/samanthamyers/bin/gamadv-xtd3/gam"
+
 # Environment variables
 export PATH="/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
 export EDITOR='nano'
