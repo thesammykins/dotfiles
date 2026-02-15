@@ -1,5 +1,5 @@
-# Starship Configuration - 2026 Ready
-# Minimal, fast, informative prompt
+# Starship Configuration - Rocinante Bridge Theme (The Expanse)
+# MCRN Tactical OS Prompt
 
 # ============================================================================
 # GENERAL SETTINGS
@@ -9,42 +9,42 @@ command_timeout = 500
 scan_timeout = 10
 
 # ============================================================================
-# FORMAT
+# FORMAT - Tactical Readout Style
 # ============================================================================
 format = """
-$directory$git_branch$git_status$git_state$cmd_duration$line_break$character"""
+$hostname$directory$git_branch$git_status$git_state$cmd_duration$line_break$character"""
 
 right_format = """
 $python$nodejs$rust$golang$ruby$java$kotlin$haskell$php$lua$time"""
 
 # ============================================================================
-# MODULES
+# MODULES - MCRN Color Scheme
 # ============================================================================
 [character]
-success_symbol = "[➜](bold green)"
-error_symbol = "[➜](bold red)"
-vimcmd_symbol = "[❮](bold green)"
+success_symbol = "[►](bold #ffd34e)"
+error_symbol = "[✖](bold #ff2929)"
+vimcmd_symbol = "[◄](bold #ffd34e)"
 
 [directory]
-truncation_length = 8
-truncation_symbol = "…/"
-format = "[📁 $path]($style)[$read_only]($read_only_style) "
-style = "bold cyan"
-read_only = " 🔒"
-read_only_style = "red"
+truncation_length = 6
+truncation_symbol = ".../"
+format = "[DIR::$path]($style)[$read_only]($read_only_style) "
+style = "bold #b04c2a"
+read_only = "[LOCK]"
+read_only_style = "bold #ff2929"
 home_symbol = "~"
 truncate_to_repo = true
 
 [git_branch]
-symbol = ""
-format = "on [$symbol$branch]($style) "
-style = "bold purple"
+symbol = "GIT::"
+format = "[$symbol$branch]($style) "
+style = "bold #ffd34e"
 truncation_length = 20
-truncation_symbol = "…"
+truncation_symbol = "..."
 
 [git_status]
 format = '([$all_status$ahead_behind]($style) )'
-style = "bold yellow"
+style = "bold #b04c2a"
 conflicted = "​"
 ahead = "​${count}"
 behind = "​${count}"
@@ -58,9 +58,9 @@ deleted = "​"
 up_to_date = ""
 
 [git_state]
-format = '[\($state( $progress_current/$progress_total)\)]($style) '
-style = "bold yellow"
-cherry_pick = "🍒 PICKING"
+format = '[($state( $progress_current/$progress_total))]($style) '
+style = "bold #b04c2a"
+cherry_pick = "CHERRY_PICK"
 rebase = "REBASING"
 merge = "MERGING"
 revert = "REVERTING"
@@ -69,8 +69,8 @@ am = "AM"
 
 [cmd_duration]
 min_time = 2000
-format = "took [$duration]($style) "
-style = "yellow"
+format = "ELAPSED[$duration]($style) "
+style = "bold #75331a"
 show_notifications = false
 
 [line_break]
@@ -78,66 +78,66 @@ disabled = false
 
 [time]
 disabled = false
-format = "[$time]($style) "
+format = "TIME[$time]($style) "
 time_format = "%H:%M"
-style = "dimmed white"
+style = "dimmed #75331a"
 
 # ============================================================================
-# LANGUAGE MODULES (Right side)
+# LANGUAGE MODULES - Right Side (Status Colors)
 # ============================================================================
 [python]
-symbol = ""
+symbol = "PY::"
 format = '[${symbol}${pyenv_prefix}(${version} )(\($virtualenv\) )]($style)'
-style = "bold yellow"
+style = "bold #ffd34e"
 pyenv_version_name = true
 pyenv_prefix = ""
 detect_files = ["*.py", "pyproject.toml", "requirements.txt", "Pipfile", "setup.py"]
 
 [nodejs]
-symbol = ""
+symbol = "NODE::"
 format = '[${symbol}(${version} )]($style)'
-style = "bold green"
+style = "bold #b04c2a"
 detect_files = ["package.json", ".node-version", ".nvmrc"]
 
 [rust]
-symbol = ""
+symbol = "RS::"
 format = '[${symbol}(${version} )]($style)'
-style = "bold red"
+style = "bold #ff2929"
 
 [golang]
-symbol = ""
+symbol = "GO::"
 format = '[${symbol}(${version} )]($style)'
-style = "bold cyan"
+style = "bold #ffd34e"
 
 [ruby]
-symbol = ""
+symbol = "RB::"
 format = '[${symbol}(${version} )]($style)'
-style = "bold red"
+style = "bold #ff2929"
 
 [java]
-symbol = ""
+symbol = "JAVA::"
 format = '[${symbol}(${version} )]($style)'
-style = "bold red"
+style = "bold #ff2929"
 
 [kotlin]
-symbol = ""
+symbol = "KT::"
 format = '[${symbol}(${version} )]($style)'
-style = "bold blue"
+style = "bold #b04c2a"
 
 [haskell]
-symbol = ""
+symbol = "HS::"
 format = '[${symbol}(${version} )]($style)'
-style = "bold purple"
+style = "bold #75331a"
 
 [php]
-symbol = ""
+symbol = "PHP::"
 format = '[${symbol}(${version} )]($style)'
-style = "bold purple"
+style = "bold #75331a"
 
 [lua]
-symbol = ""
+symbol = "LUA::"
 format = '[${symbol}(${version} )]($style)'
-style = "bold blue"
+style = "bold #b04c2a"
 
 # ============================================================================
 # DISABLED MODULES
@@ -146,7 +146,10 @@ style = "bold blue"
 disabled = true
 
 [hostname]
-disabled = true
+disabled = false
+ssh_only = false
+format = "[SYS::$hostname]($style) "
+style = "bold #ffd34e"
 
 [container]
 disabled = true
