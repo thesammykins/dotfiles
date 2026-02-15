@@ -161,11 +161,6 @@ fi
 # MOTD - Rocinante Bridge Boot Sequence
 # ============================================================================
 if [[ -o login ]]; then
-    # MCRN Tactical OS Boot Message
-    echo -e "\033[38;2;255;211;78m[MCRN TACHI / ROCINANTE - TACTICAL TERMINAL v9.0.4]\033[0m"
-    echo -e "\033[38;2;176;76;42m[BOOT SEQUENCE COMPLETE]\033[0m\n"
-    
-    # Display ship systems status and quote
     "$DOTFILES/scripts/motd.sh" 2>/dev/null || true
 fi
 
