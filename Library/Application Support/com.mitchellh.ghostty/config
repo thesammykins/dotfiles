@@ -18,7 +18,6 @@ window-inherit-working-directory = true
 
 # Cursor
 cursor-style = block
-cursor-blink = false
 shell-integration-features = no-cursor
 
 # macOS Specific
@@ -46,8 +45,7 @@ mouse-hide-while-typing = true
 shell-integration = zsh
 
 # Performance
-renderer = metal
-grapheme-clustering = true
+# Note: renderer and grapheme-clustering options removed - not valid in current Ghostty version
 
 # Keybindings
 keybind = cmd+shift+n=new_window
