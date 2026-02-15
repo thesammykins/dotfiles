@@ -41,6 +41,11 @@ scrollback-limit = 10000000
 # Mouse
 mouse-hide-while-typing = true
 
+# Clipboard - Copy selected text automatically
+copy-on-select = clipboard
+selection-clear-on-copy = false
+selection-clear-on-typing = true
+
 # Shell Integration
 shell-integration = zsh
 

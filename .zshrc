@@ -173,3 +173,6 @@ fi
 # DOTFILES ALIAS
 # ============================================================================
 alias dotfiles='git --git-dir="$HOME/.dotfiles" --work-tree="$HOME"'
+# peon-ping quick controls
+alias peon="bash /Users/sammykins/.claude/hooks/peon-ping/peon.sh"
+[ -f /Users/sammykins/.claude/hooks/peon-ping/completions.bash ] && source /Users/sammykins/.claude/hooks/peon-ping/completions.bash
