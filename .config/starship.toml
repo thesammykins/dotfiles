@@ -26,13 +26,14 @@ error_symbol = "[➜](bold red)"
 vimcmd_symbol = "[❮](bold green)"
 
 [directory]
-truncation_length = 3
+truncation_length = 8
 truncation_symbol = "…/"
-format = "[$path]($style)[$read_only]($read_only_style) "
-style = "bold blue"
+format = "[📁 $path]($style)[$read_only]($read_only_style) "
+style = "bold cyan"
 read_only = " 🔒"
 read_only_style = "red"
 home_symbol = "~"
+truncate_to_repo = true
 
 [git_branch]
 symbol = ""
