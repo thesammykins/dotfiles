@@ -115,10 +115,10 @@ fi
 # ALIASES
 # ============================================================================
 # Modern CLI replacements
-alias ls='eza --icons --group-directories-first'
-alias ll='eza --icons --group-directories-first -la'
-alias la='eza --icons --group-directories-first -a'
-alias lt='eza --icons --tree'
+alias ls='eza --icons --group-directories-first --hyperlink'
+alias ll='eza --icons --group-directories-first --hyperlink -la'
+alias la='eza --icons --group-directories-first --hyperlink -a'
+alias lt='eza --icons --hyperlink --tree'
 alias l='ls -lah'
 
 alias cat='bat --paging=never --style=plain'
