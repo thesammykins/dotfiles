@@ -158,10 +158,19 @@ if [[ -f "$DOTFILES/zsh/plugins/zsh-ask-opencode/zsh-ask-opencode.plugin.zsh" ]]
 fi
 
 # ============================================================================
-# MOTD - Once per day
+# MOTD - Rocinante Bridge Boot Sequence
 # ============================================================================
 if [[ -o login ]]; then
-    "$DOTFILES/scripts/motd.sh" 2>/dev/null || true
+    # MCRN Tactical OS Boot Message
+    echo -e "\033[38;2;255;211;78m[MCRN TACHI / ROCINANTE - TACTICAL TERMINAL v9.0.4]\033[0m"
+    echo -e "\033[38;2;176;76;42m[BOOT SEQUENCE COMPLETE]\033[0m\n"
+    
+    # Display ship systems status via fastfetch
+    if command -v fastfetch &>/dev/null; then
+        fastfetch --config ~/.config/fastfetch/config.jsonc 2>/dev/null || true
+    else
+        "$DOTFILES/scripts/motd.sh" 2>/dev/null || true
+    fi
 fi
 
 # ============================================================================
@@ -172,7 +181,7 @@ fi
 # ============================================================================
 # DOTFILES ALIAS
 # ============================================================================
-alias dotfiles='git --git-dir="$HOME/.dotfiles" --work-tree="$HOME"'
+alias dotfiles='git --git-dir="$HOME/.dotfiles" --work-tree="$HOME/dotfiles-staging" -c status.showUntrackedFiles=no'
 # peon-ping quick controls
 alias peon="bash /Users/sammykins/.claude/hooks/peon-ping/peon.sh"
 [ -f /Users/sammykins/.claude/hooks/peon-ping/completions.bash ] && source /Users/sammykins/.claude/hooks/peon-ping/completions.bash
