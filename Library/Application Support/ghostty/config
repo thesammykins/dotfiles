@@ -1,0 +1,56 @@
+# Ghostty Configuration - 2026 Ready
+# https://ghostty.org/docs/config
+
+# Theme - Catppuccin Mocha (built-in since Ghostty 1.2.0)
+theme = Catppuccin Mocha
+
+# Font Configuration
+font-family = JetBrains Mono
+font-size = 14
+font-thicken = true
+
+# Window Appearance
+background-opacity = 0.95
+background-blur-radius = 20
+window-padding-x = 10
+window-padding-y = 10
+window-inherit-working-directory = true
+
+# Cursor
+cursor-style = block
+cursor-blink = false
+shell-integration-features = no-cursor
+
+# macOS Specific
+macos-titlebar-style = transparent
+macos-option-as-alt = true
+macos-window-shadow = true
+
+# Quick Terminal (macOS only)
+quick-terminal-screen = main
+quick-terminal-animation-duration = 0.2
+
+# Behavior
+confirm-close-surface = false
+clipboard-read = allow
+clipboard-write = allow
+clipboard-trim-trailing-spaces = true
+
+# Scrollback
+scrollback-limit = 10000000
+
+# Mouse
+mouse-hide-while-typing = true
+
+# Shell Integration
+shell-integration = zsh
+
+# Performance
+renderer = metal
+grapheme-clustering = true
+
+# Keybindings
+keybind = cmd+shift+n=new_window
+keybind = cmd+shift+t=new_tab
+keybind = cmd+shift+w=close_surface
+keybind = cmd+shift+enter=toggle_quick_terminal

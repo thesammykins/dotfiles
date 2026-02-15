@@ -1,0 +1,178 @@
+# Starship Configuration - 2026 Ready
+# Minimal, fast, informative prompt
+
+# ============================================================================
+# GENERAL SETTINGS
+# ============================================================================
+add_newline = true
+command_timeout = 500
+scan_timeout = 10
+
+# ============================================================================
+# FORMAT
+# ============================================================================
+format = """
+$directory$git_branch$git_status$git_state$cmd_duration$line_break$character"""
+
+right_format = """
+$python$nodejs$rust$golang$ruby$java$kotlin$haskell$php$lua$time"""
+
+# ============================================================================
+# MODULES
+# ============================================================================
+[character]
+success_symbol = "[➜](bold green)"
+error_symbol = "[➜](bold red)"
+vimcmd_symbol = "[❮](bold green)"
+
+[directory]
+truncation_length = 3
+truncation_symbol = "…/"
+format = "[$path]($style)[$read_only]($read_only_style) "
+style = "bold blue"
+read_only = " 🔒"
+read_only_style = "red"
+home_symbol = "~"
+
+[git_branch]
+symbol = ""
+format = "on [$symbol$branch]($style) "
+style = "bold purple"
+truncation_length = 20
+truncation_symbol = "…"
+
+[git_status]
+format = '([$all_status$ahead_behind]($style) )'
+style = "bold yellow"
+conflicted = "​"
+ahead = "​${count}"
+behind = "​${count}"
+diverged = "​"
+untracked = "​${count}"
+stashed = "​"
+modified = "​${count}"
+staged = "​${count}"
+renamed = "​"
+deleted = "​"
+up_to_date = ""
+
+[git_state]
+format = '[\($state( $progress_current/$progress_total)\)]($style) '
+style = "bold yellow"
+cherry_pick = "🍒 PICKING"
+rebase = "REBASING"
+merge = "MERGING"
+revert = "REVERTING"
+bisect = "BISECTING"
+am = "AM"
+
+[cmd_duration]
+min_time = 2000
+format = "took [$duration]($style) "
+style = "yellow"
+show_notifications = false
+
+[line_break]
+disabled = false
+
+[time]
+disabled = false
+format = "[$time]($style) "
+time_format = "%H:%M"
+style = "dimmed white"
+
+# ============================================================================
+# LANGUAGE MODULES (Right side)
+# ============================================================================
+[python]
+symbol = ""
+format = '[${symbol}${pyenv_prefix}(${version} )(\($virtualenv\) )]($style)'
+style = "bold yellow"
+pyenv_version_name = true
+pyenv_prefix = ""
+detect_files = ["*.py", "pyproject.toml", "requirements.txt", "Pipfile", "setup.py"]
+
+[nodejs]
+symbol = ""
+format = '[${symbol}(${version} )]($style)'
+style = "bold green"
+detect_files = ["package.json", ".node-version", ".nvmrc"]
+
+[rust]
+symbol = ""
+format = '[${symbol}(${version} )]($style)'
+style = "bold red"
+
+[golang]
+symbol = ""
+format = '[${symbol}(${version} )]($style)'
+style = "bold cyan"
+
+[ruby]
+symbol = ""
+format = '[${symbol}(${version} )]($style)'
+style = "bold red"
+
+[java]
+symbol = ""
+format = '[${symbol}(${version} )]($style)'
+style = "bold red"
+
+[kotlin]
+symbol = ""
+format = '[${symbol}(${version} )]($style)'
+style = "bold blue"
+
+[haskell]
+symbol = ""
+format = '[${symbol}(${version} )]($style)'
+style = "bold purple"
+
+[php]
+symbol = ""
+format = '[${symbol}(${version} )]($style)'
+style = "bold purple"
+
+[lua]
+symbol = ""
+format = '[${symbol}(${version} )]($style)'
+style = "bold blue"
+
+# ============================================================================
+# DISABLED MODULES
+# ============================================================================
+[username]
+disabled = true
+
+[hostname]
+disabled = true
+
+[container]
+disabled = true
+
+[shell]
+disabled = true
+
+[shlvl]
+disabled = true
+
+[sudo]
+disabled = true
+
+[jobs]
+disabled = true
+
+[package]
+disabled = true
+
+[aws]
+disabled = true
+
+[gcloud]
+disabled = true
+
+[azure]
+disabled = true
+
+[kubernetes]
+disabled = true

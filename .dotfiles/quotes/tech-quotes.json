@@ -1,0 +1,214 @@
+[
+  {
+    "quote": "The computer was born to solve problems that did not exist before.",
+    "author": "Bill Gates"
+  },
+  {
+    "quote": "Software is eating the world.",
+    "author": "Marc Andreessen"
+  },
+  {
+    "quote": "Any sufficiently advanced technology is indistinguishable from magic.",
+    "author": "Arthur C. Clarke"
+  },
+  {
+    "quote": "Technology is best when it brings people together.",
+    "author": "Matt Mullenweg"
+  },
+  {
+    "quote": "The most damaging phrase in the language is: 'It's always been done that way.'",
+    "author": "Grace Hopper"
+  },
+  {
+    "quote": "Talk is cheap. Show me the code.",
+    "author": "Linus Torvalds"
+  },
+  {
+    "quote": "Simplicity is the ultimate sophistication.",
+    "author": "Leonardo da Vinci"
+  },
+  {
+    "quote": "The best way to predict the future is to invent it.",
+    "author": "Alan Kay"
+  },
+  {
+    "quote": "We can only see a short distance ahead, but we can see plenty there that needs to be done.",
+    "author": "Alan Turing"
+  },
+  {
+    "quote": "Innovation distinguishes between a leader and a follower.",
+    "author": "Steve Jobs"
+  },
+  {
+    "quote": "Design is not just what it looks like and feels like. Design is how it works.",
+    "author": "Steve Jobs"
+  },
+  {
+    "quote": "Programming isn't about what you know; it's about what you can figure out.",
+    "author": "Chris Pine"
+  },
+  {
+    "quote": "The only way to do great work is to love what you do.",
+    "author": "Steve Jobs"
+  },
+  {
+    "quote": "First, solve the problem. Then, write the code.",
+    "author": "John Johnson"
+  },
+  {
+    "quote": "Experience is the name everyone gives to their mistakes.",
+    "author": "Oscar Wilde"
+  },
+  {
+    "quote": "Java is to JavaScript what car is to Carpet.",
+    "author": "Chris Heilmann"
+  },
+  {
+    "quote": "Knowledge is power.",
+    "author": "Francis Bacon"
+  },
+  {
+    "quote": "Sometimes it pays to stay in bed on Monday, rather than spending the rest of the week debugging Monday's code.",
+    "author": "Christopher Thompson"
+  },
+  {
+    "quote": "Fix the cause, not the symptom.",
+    "author": "Steve Maguire"
+  },
+  {
+    "quote": "Make it work, make it right, make it fast.",
+    "author": "Kent Beck"
+  },
+  {
+    "quote": "Optimism is an occupational hazard of programming: feedback is the treatment.",
+    "author": "Kent Beck"
+  },
+  {
+    "quote": "Measuring programming progress by lines of code is like measuring aircraft building progress by weight.",
+    "author": "Bill Gates"
+  },
+  {
+    "quote": "Always code as if the guy who ends up maintaining your code will be a violent psychopath who knows where you live.",
+    "author": "John Woods"
+  },
+  {
+    "quote": "Walking on water and developing software from a specification are easy if both are frozen.",
+    "author": "Edward V. Berard"
+  },
+  {
+    "quote": "If debugging is the process of removing software bugs, then programming must be the process of putting them in.",
+    "author": "Edsger Dijkstra"
+  },
+  {
+    "quote": "Computers are useless. They can only give you answers.",
+    "author": "Pablo Picasso"
+  },
+  {
+    "quote": "UNIX is basically a simple operating system, but you have to be a genius to understand the simplicity.",
+    "author": "Dennis Ritchie"
+  },
+  {
+    "quote": "C is quirky, flawed, and an enormous success.",
+    "author": "Dennis Ritchie"
+  },
+  {
+    "quote": "The question of whether a computer can think is no more interesting than the question of whether a submarine can swim.",
+    "author": "Edsger Dijkstra"
+  },
+  {
+    "quote": "Object-oriented programming is an exceptionally bad idea which could only have originated in California.",
+    "author": "Edsger Dijkstra"
+  },
+  {
+    "quote": "Most good programmers do programming not because they expect to get paid or get adulation by the public, but because it is fun to program.",
+    "author": "Linus Torvalds"
+  },
+  {
+    "quote": "I am not a visionary. I'm an engineer. I'm happy with the people who are wandering around looking at the stars but I am looking at the ground.",
+    "author": "Linus Torvalds"
+  },
+  {
+    "quote": "Bad programmers worry about the code. Good programmers worry about data structures and their relationships.",
+    "author": "Linus Torvalds"
+  },
+  {
+    "quote": "Given enough eyeballs, all bugs are shallow.",
+    "author": "Linus Torvalds"
+  },
+  {
+    "quote": "Intelligence is the ability to avoid doing work, yet getting the work done.",
+    "author": "Linus Torvalds"
+  },
+  {
+    "quote": "The sooner you start to code, the longer the program will take.",
+    "author": "Roy Carlson"
+  },
+  {
+    "quote": "Debugging is twice as hard as writing the code in the first place. Therefore, if you write the code as cleverly as possible, you are, by definition, not smart enough to debug it.",
+    "author": "Brian Kernighan"
+  },
+  {
+    "quote": "The most important property of a program is whether it accomplishes the intention of its user.",
+    "author": "C.A.R. Hoare"
+  },
+  {
+    "quote": "There are two ways of constructing a software design: One way is to make it so simple that there are obviously no deficiencies, and the other way is to make it so complicated that there are no obvious deficiencies.",
+    "author": "C.A.R. Hoare"
+  },
+  {
+    "quote": "Simplicity is prerequisite for reliability.",
+    "author": "Edsger Dijkstra"
+  },
+  {
+    "quote": "The computing scientist's main challenge is not to get confused by the complexities of his own making.",
+    "author": "Edsger Dijkstra"
+  },
+  {
+    "quote": "Ease of use and ease of learning are not the same thing.",
+    "author": "Larry Wall"
+  },
+  {
+    "quote": "The structure of a software system provides the ecosystem in which code lives.",
+    "author": "Sandi Metz"
+  },
+  {
+    "quote": "Programs must be written for people to read, and only incidentally for machines to execute.",
+    "author": "Harold Abelson"
+  },
+  {
+    "quote": "Code is like humor. When you have to explain it, it's bad.",
+    "author": "Cory House"
+  },
+  {
+    "quote": "Before software can be reusable it first has to be usable.",
+    "author": "Ralph Johnson"
+  },
+  {
+    "quote": "A primary cause of complexity is that software vendors uncritically adopt almost any feature that users want.",
+    "author": "Niklaus Wirth"
+  },
+  {
+    "quote": "Deleted code is debugged code.",
+    "author": "Jeff Sickel"
+  },
+  {
+    "quote": "The best error message is the one that never shows up.",
+    "author": "Thomas Fuchs"
+  },
+  {
+    "quote": "It's not a bug – it's an undocumented feature.",
+    "author": "Anonymous"
+  },
+  {
+    "quote": "One man's crappy software is another man's full time job.",
+    "author": "Jessica Gaston"
+  },
+  {
+    "quote": "Software and cathedrals are much the same – first we build them, then we pray.",
+    "author": "Sam Redwine"
+  },
+  {
+    "quote": "Without requirements or design, programming is the art of adding bugs to an empty text file.",
+    "author": "Louis Srygley"
+  }
+]

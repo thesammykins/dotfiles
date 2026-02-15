@@ -1,0 +1,94 @@
+# Brewfile - 2026 Ready Terminal Stack
+# Run: brew bundle install --file=Brewfile
+
+# ============================================================================
+# TERMINAL
+# ============================================================================
+brew "ghostty"                    # Modern, fast terminal emulator
+brew "fastfetch"                  # System info display (neofetch replacement)
+brew "tmux"                       # Terminal multiplexer
+
+# ============================================================================
+# MODERN CLI REPLACEMENTS
+# ============================================================================
+brew "zoxide"                     # Smarter cd command (learns your habits)
+brew "eza"                        # Modern ls replacement (icons, git status)
+brew "bat"                        # Cat with syntax highlighting
+brew "ripgrep"                    # Fast grep replacement
+brew "fd"                         # Fast find replacement
+brew "btop"                       # Modern top replacement
+brew "dust"                       # Better du (disk usage)
+brew "fzf"                        # Fuzzy finder
+brew "git-delta"                  # Syntax-highlighted git diffs
+
+# ============================================================================
+# SHELL ENHANCEMENTS
+# ============================================================================
+brew "starship"                   # Fast, customizable prompt
+brew "zsh-autosuggestions"        # Inline command suggestions
+brew "zsh-fast-syntax-highlighting"  # Syntax highlighting (faster alternative)
+brew "zsh-completions"            # Additional completions
+
+# ============================================================================
+# DEVELOPMENT TOOLS
+# ============================================================================
+brew "gh"                         # GitHub CLI
+brew "git"                        # Version control (latest)
+brew "jq"                         # JSON processor (for scripts)
+brew "1password-cli"              # 1Password command-line interface
+brew "direnv"                     # Directory-specific env vars
+brew "fnm"                        # Fast Node.js version manager
+brew "uv"                         # Fast Python package manager
+
+# ============================================================================
+# ADDITIONAL CLI TOOLS (From your installed apps)
+# ============================================================================
+brew "imagemagick"                # Image manipulation
+brew "ffmpeg"                     # Video/audio processing
+brew "glances"                    # System monitoring (htop alternative)
+brew "htop"                       # Interactive process viewer
+
+# ============================================================================
+# OPTIONAL TOOLS (Uncomment if needed)
+# ============================================================================
+# brew "lazygit"                  # TUI for git
+# brew "httpie"                   # Modern curl alternative
+# brew "xh"                       # Fast HTTP client
+# brew "hyperfine"                # Benchmarking tool
+# brew "tokei"                    # Code statistics
+# brew "tre-command"              # Tree command replacement
+# brew "zellij"                   # Modern tmux alternative (Rust)
+
+# ============================================================================
+# CASK APPLICATIONS (GUI apps - Based on your installed apps)
+# ============================================================================
+# Essential
+cask "1password"                  # Password manager
+cask "raycast"                    # Spotlight replacement + window management
+cask "dia"                        # Modern browser
+
+# Development
+cask "zed"                        # High-performance editor
+cask "github"                     # GitHub Desktop
+
+# Communication
+cask "discord"                    # Chat/community
+cask "beeper"                     # Unified messaging
+
+# System & Utilities
+cask "thaw"                       # Menu bar management
+cask "shottr"                     # Screenshot tool
+cask "tailscale"                  # VPN/mesh networking
+
+# Media
+cask "stolendata-mpv"             # Media player
+
+# Other (Uncomment if needed on new machine)
+# cask "chatgpt"                  # AI chat desktop app
+# cask "obs"                      # Streaming/recording
+# cask "karabiner-elements"       # Keyboard customization
+# cask "notion-calendar"          # Calendar app
+# cask "docker"                   # Container platform
+cask "orbstack"                 # Docker Desktop alternative (lighter)
+# cask "microsoft-remote-desktop" # RDP client
+cask "google-drive"             # Cloud storage sync
