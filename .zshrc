@@ -5,6 +5,10 @@
 # ============================================================================
 # PATH AND ENVIRONMENT
 # ============================================================================
+# OpenCode (must be early in PATH)
+export PATH="$HOME/.opencode/bin:$PATH"
+export OPENCODE_EXPERIMENTAL_LSP_TOOL=true
+
 # Homebrew (Apple Silicon vs Intel)
 if [[ -d "/opt/homebrew/bin" ]]; then
     export PATH="/opt/homebrew/bin:/opt/homebrew/sbin:$PATH"
