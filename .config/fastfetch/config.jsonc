@@ -1,0 +1,102 @@
+{
+  "$schema": "https://github.com/fastfetch-cli/fastfetch/raw/dev/doc/json_schema.json",
+  "logo": {
+    "source": "~/.config/fastfetch/mcrn_logo.txt",
+    "type": "file-raw",
+    "padding": {
+      "top": 2,
+      "left": 4
+    }
+  },
+  "display": {
+    "separator": " :: ",
+    "color": {
+      "output": "yellow"
+    }
+  },
+  "modules": [
+    {
+      "type": "custom",
+      "format": "{#1}═══════════════════════════════════════{#}",
+      "outputColor": "red"
+    },
+    {
+      "type": "title",
+      "key": "OPERATOR ",
+      "keyColor": "red",
+      "color": {
+        "user": "red",
+        "at": "white",
+        "host": "yellow"
+      }
+    },
+    {
+      "type": "custom",
+      "format": "{#1}───────────────────────────────────────{#}",
+      "outputColor": "red"
+    },
+    {
+      "type": "os",
+      "key": "OS_KERNEL",
+      "keyColor": "red",
+      "format": "{3}"
+    },
+    {
+      "type": "host",
+      "key": "HARDWARE ",
+      "keyColor": "red",
+      "format": "{2}"
+    },
+    {
+      "type": "kernel",
+      "key": "FIRMWARE ",
+      "keyColor": "yellow"
+    },
+    {
+      "type": "uptime",
+      "key": "RUNTIME  ",
+      "keyColor": "yellow"
+    },
+    {
+      "type": "shell",
+      "key": "INTERFACE",
+      "keyColor": "yellow"
+    },
+    {
+      "type": "cpu",
+      "key": "CORE_PROC",
+      "keyColor": "red",
+      "format": "{1} @ {7}"
+    },
+    {
+      "type": "memory",
+      "key": "MEMORY   ",
+      "keyColor": "red",
+      "format": "{2} / {1} [{3}]"
+    },
+    {
+      "type": "disk",
+      "key": "STORAGE  ",
+      "keyColor": "yellow",
+      "format": "{2} / {1} [{3}]"
+    },
+    {
+      "type": "localip",
+      "key": "NET_LINK ",
+      "keyColor": "yellow",
+      "format": "{1}",
+      "showIpv4": true,
+      "showIpv6": false
+    },
+    {
+      "type": "custom",
+      "format": "{#1}═══════════════════════════════════════{#}",
+      "outputColor": "red"
+    },
+    {
+      "type": "custom",
+      "format": "  {#2}[SYSTEM STATUS: NOMINAL]{#}    {#3}[PDC: STANDBY]{#}",
+      "outputColor": "yellow"
+    }
+  ]
+}
