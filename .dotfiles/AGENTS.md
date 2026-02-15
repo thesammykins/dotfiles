@@ -2,7 +2,7 @@
 
 ## Repository Overview
 
-This is a macOS dotfiles repository using a bare git repository pattern. It configures Ghostty, zsh, modern CLI tools, and AI-powered shell enhancements.
+This is a macOS dotfiles repository. The source of truth is `~/dotfiles-staging`. It configures Ghostty, zsh, modern CLI tools, and AI-powered shell enhancements.
 
 ## Build / Test / Lint Commands
 
@@ -27,7 +27,7 @@ shellcheck scripts/*.sh
 ### Dotfiles Management
 
 ```bash
-# Use the dotfiles alias for git operations
+# Use the dotfiles alias for git operations (staging repo)
 dotfiles status
 dotfiles add <file>
 dotfiles commit -m "message"
@@ -36,6 +36,16 @@ dotfiles push
 # Pull updates
 dotfiles pull
 ```
+
+### Anti-Pattern: Bare Repo Worktree vs Staging Repo
+
+If you point the bare repo worktree at `~/dotfiles-staging` while that directory
+has its own `.git`, Git will report mass deletions because the index expects the
+bare repo layout, not the staging repo layout. This is noisy and misleading.
+
+**Do this instead:**
+- Use the staging repo's own Git with `git -C ~/dotfiles-staging ...`
+- Or use the bare repo with `--work-tree=$HOME` (default)
 
 ## Code Style Guidelines
 
@@ -135,11 +145,10 @@ log_step() { echo -e "${BLUE}[STEP]${NC} $1"; }
 
 ## Git Workflow
 
-This repo uses a **bare repository pattern**:
-- Git directory: `~/.dotfiles`
-- Work tree: `$HOME`
+This repo uses a **staging repo as source of truth**:
+- Repo path: `~/dotfiles-staging`
+- Scripts and quotes live under `~/dotfiles-staging/.dotfiles`
 - Use `dotfiles` alias instead of `git`
-- Never show untracked files: `status.showUntrackedFiles no`
 
 ### Anti-Pattern: Bare Repo Worktree vs Staging Repo
 

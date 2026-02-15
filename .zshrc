@@ -25,7 +25,7 @@ if command -v nvim &>/dev/null; then
 fi
 
 # Dotfiles location
-export DOTFILES="$HOME/.dotfiles"
+export DOTFILES="$HOME/dotfiles-staging/.dotfiles"
 
 # ============================================================================
 # HISTORY CONFIGURATION
@@ -165,12 +165,8 @@ if [[ -o login ]]; then
     echo -e "\033[38;2;255;211;78m[MCRN TACHI / ROCINANTE - TACTICAL TERMINAL v9.0.4]\033[0m"
     echo -e "\033[38;2;176;76;42m[BOOT SEQUENCE COMPLETE]\033[0m\n"
     
-    # Display ship systems status via fastfetch
-    if command -v fastfetch &>/dev/null; then
-        fastfetch --config ~/.config/fastfetch/config.jsonc 2>/dev/null || true
-    else
-        "$DOTFILES/scripts/motd.sh" 2>/dev/null || true
-    fi
+    # Display ship systems status and quote
+    "$DOTFILES/scripts/motd.sh" 2>/dev/null || true
 fi
 
 # ============================================================================
@@ -181,7 +177,7 @@ fi
 # ============================================================================
 # DOTFILES ALIAS
 # ============================================================================
-alias dotfiles='git --git-dir="$HOME/.dotfiles" --work-tree="$HOME/dotfiles-staging" -c status.showUntrackedFiles=no'
+alias dotfiles='git -C "$HOME/dotfiles-staging"'
 # peon-ping quick controls
 alias peon="bash /Users/sammykins/.claude/hooks/peon-ping/peon.sh"
 [ -f /Users/sammykins/.claude/hooks/peon-ping/completions.bash ] && source /Users/sammykins/.claude/hooks/peon-ping/completions.bash
