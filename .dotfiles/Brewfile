@@ -65,7 +65,7 @@ brew "htop"                       # Interactive process viewer
 # Essential
 cask "1password"                  # Password manager
 cask "raycast"                    # Spotlight replacement + window management
-cask "dia"                        # Modern browser
+cask "arc"                        # Modern browser
 
 # Development
 cask "zed"                        # High-performance editor
@@ -76,8 +76,8 @@ cask "discord"                    # Chat/community
 cask "beeper"                     # Unified messaging
 
 # System & Utilities
-cask "thaw"                       # Menu bar management
-cask "shottr"                     # Screenshot tool
+cask "bartender"                  # Menu bar management
+cask "cleanshot"                  # Screenshot tool
 cask "tailscale"                  # VPN/mesh networking
 
 # Media
