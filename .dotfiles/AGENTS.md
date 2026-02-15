@@ -141,6 +141,16 @@ This repo uses a **bare repository pattern**:
 - Use `dotfiles` alias instead of `git`
 - Never show untracked files: `status.showUntrackedFiles no`
 
+### Anti-Pattern: Bare Repo Worktree vs Staging Repo
+
+If you point the bare repo worktree at `~/dotfiles-staging` while that directory
+has its own `.git`, Git will report mass deletions because the index expects the
+bare repo layout, not the staging repo layout. This is noisy and misleading.
+
+**Do this instead:**
+- Use the staging repo's own Git with `git -C ~/dotfiles-staging ...`
+- Or use the bare repo with `--work-tree=$HOME` (default)
+
 ## Dependencies
 
 Core tools used in scripts:
