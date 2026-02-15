@@ -1,6 +1,7 @@
 # Dotfiles - 2026 Ready Terminal Setup
 
 A modern, portable terminal configuration featuring Ghostty, Catppuccin theme, zsh with AI integration, and a curated stack of 2026-ready CLI tools.
+The source of truth for all changes is `~/dotfiles-staging`.
 
 ![Ghostty Terminal](https://user-images.githubusercontent.com/your-username/ghostty-screenshot.png)
 
@@ -14,7 +15,7 @@ A modern, portable terminal configuration featuring Ghostty, Catppuccin theme, z
 - **Daily MOTD** - System info via Fastfetch + curated tech quotes
 - **Weekly AI Quotes** - Refresh your quote cache with GPT-5 mini generated quotes
 - **1Password Integration** - CLI support for secure secret management
-- **Bare Git Repo** - Clean, portable setup with no symlink complexity
+- **Source of Truth Repo** - All changes committed in `~/dotfiles-staging`
 
 ## 🚀 Quick Start
 
@@ -27,20 +28,14 @@ A modern, portable terminal configuration featuring Ghostty, Catppuccin theme, z
 ### One-Command Install
 
 ```bash
-# Clone the bare repository
-git clone --bare https://github.com/sammykins/dotfiles.git ~/.dotfiles
+# Clone the source-of-truth repo
+git clone https://github.com/sammykins/dotfiles.git ~/dotfiles-staging
 
 # Define the alias in current shell scope
-alias dotfiles='git --git-dir="$HOME/.dotfiles" --work-tree="$HOME"'
-
-# Checkout the content
-dotfiles checkout
-
-# Configure git to not show untracked files
-dotfiles config --local status.showUntrackedFiles no
+alias dotfiles='git -C "$HOME/dotfiles-staging"'
 
 # Run the bootstrap script
-~/.dotfiles/scripts/install.sh
+~/dotfiles-staging/.dotfiles/scripts/install.sh
 ```
 
 ### Post-Install Setup
@@ -53,13 +48,13 @@ exec zsh
 
 # 2. Configure Git
 gh auth login
-~/.dotfiles/scripts/setup-git.sh
+~/dotfiles-staging/.dotfiles/scripts/setup-git.sh
 
 # 3. Set up 1Password (optional)
 op account add
 
 # 4. Refresh your quotes (weekly)
-~/.dotfiles/scripts/refresh-quotes.sh
+~/dotfiles-staging/.dotfiles/scripts/refresh-quotes.sh
 ```
 
 ## 🎮 Usage
@@ -122,19 +117,20 @@ Prefix key: `Ctrl+A` (screen-style)
 ## 📁 Structure
 
 ```
-~/.dotfiles/                    # Bare git repository
+~/dotfiles-staging/              # Source-of-truth git repo
 ├── Library/Application Support/ghostty/config   # Ghostty configuration
 ├── .zshrc                       # Main shell configuration
 ├── .zprofile                    # Login shell configuration
 ├── .tmux.conf                   # Tmux configuration
 ├── .config/starship.toml        # Prompt configuration
-├── scripts/
-│   ├── install.sh              # Bootstrap script
-│   ├── setup-git.sh            # Git configuration helper
-│   ├── motd.sh                 # Daily message of the day
-│   └── refresh-quotes.sh       # Weekly AI quote refresh
-├── quotes/
-│   └── tech-quotes.json        # Curated tech quotes (50+)
+├── .dotfiles/
+│   ├── scripts/
+│   │   ├── install.sh          # Bootstrap script
+│   │   ├── setup-git.sh        # Git configuration helper
+│   │   ├── motd.sh             # Daily message of the day
+│   │   └── refresh-quotes.sh   # Weekly AI quote refresh
+│   ├── quotes/
+│   │   └── tech-quotes.json    # Curated tech quotes (50+)
 ├── Brewfile                     # Homebrew dependencies
 └── README.md                    # This file
 ```
@@ -159,11 +155,11 @@ dotfiles pull
 ### Adding New Files
 
 ```bash
-# 1. Move file to home directory
-cp ~/some-config ~/.myconfig
+# 1. Move file into the repo
+cp ~/some-config ~/dotfiles-staging/.myconfig
 
 # 2. Add to dotfiles tracking
-dotfiles add ~/.myconfig
+dotfiles add .myconfig
 dotfiles commit -m "Add myconfig"
 dotfiles push
 ```
@@ -230,14 +226,14 @@ zprof
 ### Quotes not showing
 
 1. Check jq is installed: `brew install jq`
-2. Verify quotes file exists: `ls ~/.dotfiles/quotes/tech-quotes.json`
-3. Run MOTD manually: `~/.dotfiles/scripts/motd.sh`
+2. Verify quotes file exists: `ls ~/dotfiles-staging/.dotfiles/quotes/tech-quotes.json`
+3. Run MOTD manually: `~/dotfiles-staging/.dotfiles/scripts/motd.sh`
 
 ### Git configuration issues
 
 Run the setup script manually:
 ```bash
-~/.dotfiles/scripts/setup-git.sh
+~/dotfiles-staging/.dotfiles/scripts/setup-git.sh
 ```
 
 ### Homebrew not found
@@ -266,7 +262,7 @@ brew update && brew upgrade
 # cd ~/.zsh/plugins && git pull
 
 # Refresh AI quotes (weekly)
-~/.dotfiles/scripts/refresh-quotes.sh
+~/dotfiles-staging/.dotfiles/scripts/refresh-quotes.sh
 ```
 
 ## 📝 Customization
@@ -292,7 +288,7 @@ error_symbol = "[>](bold red)"
 
 ### Add More Quotes
 
-Edit `~/.dotfiles/quotes/tech-quotes.json`:
+Edit `~/dotfiles-staging/.dotfiles/quotes/tech-quotes.json`:
 ```json
 {
   "quote": "Your custom quote here",
