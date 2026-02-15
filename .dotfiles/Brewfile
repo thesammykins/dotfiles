@@ -4,7 +4,7 @@
 # ============================================================================
 # TERMINAL
 # ============================================================================
-brew "ghostty"                    # Modern, fast terminal emulator
+cask "ghostty"                    # Modern, fast terminal emulator (GUI)
 brew "fastfetch"                  # System info display (neofetch replacement)
 brew "tmux"                       # Terminal multiplexer
 
@@ -35,7 +35,7 @@ brew "zsh-completions"            # Additional completions
 brew "gh"                         # GitHub CLI
 brew "git"                        # Version control (latest)
 brew "jq"                         # JSON processor (for scripts)
-brew "1password-cli"              # 1Password command-line interface
+cask "1password-cli"              # 1Password command-line interface (Cask)
 brew "direnv"                     # Directory-specific env vars
 brew "fnm"                        # Fast Node.js version manager
 brew "uv"                         # Fast Python package manager
