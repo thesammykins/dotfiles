@@ -4,7 +4,7 @@
 
 set -e
 
-DOTFILES="${DOTFILES:-$HOME/.dotfiles}"
+DOTFILES="${DOTFILES:-$HOME/dotfiles-staging/.dotfiles}"
 MOTD_FLAG="$DOTFILES/.last_motd"
 QUOTES_FILE="$DOTFILES/quotes/tech-quotes.json"
 
@@ -49,19 +49,19 @@ main() {
     
     echo ""
     
-    # System info with fastfetch
+    # System info with fastfetch (includes quote module)
     if command -v fastfetch &>/dev/null; then
-        fastfetch --logo none --separator " : " 2>/dev/null || true
+        fastfetch --config ~/.config/fastfetch/config.jsonc 2>/dev/null || true
+    else
+        echo ""
+
+        # Random quote
+        local quote=$(get_quote)
+        echo "💬 $quote"
     fi
-    
+
     echo ""
-    
-    # Random quote
-    local quote=$(get_quote)
-    echo "💬 $quote"
-    
-    echo ""
-    echo "💡 Run \`~/.dotfiles/scripts/refresh-quotes.sh\` weekly for fresh AI-generated quotes"
+    echo "💡 Run \`~/dotfiles-staging/.dotfiles/scripts/refresh-quotes.sh\` weekly for fresh AI-generated quotes"
     echo ""
     
     # Update timestamp
