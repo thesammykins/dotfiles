@@ -96,7 +96,8 @@
     {
       "type": "command",
       "key": "QUOTE    ",
-      "command": "bash -lc 'file=\"$HOME/dotfiles-staging/.dotfiles/quotes/tech-quotes.json\"; if [ -f \"$file\" ] && command -v jq >/dev/null 2>&1; then jq -r \".[] | .quote + \" \" + \"-\" + \" \" + .author\" \"$file\" | shuf -n 1; else echo \"Technology is best when it brings people together. - Matt Mullenweg\"; fi'"
+      "keyColor": "yellow",
+      "text": "bash $HOME/dotfiles-staging/.dotfiles/scripts/random-quote.sh"
     },
     {
       "type": "custom",
