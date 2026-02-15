@@ -1,0 +1,94 @@
+# Ghostty Configuration - Rocinante Bridge Theme (The Expanse)
+# MCRN Tactical Display Aesthetic
+
+# ============================================================================
+# ROCI-OPS THEME - Color Palette
+# ============================================================================
+# Void Black background with PDC Amber foreground
+# Mimics the utilitarian displays from the Rocinante bridge
+
+background = #1a0b0c
+foreground = #ffd34e
+
+# MCRN/Rocinante Color Palette
+# 0: Carbon (dark grey), 1: Hull Breach (red), 2: Drive Plume (green)
+# 3: Warning (yellow), 4: Holomap (blue), 5: Sensor Ghost (orange)
+# 6: Ice (cyan), 7: Starlight (white)
+palette = 0=#1a0b0c
+palette = 1=#ff2929
+palette = 2=#b04c2a
+palette = 3=#ffd34e
+palette = 4=#75331a
+palette = 5=#b04c2a
+palette = 6=#ffd34e
+palette = 7=#eaeaea
+palette = 8=#3c180f
+palette = 9=#ff5a5a
+palette = 10=#c35a3a
+palette = 11=#ffe07a
+palette = 12=#8a3a20
+palette = 13=#c35a3a
+palette = 14=#ffe07a
+palette = 15=#ffffff
+
+# ============================================================================
+# CURSOR - Target Red for aggressive visibility
+# ============================================================================
+cursor-style = block
+cursor-color = #ffd34e
+cursor-text = #000000
+cursor-blink = false
+
+# ============================================================================
+# WINDOW & AESTHETICS
+# ============================================================================
+# Mimic the glass displays of the bridge with blur
+window-padding-x = 12
+window-padding-y = 10
+window-decoration = false
+background-opacity = 0.94
+background-blur-radius = 20
+
+# ============================================================================
+# TYPOGRAPHY
+# ============================================================================
+# Space Mono for that technical, squared-off spaceship feel
+font-family = "Space Mono"
+font-size = 13
+font-thicken = true
+
+# Alternative fonts if Space Mono not available
+# font-family = "Fira Code"
+# font-family = "JetBrains Mono"
+
+# ============================================================================
+# BEHAVIOR
+# ============================================================================
+scrollback-lines = 10000
+mouse-scroll-multiplier = 2
+
+# ============================================================================
+# ADVANCED
+# ============================================================================
+# Shell integration
+shell-integration = detect
+shell-integration-features = cursor,sudo,title
+
+# Quick terminal
+quick-terminal-position = top
+quick-terminal-animation-duration = 0.2
+
+# ============================================================================
+# KEYBINDINGS
+# ============================================================================
+# Rocinante Tactical OS keybindings
+keybind = cmd+shift+enter=toggle_quick_terminal
+keybind = cmd+shift+w=close_surface
+keybind = cmd+t=new_tab
+keybind = cmd+shift+t=new_window
+
+# ============================================================================
+# THEME IDENTITY
+# ============================================================================
+# Terminal identity - uncomment to show on startup
+# window-title = "MCRN TACHI / ROCINANTE - TACTICAL TERMINAL"
