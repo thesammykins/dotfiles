@@ -96,9 +96,9 @@ if command -v direnv &>/dev/null; then
     eval "$(direnv hook zsh)"
 fi
 
-# FNM - Fast Node Manager
-if command -v fnm &>/dev/null; then
-    eval "$(fnm env --use-on-cd)"
+# Mise - Global toolchain manager (Must be early)
+if command -v mise &>/dev/null; then
+    eval "$(mise activate zsh)"
 fi
 
 # UV - Python package manager
@@ -151,17 +151,17 @@ if command -v starship &>/dev/null; then
 fi
 
 # ============================================================================
-# AI INTEGRATION - zsh-ask-opencode (Load last to avoid conflicts)
+# AI INTEGRATION - MCRN Tactical Widget (Load last to avoid conflicts)
 # ============================================================================
-if [[ -f "$DOTFILES/zsh/plugins/zsh-ask-opencode/zsh-ask-opencode.plugin.zsh" ]]; then
-    source "$DOTFILES/zsh/plugins/zsh-ask-opencode/zsh-ask-opencode.plugin.zsh"
+if [[ -f "$DOTFILES/.dotfiles/zsh/plugins/mcrn-ai.zsh" ]]; then
+    source "$DOTFILES/.dotfiles/zsh/plugins/mcrn-ai.zsh"
 fi
 
 # ============================================================================
 # MOTD - Rocinante Bridge Boot Sequence
 # ============================================================================
 if [[ -o login ]]; then
-    "$DOTFILES/scripts/motd.sh" 2>/dev/null || true
+    "$DOTFILES/.dotfiles/scripts/motd.sh" 2>/dev/null || true
 fi
 
 # ============================================================================

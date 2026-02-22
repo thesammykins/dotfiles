@@ -1,0 +1,17 @@
+# ~/.config/mise/config.toml
+# Global toolchain manager configuration for MCRN Tactical Setup
+
+[tools]
+node = "lts"
+python = "latest"
+go = "latest"
+java = "latest"
+dotnet = "latest"
+terraform = "latest"
+flyctl = "latest"
+gradle = "latest"
+uv = "latest"
+
+[settings]
+experimental = true
+jobs = 4

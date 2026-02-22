@@ -37,8 +37,16 @@ brew "git"                        # Version control (latest)
 brew "jq"                         # JSON processor (for scripts)
 cask "1password-cli"              # 1Password command-line interface (Cask)
 brew "direnv"                     # Directory-specific env vars
-brew "fnm"                        # Fast Node.js version manager
-brew "uv"                         # Fast Python package manager
+brew "mise"                       # Global toolchain manager (Node, Python, Go, Java, etc.)
+brew "ollama"                     # Optional daemon-based LLM, keeping for flexibility
+brew "llama.cpp"                  # llama-cli for real-time LLM ZLE widget
+
+# ============================================================================
+# TESTING TOOLS (Dotfiles Gates)
+# ============================================================================
+brew "bats-core"                  # Functional testing framework for bash
+brew "shellcheck"                 # Static analysis for bash scripts
+brew "shfmt"                      # Shell script formatter
 
 # ============================================================================
 # ADDITIONAL CLI TOOLS (From your installed apps)
