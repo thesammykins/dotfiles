@@ -79,8 +79,8 @@ fi
 echo "Please enter your git configuration:"
 echo ""
 
-read -p "Full Name: " git_name
-read -p "Email: " git_email
+read -r -p "Full Name: " git_name
+read -r -p "Email: " git_email
 
 if [[ -z "$git_name" || -z "$git_email" ]]; then
     log_error "Both name and email are required."

@@ -2,7 +2,7 @@
 # Print a random quote from the quotes cache
 set -euo pipefail
 
-DOTFILES="${DOTFILES:-$HOME/dotfiles-staging/.dotfiles}"
+DOTFILES="${DOTFILES:-$HOME/.dotfiles}"
 QUOTES_FILE="$DOTFILES/quotes/tech-quotes.json"
 FALLBACK="Technology is best when it brings people together. — Matt Mullenweg"
 
