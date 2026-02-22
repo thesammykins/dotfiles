@@ -2,7 +2,7 @@
 
 ## Repository Overview
 
-This is a macOS dotfiles repository. The source of truth is `~/dotfiles-staging`. It configures Ghostty, zsh, modern CLI tools, and AI-powered shell enhancements.
+This is a macOS dotfiles repository. The source of truth is `~/Development/dotfiles`. It configures Ghostty, zsh, modern CLI tools, and AI-powered shell enhancements.
 
 ## Build / Test / Lint Commands
 
@@ -12,22 +12,22 @@ This repository contains shell scripts and configuration files. There are no for
 
 ```bash
 # Check shell script syntax
-bash -n scripts/install.sh
-bash -n scripts/motd.sh
-bash -n scripts/setup-git.sh
-bash -n scripts/refresh-quotes.sh
+bash -n .dotfiles/scripts/install.sh
+bash -n .dotfiles/scripts/motd.sh
+bash -n .dotfiles/scripts/setup-git.sh
+bash -n .dotfiles/scripts/refresh-quotes.sh
 
 # Validate JSON
-jq empty quotes/tech-quotes.json
+jq empty .dotfiles/quotes/tech-quotes.json
 
 # Run shellcheck (if available)
-shellcheck scripts/*.sh
+shellcheck .dotfiles/scripts/*.sh
 ```
 
 ### Dotfiles Management
 
 ```bash
-# Use the dotfiles alias for git operations (staging repo)
+# Use the dotfiles alias for git operations
 dotfiles status
 dotfiles add <file>
 dotfiles commit -m "message"
@@ -37,14 +37,18 @@ dotfiles push
 dotfiles pull
 ```
 
-### Anti-Pattern: Bare Repo Worktree vs Staging Repo
+### Anti-Pattern: Bare Repo Worktree vs Staging Repo (Legacy)
 
 If you point the bare repo worktree at `~/dotfiles-staging` while that directory
 has its own `.git`, Git will report mass deletions because the index expects the
 bare repo layout, not the staging repo layout. This is noisy and misleading.
 
+Legacy path note: `~/dotfiles-staging` is no longer the source of truth.
+
+This repo now uses `~/Development/dotfiles` as the source of truth.
+
 **Do this instead:**
-- Use the staging repo's own Git with `git -C ~/dotfiles-staging ...`
+- Use the repo's own Git with `git -C ~/Development/dotfiles ...`
 - Or use the bare repo with `--work-tree=$HOME` (default)
 
 ## Code Style Guidelines
@@ -121,18 +125,16 @@ log_step() { echo -e "${BLUE}[STEP]${NC} $1"; }
 ## File Organization
 
 ```
-~/.dotfiles/
-├── scripts/           # Executable shell scripts
-│   ├── install.sh    # Bootstrap installer
-│   ├── motd.sh       # Daily message of the day
-│   ├── setup-git.sh  # Git configuration helper
-│   └── refresh-quotes.sh  # AI quote refresh
-├── quotes/           # Data files
-│   └── tech-quotes.json
-├── zsh/              # Zsh plugins
-│   └── plugins/
-├── Brewfile          # Homebrew dependencies
-└── .gitignore        # Excludes secrets and cache
+~/Development/dotfiles/
+├── .config/                 # App configs (ghostty, starship, mise)
+├── .dotfiles/
+│   ├── scripts/             # Bootstrap + helpers
+│   ├── quotes/              # Tech quotes cache
+│   ├── zsh/plugins/         # Zsh plugins (mcrn-ai)
+│   └── Brewfile             # Homebrew dependencies
+├── .tmux.conf
+├── .zshrc
+└── README.md
 ```
 
 ## Security Practices
@@ -145,19 +147,23 @@ log_step() { echo -e "${BLUE}[STEP]${NC} $1"; }
 
 ## Git Workflow
 
-This repo uses a **staging repo as source of truth**:
-- Repo path: `~/dotfiles-staging`
-- Scripts and quotes live under `~/dotfiles-staging/.dotfiles`
+This repo uses a **local repo as source of truth**:
+- Repo path: `~/Development/dotfiles`
+- Scripts and quotes live under `~/Development/dotfiles/.dotfiles`
 - Use `dotfiles` alias instead of `git`
 
-### Anti-Pattern: Bare Repo Worktree vs Staging Repo
+### Anti-Pattern: Bare Repo Worktree vs Staging Repo (Legacy)
 
 If you point the bare repo worktree at `~/dotfiles-staging` while that directory
 has its own `.git`, Git will report mass deletions because the index expects the
 bare repo layout, not the staging repo layout. This is noisy and misleading.
 
+Legacy path note: `~/dotfiles-staging` is no longer the source of truth.
+
+This repo now uses `~/Development/dotfiles` as the source of truth.
+
 **Do this instead:**
-- Use the staging repo's own Git with `git -C ~/dotfiles-staging ...`
+- Use the repo's own Git with `git -C ~/Development/dotfiles ...`
 - Or use the bare repo with `--work-tree=$HOME` (default)
 
 ## Dependencies
