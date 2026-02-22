@@ -187,23 +187,23 @@ setup_mcrn_ai() {
     log_step "Setting up MCRN Tactical AI (Local LLM)..."
 
     local llm_dir="$HOME/.cache/llm-models"
-    local llm_file="Qwen2.5-Coder-1.5B-Instruct-Q4_K_M.gguf"
-    local llm_url="https://huggingface.co/Qwen/Qwen2.5-Coder-1.5B-Instruct-GGUF/resolve/main/qwen2.5-coder-1.5b-instruct-q4_k_m.gguf"
+    local llm_file="Qwen2.5-Coder-3B-Instruct-Q4_K_M.gguf"
+    local llm_url="https://huggingface.co/bartowski/Qwen2.5-Coder-3B-Instruct-GGUF/resolve/main/Qwen2.5-Coder-3B-Instruct-Q4_K_M.gguf"
 
     mkdir -p "$llm_dir"
 
     if [[ ! -f "$llm_dir/$llm_file" ]]; then
-        log_info "Downloading Qwen2.5-Coder-1.5B model..."
+        log_info "Downloading Qwen2.5-Coder-3B model (approx 2GB)..."
         curl -L -o "$llm_dir/$llm_file" "$llm_url"
         log_info "Model downloaded successfully."
     else
         log_info "Model already exists at $llm_dir/$llm_file"
     fi
 
-    if command -v llama-cli &>/dev/null; then
-        log_info "llama-cli is ready."
+    if command -v llama-server &>/dev/null; then
+        log_info "llama-server is ready."
     else
-        log_warn "llama-cli not found. Ensure it was installed via Brewfile."
+        log_warn "llama-server not found. Ensure llama.cpp was installed via Brewfile."
     fi
 }
 
