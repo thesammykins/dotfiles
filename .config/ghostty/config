@@ -37,7 +37,7 @@ palette = 15=#ffffff
 cursor-style = block
 cursor-color = #ffd34e
 cursor-text = #000000
-cursor-blink = false
+cursor-style-blink = false
 
 # ============================================================================
 # WINDOW & AESTHETICS
@@ -45,7 +45,7 @@ cursor-blink = false
 # Mimic the glass displays of the bridge with blur
 window-padding-x = 12
 window-padding-y = 10
-window-decoration = false
+macos-titlebar-style = hidden
 background-opacity = 0.94
 background-blur-radius = 20
 unfocused-split-opacity = 0.85
@@ -65,7 +65,7 @@ font-thicken = true
 # ============================================================================
 # BEHAVIOR
 # ============================================================================
-scrollback-lines = 10000
+scrollback-limit = 10000000
 mouse-scroll-multiplier = 2
 
 # ============================================================================
