@@ -8,6 +8,15 @@ DOTFILES="${DOTFILES:-$HOME/dotfiles-staging/.dotfiles}"
 MOTD_FLAG="$DOTFILES/.last_motd"
 QUOTES_FILE="$DOTFILES/quotes/tech-quotes.json"
 
+# MCRN Hex Palette (24-bit ANSI RGB)
+PDC_AMBER="\033[38;2;255;211;78m"
+ALERT_RED="\033[38;2;255;41;41m"
+RUST_ORANGE="\033[38;2;176;76;42m"
+HOLOMAP="\033[38;2;117;51;26m"
+STARLIGHT="\033[38;2;234;234;234m"
+RESET="\033[0m"
+BOLD="\033[1m"
+
 # Check if we should show MOTD (once per 24 hours)
 show_motd() {
     if [[ ! -f "$MOTD_FLAG" ]]; then
@@ -41,25 +50,28 @@ main() {
         return 0
     fi
 
-    # MCRN Tactical OS Boot Header
-    echo -e "\033[38;2;255;211;78m[MCRN TACHI / ROCINANTE - TACTICAL TERMINAL v9.0.4]\033[0m"
-    echo -e "\033[38;2;176;76;42m[BOOT SEQUENCE COMPLETE]\033[0m"
-    echo ""
+    # MCRN Boot Sequence Handshake
+    echo -e "${HOLOMAP}┌──────────────────────────────────────────────────────────────┐${RESET}"
+    echo -e "${HOLOMAP}│${RESET} ${ALERT_RED}>> MCRN FLEET COMMAND SECURE LINK ESTABLISHED${RESET}            ${HOLOMAP}│${RESET}"
+    echo -e "${HOLOMAP}│${RESET} ${RUST_ORANGE}>> HANDSHAKE PROTOCOL: AUTHENTICATED${RESET}                     ${HOLOMAP}│${RESET}"
+    echo -e "${HOLOMAP}│${RESET} ${PDC_AMBER}>> INITIALIZING TACTICAL TERMINAL v9.0.4...${RESET}              ${HOLOMAP}│${RESET}"
+    echo -e "${HOLOMAP}└──────────────────────────────────────────────────────────────┘${RESET}\n"
 
     # System info with fastfetch (includes quote module)
     if command -v fastfetch &>/dev/null; then
         fastfetch --config ~/.config/fastfetch/config.jsonc 2>/dev/null || true
-    else
-        local quote
-        quote=$(get_quote)
-        echo "💬 $quote"
     fi
 
-    echo ""
-    echo "💡 Run \`~/dotfiles-staging/.dotfiles/scripts/refresh-quotes.sh\` weekly for fresh AI-generated quotes"
-    echo ""
+    # System Advisories
+    local quote
+    quote=$(get_quote)
+    echo -e "\n${HOLOMAP}▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰${RESET}"
+    echo -e "${ALERT_RED}[TACTICAL ADVISORY]${RESET} ${PDC_AMBER}${quote}${RESET}"
+    echo -e "${RUST_ORANGE}[SYSTEM DIRECTIVE]${RESET}  ${STARLIGHT}Run ${BOLD}dotfiles-refresh${RESET}${STARLIGHT} to sync orbital telemetry.${RESET}"
+    echo -e "${HOLOMAP}▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰${RESET}\n"
 
     # Update timestamp
+    mkdir -p "$(dirname "$MOTD_FLAG")"
     date +%s > "$MOTD_FLAG"
 }
 
