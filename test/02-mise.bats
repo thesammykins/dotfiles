@@ -1,7 +1,7 @@
 #!/usr/bin/env bats
 
 @test "mise config exists" {
-  run stat "$HOME/.config/mise/config.toml"
+  run stat "$HOME/Development/dotfiles/.config/mise/config.toml"
   [ "$status" -eq 0 ]
 }
 
