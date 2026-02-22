@@ -4,9 +4,8 @@
 
 set -e
 
-DOTFILES="${DOTFILES:-$HOME/dotfiles-staging/.dotfiles}"
+DOTFILES="${DOTFILES:-$HOME/.dotfiles}"
 MOTD_FLAG="$DOTFILES/.last_motd"
-QUOTES_FILE="$DOTFILES/quotes/tech-quotes.json"
 
 # MCRN Hex Palette (24-bit ANSI RGB)
 PDC_AMBER="\033[38;2;255;211;78m"
@@ -23,8 +22,10 @@ show_motd() {
         return 0
     fi
     
-    local last_run=$(cat "$MOTD_FLAG")
-    local now=$(date +%s)
+    local last_run
+    local now
+    last_run=$(cat "$MOTD_FLAG")
+    now=$(date +%s)
     local diff=$((now - last_run))
     
     # Show if more than 24 hours (86400 seconds)
