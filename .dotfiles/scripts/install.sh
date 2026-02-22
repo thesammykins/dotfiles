@@ -157,6 +157,12 @@ install_dependencies() {
 initialize_tools() {
     log_step "Initializing tools..."
     
+    # Initialize mise (Toolchain manager)
+    if command -v mise &>/dev/null; then
+        log_info "Setting up mise global toolchain..."
+        mise install
+    fi
+    
     # Initialize zoxide
     if command -v zoxide &>/dev/null; then
         log_info "zoxide ready"
@@ -172,6 +178,33 @@ initialize_tools() {
     chmod +x "$HOME/.dotfiles/scripts/"*.sh 2>/dev/null || true
     
     log_info "Tools initialized"
+}
+
+# ============================================================================
+# SETUP MCRN TACTICAL AI (Local LLM)
+# ============================================================================
+setup_mcrn_ai() {
+    log_step "Setting up MCRN Tactical AI (Local LLM)..."
+
+    local llm_dir="$HOME/.cache/llm-models"
+    local llm_file="Qwen2.5-Coder-1.5B-Instruct-Q4_K_M.gguf"
+    local llm_url="https://huggingface.co/Qwen/Qwen2.5-Coder-1.5B-Instruct-GGUF/resolve/main/qwen2.5-coder-1.5b-instruct-q4_k_m.gguf"
+
+    mkdir -p "$llm_dir"
+
+    if [[ ! -f "$llm_dir/$llm_file" ]]; then
+        log_info "Downloading Qwen2.5-Coder-1.5B model..."
+        curl -L -o "$llm_dir/$llm_file" "$llm_url"
+        log_info "Model downloaded successfully."
+    else
+        log_info "Model already exists at $llm_dir/$llm_file"
+    fi
+
+    if command -v llama-cli &>/dev/null; then
+        log_info "llama-cli is ready."
+    else
+        log_warn "llama-cli not found. Ensure it was installed via Brewfile."
+    fi
 }
 
 # ============================================================================
@@ -275,6 +308,7 @@ main() {
     install_homebrew
     setup_bare_repo
     install_dependencies
+    setup_mcrn_ai
     initialize_tools
     create_local_config
     check_1password
