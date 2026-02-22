@@ -1,0 +1,48 @@
+# AGENTS.md - MCRN AI PLUGIN
+
+## ROLE
+This plugin turns natural language into a single, raw zsh command. It is NOT a chat agent.
+
+## NON-NEGOTIABLES
+- OUTPUT MUST BE EXACTLY ONE COMMAND LINE. NO MARKDOWN. NO EXPLANATIONS. NO MULTILINE OUTPUT.
+- TOOLS ARE DISABLED BY DEFAULT. ONLY ENABLE WITH AN EXPLICIT ALLOWLIST.
+- SAFETY POLICY IN `policy.txt` IS REQUIRED INPUT TO SYSTEM PROMPT.
+- MODEL LOCK: COPILOT MUST USE `gpt-5-mini` ONLY.
+- LOCAL MODEL PATH: `$HOME/.cache/llm-models/qwen3-codersmall-q8_0.gguf`.
+- DO NOT ADD DESTRUCTIVE COMMANDS UNLESS USER EXPLICITLY REQUESTS THEM.
+
+## REQUIRED STYLE
+- MCRN TACTICAL VOICE: UPPERCASE LABELS, NO EMOJI, SHORT DIRECT SENTENCES.
+- FAST PATHS: NO EXTRA LATENCY, NO UNNECESSARY PIPELINES.
+- READ-ONLY DEFAULTS: PREFER LIST/INSPECT OVER MUTATE.
+
+## TOOL WIRING
+- TOOL DEFINITIONS LIVE IN `/.dotfiles/zsh/plugins/mcrn-ai/tools/`.
+- PRIMARY CONFIG: `/.dotfiles/zsh/plugins/mcrn-ai/config.json`.
+- ENV OVERRIDES: `MCRN_AI_TOOLS_ALLOWLIST`, `MCRN_AI_TOOLS_DEVOPS`.
+- OPTIONAL OVERRIDE PATH: `MCRN_AI_CONFIG_FILE`.
+
+## TOOLING RULES
+- USE `defineTool` + `createSession({ tools: [...] })` ALLOWLIST.
+- KEEP `hooks.onPreToolUse` DENY-BY-DEFAULT FOR NON-ALLOWLISTED TOOLS.
+- KEEP `systemMessage` IN APPEND MODE UNLESS YOU RE-IMPLEMENT ALL GUARDRAILS.
+- ENFORCE COMMAND-ONLY OUTPUT CLIENT-SIDE (REJECT MULTILINE/PROSE).
+- TOOL CONFIG LIVES IN `/.dotfiles/zsh/plugins/mcrn-ai/tools/`.
+
+## ANTI-PATTERNS
+- ENABLING TOOLS WITHOUT A SCOPED ALLOWLIST.
+- EXPANDING PATH SCOPE BEYOND `CWD` + `$HOME` WITHOUT EXPLICIT DOCS AND TESTS.
+- REPLACING SYSTEM PROMPT WITHOUT INCLUDING `policy.txt` AND OUTPUT RULES.
+- RETURNING TEXT, MARKDOWN, OR MULTIPLE COMMANDS.
+- ADDING EMOJI OR NON-MCRN STYLING.
+
+## DEBUGGING
+- SET `MCRN_AI_DEBUG=1` TO LOG TO `/tmp/mcrn-ai-debug.log`.
+
+## REFERENCES
+- POLICY: `/.dotfiles/zsh/plugins/mcrn-ai/policy.txt`
+- COPILOT HELPER: `/.dotfiles/zsh/plugins/mcrn-ai/copilot-helper.mjs`
+- LOCAL HELPER: `/.dotfiles/zsh/plugins/mcrn-ai/local-helper.sh`
+- TOOLS: `/.dotfiles/zsh/plugins/mcrn-ai/tools/index.mjs`
+- CONFIG: `/.dotfiles/zsh/plugins/mcrn-ai/config.json`
+- SCHEMA: `/.dotfiles/zsh/plugins/mcrn-ai/config.schema.json`
