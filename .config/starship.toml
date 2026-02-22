@@ -1,5 +1,5 @@
 # Starship Configuration - Rocinante Bridge Theme (The Expanse)
-# MCRN Tactical OS Prompt
+# MCRN Tactical OS Prompt (Warp-like)
 
 # ============================================================================
 # GENERAL SETTINGS
@@ -8,136 +8,127 @@ add_newline = true
 command_timeout = 500
 scan_timeout = 10
 
+[palettes.mcrn]
+carbon = "#1a0b0c"
+hull_breach = "#ff2929"
+drive_plume = "#b04c2a"
+warning = "#ffd34e"
+holomap = "#75331a"
+sensor_ghost = "#b04c2a"
+ice = "#ffd34e"
+starlight = "#eaeaea"
+
 # ============================================================================
-# FORMAT - Tactical Readout Style
+# FORMAT - Tactical Readout Style (Two-Line)
 # ============================================================================
 format = """
-$hostname$directory$git_branch$git_status$git_state$cmd_duration$line_break$character"""
+$directory$git_branch$git_status$cmd_duration$python$nodejs$rust$golang$ruby$java$kotlin$haskell$php$lua
+$character"""
 
-right_format = """
-$python$nodejs$rust$golang$ruby$java$kotlin$haskell$php$lua$time"""
+right_format = ""
 
 # ============================================================================
 # MODULES - MCRN Color Scheme
 # ============================================================================
 [character]
-success_symbol = "[►](bold #ffd34e)"
-error_symbol = "[✖](bold #ff2929)"
-vimcmd_symbol = "[◄](bold #ffd34e)"
+success_symbol = "[›](fg:warning)"
+error_symbol = "[›](fg:hull_breach)"
+vimcmd_symbol = "[«](fg:drive_plume)"
 
 [directory]
-truncation_length = 6
-truncation_symbol = ".../"
-format = "[DIR::$path]($style)[$read_only]($read_only_style) "
-style = "bold #b04c2a"
-read_only = "[LOCK]"
-read_only_style = "bold #ff2929"
+style = "fg:warning"
+format = "[$read_only]($read_only_style)[⬡ $path ]($style)"
+truncation_length = 3
+truncation_symbol = "…/"
+read_only = "🔒 "
+read_only_style = "fg:carbon"
 home_symbol = "~"
 truncate_to_repo = true
 
 [git_branch]
-symbol = "GIT::"
+symbol = " "
+style = "fg:holomap"
 format = "[$symbol$branch]($style) "
-style = "bold #ffd34e"
 truncation_length = 20
 truncation_symbol = "..."
 
 [git_status]
+style = "fg:sensor_ghost"
 format = '([$all_status$ahead_behind]($style) )'
-style = "bold #b04c2a"
-conflicted = "​"
-ahead = "​${count}"
-behind = "​${count}"
-diverged = "​"
-untracked = "​${count}"
-stashed = "​"
-modified = "​${count}"
-staged = "​${count}"
-renamed = "​"
-deleted = "​"
+conflicted = " [!](fg:hull_breach)"
+ahead = " [↑](fg:sensor_ghost)"
+behind = " [↓](fg:sensor_ghost)"
+diverged = " [⇕](fg:sensor_ghost)"
+untracked = " [•](fg:warning)"
+stashed = " [*](fg:holomap)"
+modified = " [Δ](fg:hull_breach)"
+staged = " [+](fg:drive_plume)"
+renamed = " [»](fg:sensor_ghost)"
+deleted = " [✘](fg:hull_breach)"
 up_to_date = ""
 
-[git_state]
-format = '[($state( $progress_current/$progress_total))]($style) '
-style = "bold #b04c2a"
-cherry_pick = "CHERRY_PICK"
-rebase = "REBASING"
-merge = "MERGING"
-revert = "REVERTING"
-bisect = "BISECTING"
-am = "AM"
-
 [cmd_duration]
-min_time = 2000
-format = "ELAPSED[$duration]($style) "
-style = "bold #75331a"
+min_time = 1000
+format = "[T+ $duration ](fg:ice)"
+show_milliseconds = false
 show_notifications = false
 
-[line_break]
-disabled = false
-
-[time]
-disabled = false
-format = "TIME[$time]($style) "
-time_format = "%H:%M"
-style = "dimmed #75331a"
-
 # ============================================================================
-# LANGUAGE MODULES - Right Side (Status Colors)
+# LANGUAGE MODULES - Subsystems
 # ============================================================================
 [python]
-symbol = "PY::"
-format = '[${symbol}${pyenv_prefix}(${version} )(\($virtualenv\) )]($style)'
-style = "bold #ffd34e"
+symbol = "󰌠 "
+style = "fg:sensor_ghost"
+format = "[$symbol]($style)"
 pyenv_version_name = true
 pyenv_prefix = ""
 detect_files = ["*.py", "pyproject.toml", "requirements.txt", "Pipfile", "setup.py"]
 
 [nodejs]
-symbol = "NODE::"
-format = '[${symbol}(${version} )]($style)'
-style = "bold #b04c2a"
+symbol = "󰎙 "
+style = "fg:drive_plume"
+format = "[$symbol]($style)"
 detect_files = ["package.json", ".node-version", ".nvmrc"]
 
 [rust]
-symbol = "RS::"
-format = '[${symbol}(${version} )]($style)'
-style = "bold #ff2929"
+symbol = "󱘗 "
+style = "fg:hull_breach"
+format = "[$symbol]($style)"
 
 [golang]
-symbol = "GO::"
-format = '[${symbol}(${version} )]($style)'
-style = "bold #ffd34e"
+symbol = "󰟓 "
+style = "fg:ice"
+format = "[$symbol]($style)"
 
 [ruby]
-symbol = "RB::"
-format = '[${symbol}(${version} )]($style)'
-style = "bold #ff2929"
+symbol = "💎 "
+style = "fg:sensor_ghost"
+format = "[$symbol]($style)"
 
 [java]
-symbol = "JAVA::"
-format = '[${symbol}(${version} )]($style)'
-style = "bold #ff2929"
+symbol = "☕ "
+style = "fg:warning"
+format = "[$symbol]($style)"
 
 [kotlin]
-symbol = "KT::"
-format = '[${symbol}(${version} )]($style)'
-style = "bold #b04c2a"
+symbol = "󰌋 "
+style = "fg:holomap"
+format = "[$symbol]($style)"
 
 [haskell]
-symbol = "HS::"
-format = '[${symbol}(${version} )]($style)'
-style = "bold #75331a"
+symbol = "λ "
+style = "fg:holomap"
+format = "[$symbol]($style)"
 
 [php]
-symbol = "PHP::"
-format = '[${symbol}(${version} )]($style)'
-style = "bold #75331a"
+symbol = "󰌟 "
+style = "fg:warning"
+format = "[$symbol]($style)"
 
 [lua]
-symbol = "LUA::"
-format = '[${symbol}(${version} )]($style)'
-style = "bold #b04c2a"
+symbol = "󰢱 "
+style = "fg:drive_plume"
+format = "[$symbol]($style)"
 
 # ============================================================================
 # DISABLED MODULES
@@ -146,10 +137,7 @@ style = "bold #b04c2a"
 disabled = true
 
 [hostname]
-disabled = false
-ssh_only = false
-format = "[SYS::$hostname]($style) "
-style = "bold #ffd34e"
+disabled = true
 
 [container]
 disabled = true

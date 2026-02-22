@@ -25,7 +25,7 @@ if command -v nvim &>/dev/null; then
 fi
 
 # Dotfiles location
-export DOTFILES="$HOME/dotfiles-staging/.dotfiles"
+export DOTFILES="$HOME/Development/dotfiles"
 
 # ============================================================================
 # HISTORY CONFIGURATION
@@ -172,7 +172,7 @@ fi
 # ============================================================================
 # DOTFILES ALIAS
 # ============================================================================
-alias dotfiles='git -C "$HOME/dotfiles-staging"'
+alias dotfiles='git -C "$HOME/Development/dotfiles"'
 # peon-ping quick controls
-alias peon="bash /Users/sammykins/.claude/hooks/peon-ping/peon.sh"
-[ -f /Users/sammykins/.claude/hooks/peon-ping/completions.bash ] && source /Users/sammykins/.claude/hooks/peon-ping/completions.bash
+alias peon="bash $HOME/.claude/hooks/peon-ping/peon.sh"
+[ -f $HOME/.claude/hooks/peon-ping/completions.bash ] && source $HOME/.claude/hooks/peon-ping/completions.bash
