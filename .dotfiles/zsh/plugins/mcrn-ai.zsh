@@ -4,11 +4,11 @@
 # MCRN Tactical Display - Real-Time AI ZLE Widget
 # Generates shell commands from natural language without leaving the prompt.
 # Engine: llama-server (llama.cpp)
-# Model: Qwen2.5-Coder-3B-Instruct-Q4_K_M.gguf
+# Model: qwen3-codersmall-q8_0.gguf
 
 # Model configuration variables
 export MCRN_LLM_DIR="${MCRN_LLM_DIR:-$HOME/.cache/llm-models}"
-export MCRN_LLM_FILE="${MCRN_LLM_FILE:-Qwen2.5-Coder-3B-Instruct-Q4_K_M.gguf}"
+export MCRN_LLM_FILE="${MCRN_LLM_FILE:-qwen3-codersmall-q8_0.gguf}"
 export MCRN_LLM_MODEL="$MCRN_LLM_DIR/$MCRN_LLM_FILE"
 export MCRN_LLM_PORT="${MCRN_LLM_PORT:-8080}"
 export MCRN_LLM_LOG="${MCRN_LLM_LOG:-/tmp/mcrn-llama-server.log}"

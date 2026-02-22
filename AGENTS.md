@@ -22,7 +22,7 @@ This dotfiles repository is themed around **The Expanse / MCRN Tactical Display*
 
 ### MCRN Tactical AI (Local LLM ZLE Widget)
 - **Engine**: `llama-server` (llama.cpp) for structured JSON schema inference.
-- **Model**: `Qwen2.5-Coder-3B-Instruct-Q4_K_M.gguf` stored in `~/.cache/llm-models/`.
+- **Model**: `qwen3-codersmall-q8_0.gguf` stored in `~/.cache/llm-models/`.
 - **Execution**: The widget is bound to `Ctrl+G`. It auto-starts `llama-server` in the background (if not running) with max GPU offload and queries the `/v1/chat/completions` endpoint enforcing a JSON schema. It replaces the buffer with a single parsed bash command. Hitting `Ctrl+G` on an empty buffer retries the last query.
 
 ### Toolchain Mandate (Mise vs Homebrew)

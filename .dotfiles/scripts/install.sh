@@ -187,13 +187,13 @@ setup_mcrn_ai() {
     log_step "Setting up MCRN Tactical AI (Local LLM)..."
 
     local llm_dir="$HOME/.cache/llm-models"
-    local llm_file="Qwen2.5-Coder-3B-Instruct-Q4_K_M.gguf"
-    local llm_url="https://huggingface.co/bartowski/Qwen2.5-Coder-3B-Instruct-GGUF/resolve/main/Qwen2.5-Coder-3B-Instruct-Q4_K_M.gguf"
+    local llm_file="qwen3-codersmall-q8_0.gguf"
+    local llm_url="https://huggingface.co/echos-keeper/Qwen3-CoderSmall-Q8_0-GGUF/resolve/main/qwen3-codersmall-q8_0.gguf"
 
     mkdir -p "$llm_dir"
 
     if [[ ! -f "$llm_dir/$llm_file" ]]; then
-        log_info "Downloading Qwen2.5-Coder-3B model (approx 2GB)..."
+        log_info "Downloading Qwen3-CoderSmall model (approx 767MB)..."
         curl -L -o "$llm_dir/$llm_file" "$llm_url"
         log_info "Model downloaded successfully."
     else
