@@ -1,0 +1,11 @@
+{
+  "tools": {
+    "allowlist": [],
+    "devopsEnabled": false
+  },
+  "limits": {
+    "maxOutputBytes": 200000,
+    "maxFileBytes": 1000000,
+    "toolTimeoutMs": 4000
+  }
+}
