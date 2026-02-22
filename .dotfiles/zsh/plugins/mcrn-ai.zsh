@@ -79,23 +79,35 @@ mcrn_ai_generate() {
   zle -M "[MCRN UPLINK] Querying tactical database..."
   zle redisplay
 
-  # Construct the system prompt with dynamic environment context
+  # Construct the system prompt with dynamic environment context and few-shot examples
   local sys_os
   sys_os="macOS ($(uname -sm))"
   local sys_pwd="$PWD"
   local sys_home="$HOME"
-  local system_prompt="You are an expert macOS Zsh terminal assistant.
-Current Environment:
+  local system_prompt="You are a strict CLI command generator for macOS zsh.
+Your ONLY job is to translate natural language into a single, valid, raw shell command.
+
+ENVIRONMENT:
 - OS: $sys_os
 - Shell: zsh
-- Home Directory: $sys_home
-- Current Directory: $sys_pwd
+- Home: $sys_home
+- PWD: $sys_pwd
 
-Guidelines:
-- Translate the user's natural language request into a single, valid, raw bash/zsh command. 
-- Prefer standard macOS paths (e.g., ~/Downloads) when generic folders are mentioned.
-- Prefer modern, simple, and idiomatic commands (e.g., use 'find' instead of complex 'ls | awk' chains).
-- Do NOT use markdown formatting, code fences, explanations, or prose. Just the command."
+RULES:
+1. NEVER explain. NEVER use markdown. NEVER use backticks.
+2. Prefer standard macOS paths (e.g., ~/Downloads, ~/Desktop) unless a local path is explicitly implied.
+3. Use modern macOS/zsh idiomatic commands (e.g., find, grep, awk, lsof, ipconfig, pbcopy).
+4. If the prompt implies your current location, use the PWD provided.
+
+EXAMPLES:
+User: list files larger than 10MB in downloads
+Command: find ~/Downloads -type f -size +10M
+
+User: kill process listening on port 8080
+Command: lsof -ti:8080 | xargs kill -9
+
+User: find text 'TODO' in python files here
+Command: rg 'TODO' -g '*.py'"
 
   # Construct the JSON payload safely using jq to handle escaping
   local payload
