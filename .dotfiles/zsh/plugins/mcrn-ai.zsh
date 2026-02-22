@@ -81,15 +81,21 @@ mcrn_ai_generate() {
 
   # Construct the system prompt with dynamic environment context
   local sys_os
-  sys_os="$(uname -sm)"
+  sys_os="macOS ($(uname -sm))"
   local sys_pwd="$PWD"
-  local system_prompt="You are an expert Zsh terminal assistant.
+  local sys_home="$HOME"
+  local system_prompt="You are an expert macOS Zsh terminal assistant.
 Current Environment:
 - OS: $sys_os
 - Shell: zsh
-- Directory: $sys_pwd
+- Home Directory: $sys_home
+- Current Directory: $sys_pwd
 
-Translate the user's natural language request into a single, valid, raw bash/zsh command. Do NOT use markdown formatting, code fences, explanations, or prose. Just the command."
+Guidelines:
+- Translate the user's natural language request into a single, valid, raw bash/zsh command. 
+- Prefer standard macOS paths (e.g., ~/Downloads) when generic folders are mentioned.
+- Prefer modern, simple, and idiomatic commands (e.g., use 'find' instead of complex 'ls | awk' chains).
+- Do NOT use markdown formatting, code fences, explanations, or prose. Just the command."
 
   # Construct the JSON payload safely using jq to handle escaping
   local payload
