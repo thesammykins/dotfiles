@@ -52,8 +52,8 @@ unfocused-split-opacity = 0.85
 # ============================================================================
 # TYPOGRAPHY
 # ============================================================================
-# Space Mono Nerd Font for that technical, squared-off spaceship feel with icons
-font-family = "SpaceMono Nerd Font"
+# TX-02 Nerd Font for that technical, squared-off spaceship feel with icons
+font-family = "TX02 Nerd Font"
 font-size = 13
 font-thicken = true
 

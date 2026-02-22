@@ -17,6 +17,6 @@ setup() {
 }
 
 @test "Ghostty uses MCRN aesthetic" {
-  run grep -E "^font-family = \"SpaceMono Nerd Font\"" "$HOME_DIR/.config/ghostty/config"
+  run grep -E "^font-family = \"TX02 Nerd Font\"" "$HOME_DIR/.config/ghostty/config"
   [ "$status" -eq 0 ]
 }

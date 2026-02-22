@@ -7,7 +7,7 @@ This dotfiles repository is themed around **The Expanse / MCRN Tactical Display*
 ### MCRN Aesthetic
 - **Visual Identity**: Void black (`#1a0b0c`) background with PDC Amber (`#ffd34e`) foreground
 - **Design Language**: Utilitarian, label-based interface inspired by Rocinante bridge displays
-- **Typography**: Space Mono Nerd Font for a technical, squared-off feel with icon support
+- **Typography**: TX-02 Nerd Font for a technical, squared-off feel with icon support (Fallback: SpaceMono Nerd Font)
 - **Vibe**: Warm, high-contrast, militaristic precision
 
 ### Warp-like Workflow
@@ -19,6 +19,15 @@ This dotfiles repository is themed around **The Expanse / MCRN Tactical Display*
 - **Fast startup**: Shell must initialize instantly
 - **Minimal overhead**: Use native shell features over external scripts when possible
 - **Efficient tools**: Rust-based CLI stack (eza, bat, ripgrep, fd, dust) for speed
+
+### MCRN Tactical AI (Local LLM ZLE Widget)
+- **Engine**: `llama-server` (llama.cpp) for structured JSON schema inference.
+- **Model**: `Qwen2.5-Coder-1.5B-Instruct-Q4_K_M.gguf` stored in `~/.cache/llm-models/`.
+- **Execution**: The widget is bound to `Ctrl+G`. It auto-starts `llama-server` in the background (if not running) with max GPU offload and queries the `/v1/chat/completions` endpoint enforcing a JSON schema. It replaces the buffer with a single parsed bash command. Hitting `Ctrl+G` on an empty buffer retries the last query.
+
+### Toolchain Mandate (Mise vs Homebrew)
+- **Homebrew**: Restricted to system tools (e.g., `git`, `jq`, `tmux`) and GUI Casks (e.g., `ghostty`, `zed`).
+- **Mise**: Global toolchain manager for all developer runtimes (`node`, `python`, `go`, `java`, etc.). Configured in `~/.config/mise/config.toml`.
 
 ---
 
@@ -37,7 +46,7 @@ foreground = #ffd34e
 unfocused-split-opacity = 0.85
 shell-integration = detect
 shell-integration-features = cursor,sudo,title
-font-family = "SpaceMono Nerd Font"
+font-family = "TX02 Nerd Font"
 ```
 
 **Behavior Rules**:
