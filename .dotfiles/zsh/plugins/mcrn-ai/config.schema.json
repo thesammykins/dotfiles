@@ -1,0 +1,55 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "MCRN AI Tooling Config",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "tools": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "allowlist": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": []
+        },
+        "devopsEnabled": {
+          "type": "boolean",
+          "default": false
+        }
+      },
+      "default": {
+        "allowlist": [],
+        "devopsEnabled": false
+      }
+    },
+    "limits": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "maxOutputBytes": {
+          "type": "integer",
+          "minimum": 1024,
+          "default": 200000
+        },
+        "maxFileBytes": {
+          "type": "integer",
+          "minimum": 1024,
+          "default": 1000000
+        },
+        "toolTimeoutMs": {
+          "type": "integer",
+          "minimum": 250,
+          "default": 4000
+        }
+      },
+      "default": {
+        "maxOutputBytes": 200000,
+        "maxFileBytes": 1000000,
+        "toolTimeoutMs": 4000
+      }
+    }
+  }
+}
