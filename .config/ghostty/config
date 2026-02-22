@@ -45,7 +45,7 @@ cursor-style-blink = false
 # Mimic the glass displays of the bridge with blur
 window-padding-x = 12
 window-padding-y = 10
-macos-titlebar-style = hidden
+macos-titlebar-style = native
 background-opacity = 0.94
 background-blur-radius = 20
 unfocused-split-opacity = 0.85
