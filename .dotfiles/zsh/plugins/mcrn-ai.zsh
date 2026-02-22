@@ -79,14 +79,29 @@ mcrn_ai_generate() {
   zle -M "[MCRN UPLINK] Querying tactical database..."
   zle redisplay
 
+  # Construct the system prompt with dynamic environment context
+  local sys_os
+  sys_os="$(uname -sm)"
+  local sys_pwd="$PWD"
+  local system_prompt="You are an expert Zsh terminal assistant.
+Current Environment:
+- OS: $sys_os
+- Shell: zsh
+- Directory: $sys_pwd
+
+Translate the user's natural language request into a single, valid, raw bash/zsh command. Do NOT use markdown formatting, code fences, explanations, or prose. Just the command."
+
   # Construct the JSON payload safely using jq to handle escaping
   local payload
-  payload=$(jq -n --arg user_input "$user_input" '{
+  payload=$(jq -n \
+    --arg system_prompt "$system_prompt" \
+    --arg user_input "$user_input" \
+    '{
     model: "qwen",
     messages: [
       {
         role: "system",
-        content: "You are an expert Zsh terminal assistant. Translate the user'\''s natural language request into a single, valid, raw bash/zsh command. Do NOT use markdown formatting, code fences, explanations, or prose. Just the command."
+        content: $system_prompt
       },
       {
         role: "user",
