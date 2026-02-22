@@ -1,333 +1,73 @@
-# Dotfiles - 2026 Ready Terminal Setup
+# DOTFILES - MCRN TACTICAL TERMINAL
 
-A modern, portable terminal configuration featuring Ghostty, Catppuccin theme, zsh with AI integration, and a curated stack of 2026-ready CLI tools.
-The source of truth for all changes is `~/dotfiles-staging`.
+MCRN-THEMED DOTFILES FOR GHOSTTY + ZSH + MODERN CLI TOOLING. BUILT FOR MACOS.
 
-![Ghostty Terminal](https://user-images.githubusercontent.com/your-username/ghostty-screenshot.png)
+## HIGHLIGHTS
+- GHOSTTY WITH MCRN PALETTE AND WARP-LIKE WORKFLOW
+- ZSH WITH FAST COMPLETIONS + MODERN CLI STACK
+- MCRN AI ZLE WIDGET (CTRL+G) WITH COPILOT PRIMARY + LOCAL FALLBACK
+- REPRODUCIBLE TOOLCHAIN VIA MISE + HOMEBREW
 
-## ✨ Features
-
-- **Ghostty** - Modern GPU-accelerated terminal with Catppuccin Mocha theme
-- **zsh** - Enhanced with autosuggestions, syntax highlighting, and AI-powered command generation
-- **Modern CLI Stack** - eza, bat, ripgrep, fd, btop, dust (all Rust-based, blazing fast)
-- **Smart Navigation** - zoxide learns your habits for instant directory jumping
-- **AI Integration** - zsh-ask-opencode for natural language → shell commands (Ctrl+O)
-- **Daily MOTD** - System info via Fastfetch + curated tech quotes
-- **Weekly AI Quotes** - Refresh your quote cache with GPT-5 mini generated quotes
-- **1Password Integration** - CLI support for secure secret management
-- **Source of Truth Repo** - All changes committed in `~/dotfiles-staging`
-
-## 🚀 Quick Start
-
-### Prerequisites
-
-- macOS 12+ (Monterey or later)
-- Internet connection for initial setup
-- GitHub account (for git configuration)
-
-### One-Command Install
-
+## QUICK START (THIS MAC)
 ```bash
-# Clone the source-of-truth repo
-git clone https://github.com/sammykins/dotfiles.git ~/dotfiles-staging
-
-# Define the alias in current shell scope
-alias dotfiles='git -C "$HOME/dotfiles-staging"'
-
-# Run the bootstrap script
-~/dotfiles-staging/.dotfiles/scripts/install.sh
+git clone https://github.com/sammykins/dotfiles.git "$HOME/Development/dotfiles"
+alias dotfiles='git -C "$HOME/Development/dotfiles"'
+"$HOME/Development/dotfiles/.dotfiles/scripts/install.sh"
 ```
 
-### Post-Install Setup
+## SETUP DETAILS
+- THE INSTALLER LINKS `~/.dotfiles` TO THE REPO'S `.dotfiles/` DIRECTORY.
+- ZSH SOURCES `~/.zshrc`, WHICH LOADS THE MCRN AI WIDGET.
 
-After the bootstrap completes:
-
+## QUICK START (NEW MAC)
 ```bash
-# 1. Restart your terminal
+git clone https://github.com/sammykins/dotfiles.git "$HOME/Development/dotfiles"
+alias dotfiles='git -C "$HOME/Development/dotfiles"'
+"$HOME/Development/dotfiles/.dotfiles/scripts/install.sh"
 exec zsh
-
-# 2. Configure Git
-gh auth login
-~/dotfiles-staging/.dotfiles/scripts/setup-git.sh
-
-# 3. Set up 1Password (optional)
-op account add
-
-# 4. Refresh your quotes (weekly)
-~/dotfiles-staging/.dotfiles/scripts/refresh-quotes.sh
 ```
 
-## 🎮 Usage
+## MIGRATION NOTES (WARP -> GHOSTTY)
+- WARP IS NOT REMOVED. SETTINGS MIGRATION IS MANUAL.
+- BACKUPS ARE CREATED UNDER `$HOME/.dotfiles.backup/`.
+- OPTIONAL ICLOUD BACKUP: `DOTFILES_CLOUD_BACKUP=1`.
+- SAFE LINKING DEFAULT: EXISTING FILES ARE NOT OVERWRITTEN.
 
-### AI Command Generation (Ctrl+O)
+## OPTIONAL FLAGS
+- SKIP MODEL DOWNLOAD: `SKIP_MODEL_DOWNLOAD=1` (AVOID 767MB DOWNLOAD)
+- CUSTOM WORKTREE: `DOTFILES_WORKTREE=/path/to/dotfiles`
+- LINK MODE: `DOTFILES_LINK_MODE=safe|force` (DEFAULT: SAFE)
+- ICLOUD BACKUP: `DOTFILES_CLOUD_BACKUP=1`
 
-Press `Ctrl+O` and type what you want in natural language:
+## REQUIRED LOCATIONS
+- REPO: `$HOME/Development/dotfiles`
+- DOTFILES ROOT (ACTIVE): `$HOME/.dotfiles`
 
+## AI COMMAND GENERATION
+PRESS `CTRL+G` AND TYPE A NATURAL LANGUAGE REQUEST. THE BUFFER REPLACES WITH A SINGLE COMMAND.
+
+## MCRN AI TOOL CONFIG
+- CONFIG: `$HOME/.dotfiles/zsh/plugins/mcrn-ai/config.json`
+- SCHEMA: `$HOME/.dotfiles/zsh/plugins/mcrn-ai/config.schema.json`
+- TOOLS: `$HOME/.dotfiles/zsh/plugins/mcrn-ai/tools/index.mjs`
+
+## TESTS
 ```bash
-# Type this:
-find all files modified in the last 3 days
-
-# Press Ctrl+O → AI generates:
-find . -type f -mtime -3
+bats "$HOME/Development/dotfiles/test/"*.bats
 ```
 
-### Smart Directory Navigation (zoxide)
-
+## UPDATES
 ```bash
-# Jump to frequently used directories
-z proj          # Jumps to ~/Projects (learns from your habits)
-z dow           # Jumps to ~/Downloads
-zi              # Interactive selection with fzf
-
-# Traditional cd also works (zoxide is aliased as cd)
-cd ~/Documents  # Works as expected, but also learns the path
-```
-
-### Modern CLI Aliases
-
-| Traditional | Modern | Description |
-|------------|---------|-------------|
-| `ls` | `eza` | Icons, git status, colors |
-| `cat` | `bat` | Syntax highlighting, pager |
-| `grep` | `rg` | 10x faster, respects .gitignore |
-| `find` | `fd` | Intuitive syntax, fast |
-| `top` | `btop` | Beautiful TUI, mouse support |
-| `du` | `dust` | Tree view, intuitive sizes |
-
-### Daily MOTD
-
-Every 24 hours, you'll see:
-- System information (via Fastfetch)
-- A random tech quote
-- Tip to refresh quotes weekly
-
-### Tmux Shortcuts
-
-Prefix key: `Ctrl+A` (screen-style)
-
-| Shortcut | Action |
-|----------|--------|
-| `Ctrl+A c` | New window |
-| `Ctrl+A n/p` | Next/previous window |
-| `Ctrl+A \|` | Split vertical |
-| `Ctrl+A -` | Split horizontal |
-| `Ctrl+A h/j/k/l` | Navigate panes |
-| `Ctrl+A r` | Reload config |
-
-## 📁 Structure
-
-```
-~/dotfiles-staging/              # Source-of-truth git repo
-├── Library/Application Support/ghostty/config   # Ghostty configuration
-├── .zshrc                       # Main shell configuration
-├── .zprofile                    # Login shell configuration
-├── .tmux.conf                   # Tmux configuration
-├── .config/starship.toml        # Prompt configuration
-├── .dotfiles/
-│   ├── scripts/
-│   │   ├── install.sh          # Bootstrap script
-│   │   ├── setup-git.sh        # Git configuration helper
-│   │   ├── motd.sh             # Daily message of the day
-│   │   └── refresh-quotes.sh   # Weekly AI quote refresh
-│   ├── quotes/
-│   │   └── tech-quotes.json    # Curated tech quotes (50+)
-├── Brewfile                     # Homebrew dependencies
-└── README.md                    # This file
-```
-
-## 🔧 Managing Your Dotfiles
-
-### Using the `dotfiles` alias
-
-```bash
-# Check status
-dotfiles status
-
-# Add a modified file
-dotfiles add .zshrc
-dotfiles commit -m "Update zsh config"
-dotfiles push
-
-# Pull updates
 dotfiles pull
-```
-
-### Adding New Files
-
-```bash
-# 1. Move file into the repo
-cp ~/some-config ~/dotfiles-staging/.myconfig
-
-# 2. Add to dotfiles tracking
-dotfiles add .myconfig
-dotfiles commit -m "Add myconfig"
-dotfiles push
-```
-
-### Local Overrides
-
-Edit `~/.zshrc.local` for machine-specific settings. This file is gitignored.
-
-```bash
-# ~/.zshrc.local
-export MY_WORK_API_KEY="..."
-alias work="cd ~/Work/project"
-```
-
-## 🔐 Secrets & 1Password
-
-### Option 1: Environment Variables (Recommended for Projects)
-
-Use 1Password Environments to mount `.env` files:
-
-```bash
-# In 1Password Desktop app
-# 1. Create Environment for your project
-# 2. Add secrets
-# 3. Configure local .env file destination
-```
-
-### Option 2: Secret References
-
-Use `op://` URLs in your scripts:
-
-```bash
-export API_KEY=$(op read "op://vault/item/field")
-```
-
-### Option 3: 1Password CLI in Scripts
-
-```bash
-op run --env-file=.env -- ./your-script.sh
-```
-
-## 🛠️ Troubleshooting
-
-### Shell startup is slow
-
-Measure startup time:
-```bash
-time zsh -i -c exit
-```
-
-If > 300ms, profile with:
-```bash
-zmodload zsh/zprof
-# ... restart shell ...
-zprof
-```
-
-### AI command generation not working
-
-1. Ensure opencode is installed: `which opencode`
-2. Check opencode is configured: `opencode config get model`
-3. Verify zsh-ask-opencode is loaded: `bindkey '^O'`
-
-### Quotes not showing
-
-1. Check jq is installed: `brew install jq`
-2. Verify quotes file exists: `ls ~/dotfiles-staging/.dotfiles/quotes/tech-quotes.json`
-3. Run MOTD manually: `~/dotfiles-staging/.dotfiles/scripts/motd.sh`
-
-### Git configuration issues
-
-Run the setup script manually:
-```bash
-~/dotfiles-staging/.dotfiles/scripts/setup-git.sh
-```
-
-### Homebrew not found
-
-If Homebrew isn't in your PATH after install:
-```bash
-# For Apple Silicon
-echo 'eval "$(/opt/homebrew/bin/brew shellenv)"' >> ~/.zprofile
-eval "$(/opt/homebrew/bin/brew shellenv)"
-
-# For Intel
-echo 'eval "$(/usr/local/bin/brew shellenv)"' >> ~/.zprofile
-eval "$(/usr/local/bin/brew shellenv)"
-```
-
-## 🔄 Keeping Updated
-
-```bash
-# Update dotfiles
-dotfiles pull
-
-# Update Homebrew packages
 brew update && brew upgrade
-
-# Update zsh plugins (if using git submodules)
-# cd ~/.zsh/plugins && git pull
-
-# Refresh AI quotes (weekly)
-~/dotfiles-staging/.dotfiles/scripts/refresh-quotes.sh
 ```
 
-## 📝 Customization
+## TROUBLESHOOTING
+- GHOSTTY CONFIG: `$HOME/.config/ghostty/config`
+- MISE CONFIG: `$HOME/.config/mise/config.toml`
+- ZSH: `$HOME/.zshrc`
+- MCRN AI DEBUG LOG: `/tmp/mcrn-ai-debug.log`
 
-### Change Tmux Prefix
-
-Edit `~/.tmux.conf`:
-```conf
-# Change from Ctrl+A to Ctrl+B (default)
-unbind C-a
-set -g prefix C-b
-bind C-b send-prefix
-```
-
-### Modify Starship Prompt
-
-Edit `~/.config/starship.toml`:
-```toml
-[character]
-success_symbol = "[>](bold green)"
-error_symbol = "[>](bold red)"
-```
-
-### Add More Quotes
-
-Edit `~/dotfiles-staging/.dotfiles/quotes/tech-quotes.json`:
-```json
-{
-  "quote": "Your custom quote here",
-  "author": "Your Name"
-}
-```
-
-## 🎯 2026 Tool Stack
-
-| Category | Tool | Why |
-|----------|------|-----|
-| Terminal | Ghostty | GPU-accelerated, native macOS, Catppuccin |
-| Shell | zsh | Default on macOS, rich ecosystem |
-| Prompt | Starship | Fast, customizable, cross-platform |
-| AI | zsh-ask-opencode | Natural language → shell commands |
-| CD | zoxide | Learns your habits, frecency algorithm |
-| LS | eza | Icons, git integration, tree view |
-| Cat | bat | Syntax highlighting, pager |
-| Grep | ripgrep | 10x faster, respects .gitignore |
-| Find | fd | Intuitive, fast, colorful |
-| Top | btop | Beautiful TUI, mouse support |
-| Du | dust | Tree view, intuitive |
-| Diff | delta | Syntax-highlighted git diffs |
-| Node | fnm | Fast Node version manager |
-| Python | uv | Ultra-fast pip replacement |
-
-## 📜 License
-
-MIT - Do whatever you want with this setup!
-
-## 🙏 Credits
-
-- [Ghostty](https://ghostty.org/) by Mitchell Hashimoto
-- [Catppuccin](https://catppuccin.com/) theme
-- [zsh-ask-opencode](https://github.com/andreacasarin/zsh-ask-opencode) by Andrea Casarin
-- All the amazing Rust CLI tool authors
-
-## 💬 Questions?
-
-- [Open an issue](https://github.com/sammykins/dotfiles/issues)
-- Check the [Ghostty docs](https://ghostty.org/docs)
-- Join the [zoxide discussions](https://github.com/ajeetdsouza/zoxide/discussions)
+## CREDITS
+- GHOSTTY: https://ghostty.org/
+- MCRN THEME GUIDE: `.dotfiles/docs/expanse-mcrn-theme.md`
