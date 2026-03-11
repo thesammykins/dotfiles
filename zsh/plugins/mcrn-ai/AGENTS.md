@@ -8,7 +8,6 @@ This plugin turns natural language into a single, raw zsh command. It is NOT a c
 - TOOLS ARE DISABLED BY DEFAULT. ONLY ENABLE WITH AN EXPLICIT ALLOWLIST.
 - SAFETY POLICY IN `policy.txt` IS REQUIRED INPUT TO SYSTEM PROMPT.
 - MODEL LOCK: COPILOT MUST USE `gpt-5-mini` ONLY.
-- LOCAL MODEL PATH: `$HOME/.cache/llm-models/qwen3-codersmall-q8_0.gguf`.
 - DO NOT ADD DESTRUCTIVE COMMANDS UNLESS USER EXPLICITLY REQUESTS THEM.
 
 ## REQUIRED STYLE
@@ -17,8 +16,8 @@ This plugin turns natural language into a single, raw zsh command. It is NOT a c
 - READ-ONLY DEFAULTS: PREFER LIST/INSPECT OVER MUTATE.
 
 ## TOOL WIRING
-- TOOL DEFINITIONS LIVE IN `/.dotfiles/zsh/plugins/mcrn-ai/tools/`.
-- PRIMARY CONFIG: `/.dotfiles/zsh/plugins/mcrn-ai/config.json`.
+- TOOL DEFINITIONS LIVE IN `/zsh/plugins/mcrn-ai/tools/`.
+- PRIMARY CONFIG: `/zsh/plugins/mcrn-ai/config.json`.
 - ENV OVERRIDES: `MCRN_AI_TOOLS_ALLOWLIST`, `MCRN_AI_TOOLS_DEVOPS`.
 - OPTIONAL OVERRIDE PATH: `MCRN_AI_CONFIG_FILE`.
 
@@ -27,7 +26,7 @@ This plugin turns natural language into a single, raw zsh command. It is NOT a c
 - KEEP `hooks.onPreToolUse` DENY-BY-DEFAULT FOR NON-ALLOWLISTED TOOLS.
 - KEEP `systemMessage` IN APPEND MODE UNLESS YOU RE-IMPLEMENT ALL GUARDRAILS.
 - ENFORCE COMMAND-ONLY OUTPUT CLIENT-SIDE (REJECT MULTILINE/PROSE).
-- TOOL CONFIG LIVES IN `/.dotfiles/zsh/plugins/mcrn-ai/tools/`.
+- TOOL CONFIG LIVES IN `/zsh/plugins/mcrn-ai/tools/`.
 
 ## ANTI-PATTERNS
 - ENABLING TOOLS WITHOUT A SCOPED ALLOWLIST.
@@ -40,9 +39,8 @@ This plugin turns natural language into a single, raw zsh command. It is NOT a c
 - SET `MCRN_AI_DEBUG=1` TO LOG TO `/tmp/mcrn-ai-debug.log`.
 
 ## REFERENCES
-- POLICY: `/.dotfiles/zsh/plugins/mcrn-ai/policy.txt`
-- COPILOT HELPER: `/.dotfiles/zsh/plugins/mcrn-ai/copilot-helper.mjs`
-- LOCAL HELPER: `/.dotfiles/zsh/plugins/mcrn-ai/local-helper.sh`
-- TOOLS: `/.dotfiles/zsh/plugins/mcrn-ai/tools/index.mjs`
-- CONFIG: `/.dotfiles/zsh/plugins/mcrn-ai/config.json`
-- SCHEMA: `/.dotfiles/zsh/plugins/mcrn-ai/config.schema.json`
+- POLICY: `/zsh/plugins/mcrn-ai/policy.txt`
+- COPILOT HELPER: `/zsh/plugins/mcrn-ai/copilot-helper.mjs`
+- TOOLS: `/zsh/plugins/mcrn-ai/tools/index.mjs`
+- CONFIG: `/zsh/plugins/mcrn-ai/config.json`
+- SCHEMA: `/zsh/plugins/mcrn-ai/config.schema.json`
