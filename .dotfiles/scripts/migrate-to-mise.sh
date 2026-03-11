@@ -27,7 +27,7 @@ load_runtime_formulas() {
     exit 1
   fi
 
-  mapfile -t RUNTIME_FORMULAS < "$formulas_file"
+  mapfile -t RUNTIME_FORMULAS < <(grep -E '^\s*[^#[:space:]]' "$formulas_file")
 }
 
 require_cmd() {
@@ -78,9 +78,11 @@ main() {
 
   if [[ "$AUTO_UNINSTALL" == "1" ]]; then
     log_step "Uninstalling overlapping runtime formulas from Homebrew..."
-    brew uninstall "${overlaps[@]}" || true
-    log_warn "Some formulas may remain if Homebrew reports dependency conflicts. Resolve manually with 'brew uninstall --ignore-dependencies ...' if needed."
-    log_info "Requested Homebrew runtime uninstall complete."
+    if brew uninstall "${overlaps[@]}"; then
+      log_info "Requested Homebrew runtime uninstall complete."
+    else
+      log_warn "Some formulas may remain if Homebrew reports dependency conflicts. Resolve manually with 'brew uninstall --ignore-dependencies ...' if needed."
+    fi
   else
     log_warn "No changes made. To uninstall overlaps automatically, rerun with:"
     echo "  MISE_AUTO_UNINSTALL_BREW_RUNTIMES=1 $DOTFILES_DIR/.dotfiles/scripts/migrate-to-mise.sh"
