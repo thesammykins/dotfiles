@@ -14,13 +14,19 @@ ok() { echo "[OK]   $*"; }
 
 load_runtime_formulas() {
   local formulas_file="$REPO_ROOT/.dotfiles/scripts/runtime-formulas.txt"
+  local line
 
   if [[ ! -f "$formulas_file" ]]; then
     warn "Missing runtime formulas file: $formulas_file"
     return 1
   fi
 
-  mapfile -t RUNTIME_FORMULAS < "$formulas_file"
+  RUNTIME_FORMULAS=()
+  while IFS= read -r line || [[ -n "$line" ]]; do
+    [[ "$line" =~ ^[[:space:]]*$ ]] && continue
+    [[ "$line" =~ ^[[:space:]]*# ]] && continue
+    RUNTIME_FORMULAS+=("$line")
+  done < "$formulas_file"
 }
 
 fetch_version_signal() {
@@ -169,13 +175,14 @@ check_runtime_migration() {
     return 0
   fi
 
-  local installed
+  local installed installed_families
   installed="$(brew list --formula 2>/dev/null || true)"
+  installed_families="$(printf '%s\n' "$installed" | sed 's/@.*$//' | sort -u)"
 
   local overlaps=()
   local formula
   for formula in "${RUNTIME_FORMULAS[@]}"; do
-    if echo "$installed" | grep -Fxq "$formula"; then
+    if printf '%s\n' "$installed_families" | grep -Fxq "${formula%@*}"; then
       overlaps+=("$formula")
     fi
   done

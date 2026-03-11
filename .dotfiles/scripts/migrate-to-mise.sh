@@ -21,13 +21,19 @@ log_step() { echo -e "${BLUE}[STEP]${NC} $1"; }
 
 load_runtime_formulas() {
   local formulas_file="$DOTFILES_DIR/.dotfiles/scripts/runtime-formulas.txt"
+  local line
 
   if [[ ! -f "$formulas_file" ]]; then
     log_error "runtime formulas file not found at: $formulas_file"
     exit 1
   fi
 
-  mapfile -t RUNTIME_FORMULAS < <(grep -E '^\s*[^#[:space:]]' "$formulas_file")
+  RUNTIME_FORMULAS=()
+  while IFS= read -r line || [[ -n "$line" ]]; do
+    [[ "$line" =~ ^[[:space:]]*$ ]] && continue
+    [[ "$line" =~ ^[[:space:]]*# ]] && continue
+    RUNTIME_FORMULAS+=("$line")
+  done < "$formulas_file"
 }
 
 require_cmd() {
@@ -58,13 +64,14 @@ main() {
   fi
 
   log_step "Checking for Homebrew runtime overlap with mise..."
-  local installed
+  local installed installed_families
   installed="$(brew list --formula 2>/dev/null || true)"
+  installed_families="$(printf '%s\n' "$installed" | sed 's/@.*$//' | sort -u)"
 
   local overlaps=()
   local formula
   for formula in "${RUNTIME_FORMULAS[@]}"; do
-    if echo "$installed" | grep -Fxq "$formula"; then
+    if printf '%s\n' "$installed_families" | grep -Fxq "${formula%@*}"; then
       overlaps+=("$formula")
     fi
   done
