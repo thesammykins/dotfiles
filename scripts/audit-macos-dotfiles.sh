@@ -94,14 +94,6 @@ check_ghostty_policy() {
     fi
   done
 
-  local library_cfg="$REPO_ROOT/Library/Application Support/com.mitchellh.ghostty/config"
-  if [[ -f "$library_cfg" ]]; then
-    if cmp -s "$cfg" "$library_cfg"; then
-      ok "Repo mirror config matches source Ghostty config"
-    else
-      warn "Repo mirror Ghostty config is drifted from .config/ghostty/config"
-    fi
-  fi
 }
 
 check_install_reliability() {
