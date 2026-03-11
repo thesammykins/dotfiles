@@ -259,7 +259,12 @@ initialize_tools() {
     # Initialize mise (Toolchain manager)
     if command -v mise &>/dev/null; then
         log_info "Setting up mise global toolchain..."
-        mise install
+        if [[ -f "$DOTFILES_ROOT/scripts/migrate-to-mise.sh" ]]; then
+            log_info "Reconciling Homebrew runtime overlap with mise..."
+            DOTFILES_DIR="$DOTFILES_WORKTREE" bash "$DOTFILES_ROOT/scripts/migrate-to-mise.sh"
+        else
+            DOTFILES_DIR="$DOTFILES_WORKTREE" mise install
+        fi
     fi
     
     # Initialize zoxide
@@ -353,8 +358,8 @@ check_1password() {
         return 0
     fi
     
-    # Check if configured (with timeout)
-    if timeout 5 op account list &>/dev/null 2>&1; then
+    # Check if configured (macOS doesn't ship GNU timeout; use perl alarm fallback)
+    if perl -e 'alarm shift; exec @ARGV' 5 op account list &>/dev/null; then
         log_info "1Password CLI configured"
     else
         echo ""
