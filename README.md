@@ -28,13 +28,22 @@ exec zsh
 - `DOTFILES_CLOUD_BACKUP=1`: copy backups to iCloud if available.
 - `DOTFILES_BACKUP_DIR=/path/to/backup`: override the backup target.
 - `DOTFILES_INSTALL_WORKSTATION=1`: also install optional workstation GUI apps from `Brewfile.workstation`.
+- `DOTFILES_APPLY_MACOS_DEFAULTS=1`: apply the repo's Finder, Dock recents, and screenshot defaults.
+- `DOTFILES_APPLY_DOCK=1`: apply the repo's canonical Dock layout with `dockutil`.
 
 ## Dry Run
 ```bash
 DOTFILES_DRY_RUN=1 DOTFILES_LINK_MODE=migrate \
   "$HOME/.dotfiles/scripts/install.sh"
 "$HOME/.dotfiles/scripts/audit-macos-dotfiles.sh"
+"$HOME/.dotfiles/scripts/report-unmanaged-brew-apps.sh"
 ```
+
+## macOS Automation
+- `DOTFILES_APPLY_MACOS_DEFAULTS=1` applies only low-risk settings: Finder visibility/view defaults, Dock recent-app suppression, and PNG screenshots in `~/Pictures/Screenshots`.
+- `DOTFILES_APPLY_DOCK=1` resets the Dock to the repo's small canonical app set using `dockutil`.
+- Raycast should be restored with Raycast Cloud Sync or settings export/import. Do not track `~/.config/raycast/config.json`; it contains machine auth tokens.
+- iCloud Desktop/Documents is intentionally unmanaged here. This repo assumes Google Drive remains the preferred file-sync layer.
 
 ## Runtime Migration
 ```bash
