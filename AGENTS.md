@@ -20,10 +20,10 @@ This dotfiles repository is themed around **The Expanse / MCRN Tactical Display*
 - **Minimal overhead**: Use native shell features over external scripts when possible
 - **Efficient tools**: Rust-based CLI stack (eza, bat, ripgrep, fd, dust) for speed
 
-### MCRN Tactical AI (Local LLM ZLE Widget)
-- **Engine**: `llama-server` (llama.cpp) for structured JSON schema inference.
-- **Model**: `qwen3-codersmall-q8_0.gguf` stored in `~/.cache/llm-models/`.
-- **Execution**: The widget is bound to `Ctrl+G`. It auto-starts `llama-server` in the background (if not running) with max GPU offload and queries the `/v1/chat/completions` endpoint enforcing a JSON schema. It replaces the buffer with a single parsed bash command. Hitting `Ctrl+G` on an empty buffer retries the last query.
+### MCRN Tactical AI (Copilot SDK ZLE Widget)
+- **Engine**: `@github/copilot-sdk` authenticated through the local Copilot CLI/session.
+- **Model**: Default `gpt-5-mini` via `MCRN_COPILOT_MODEL`.
+- **Execution**: The widget is bound to `Ctrl+G`. It sends the current shell context to the Copilot helper, enforces single-command output, and replaces the buffer with one parsed zsh command. Hitting `Ctrl+G` on an empty buffer retries the last query.
 
 ### Toolchain Mandate (Mise vs Homebrew)
 - **Homebrew**: Restricted to system tools (e.g., `git`, `jq`, `tmux`) and GUI Casks (e.g., `ghostty`, `zed`).
@@ -78,7 +78,7 @@ font-family = "TX02 Nerd Font"
 - **fd**: Intuitive `find` replacement
 
 **Pathing Rules**:
-- `DOTFILES` export must point to the actual dotfiles directory (`$HOME/Development/dotfiles`).
+- `DOTFILES` export must point to the canonical repo root (`$HOME/.dotfiles`).
 - **NEVER** hardcode user paths (e.g., do not use `/Users/sammykins/`, use `$HOME/`).
 
 ---

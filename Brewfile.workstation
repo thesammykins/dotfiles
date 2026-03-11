@@ -1,0 +1,15 @@
+# Optional workstation apps.
+# Install only when explicitly requested:
+#   DOTFILES_INSTALL_WORKSTATION=1 ~/.dotfiles/scripts/install.sh
+
+# Browsers / GUI
+cask "arc"
+cask "github"
+cask "discord"
+cask "beeper"
+cask "bartender"
+cask "cleanshot"
+cask "google-drive"
+
+# Media / extra utilities
+cask "stolendata-mpv"

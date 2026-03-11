@@ -38,8 +38,6 @@ brew "jq"                         # JSON processor (for scripts)
 cask "1password-cli"              # 1Password command-line interface (Cask)
 brew "direnv"                     # Directory-specific env vars
 brew "mise"                       # Global toolchain manager (Node, Python, Go, Java, etc.)
-brew "ollama"                     # Optional daemon-based LLM, keeping for flexibility
-brew "llama.cpp"                  # llama-cli for real-time LLM ZLE widget
 
 # ============================================================================
 # TESTING TOOLS (Dotfiles Gates)
@@ -77,19 +75,7 @@ cask "arc"                        # Modern browser
 
 # Development
 cask "zed"                        # High-performance editor
-cask "github"                     # GitHub Desktop
-
-# Communication
-cask "discord"                    # Chat/community
-cask "beeper"                     # Unified messaging
-
-# System & Utilities
-cask "bartender"                  # Menu bar management
-cask "cleanshot"                  # Screenshot tool
 cask "tailscale"                  # VPN/mesh networking
-
-# Media
-cask "stolendata-mpv"             # Media player
 
 # Other (Uncomment if needed on new machine)
 # cask "chatgpt"                  # AI chat desktop app
@@ -99,4 +85,3 @@ cask "stolendata-mpv"             # Media player
 # cask "docker"                   # Container platform
 cask "orbstack"                 # Docker Desktop alternative (lighter)
 # cask "microsoft-remote-desktop" # RDP client
-cask "google-drive"             # Cloud storage sync

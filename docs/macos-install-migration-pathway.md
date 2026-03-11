@@ -15,13 +15,13 @@ This guide is the operational pathway to move both **new Macs** and **drifted ex
 Because `brew` may not be installed yet on a new machine, version checks should not depend on local Homebrew commands.
 
 - Ghostty version source: Homebrew Cask `ghostty.rb`
-- Core formula version sources: Homebrew Core formula files (`mise.rb`, `starship.rb`, `tmux.rb`, `jq.rb`, `llama.cpp.rb`)
+- Core formula version sources: Homebrew Core formula files (`mise.rb`, `starship.rb`, `tmux.rb`, `jq.rb`)
 - npm package source: `npm view @github/copilot-sdk version`
 
 Run:
 
 ```bash
-"$HOME/Development/dotfiles/.dotfiles/scripts/audit-macos-dotfiles.sh"
+"$HOME/.dotfiles/scripts/audit-macos-dotfiles.sh"
 ```
 
 ## 3) Package replacement model (Homebrew -> mise)
@@ -34,13 +34,13 @@ Use this split consistently:
 When migrating an existing machine, run:
 
 ```bash
-"$HOME/Development/dotfiles/.dotfiles/scripts/migrate-to-mise.sh"
+"$HOME/.dotfiles/scripts/migrate-to-mise.sh"
 ```
 
 If you want the script to auto-remove overlapping Homebrew runtime formulas:
 
 ```bash
-MISE_AUTO_UNINSTALL_BREW_RUNTIMES=1 "$HOME/Development/dotfiles/.dotfiles/scripts/migrate-to-mise.sh"
+MISE_AUTO_UNINSTALL_BREW_RUNTIMES=1 "$HOME/.dotfiles/scripts/migrate-to-mise.sh"
 ```
 
 ## 4) Reliable install pathway
@@ -49,34 +49,34 @@ MISE_AUTO_UNINSTALL_BREW_RUNTIMES=1 "$HOME/Development/dotfiles/.dotfiles/script
 
 1. Clone repo to canonical path:
    ```bash
-   git clone https://github.com/sammykins/dotfiles.git "$HOME/Development/dotfiles"
+   git clone https://github.com/sammykins/dotfiles.git "$HOME/.dotfiles"
    ```
 2. Run installer in safe mode first:
    ```bash
-   DOTFILES_LINK_MODE=safe SKIP_MODEL_DOWNLOAD=1 "$HOME/Development/dotfiles/.dotfiles/scripts/install.sh"
+   DOTFILES_LINK_MODE=safe "$HOME/.dotfiles/scripts/install.sh"
    ```
 3. Run audit script:
    ```bash
-   "$HOME/Development/dotfiles/.dotfiles/scripts/audit-macos-dotfiles.sh"
+   "$HOME/.dotfiles/scripts/audit-macos-dotfiles.sh"
    ```
-4. If no blockers, run full install (model download optional):
+4. If no blockers, run full install:
    ```bash
-   "$HOME/Development/dotfiles/.dotfiles/scripts/install.sh"
+   "$HOME/.dotfiles/scripts/install.sh"
    ```
 
 ### Existing Mac (drifted setup)
 
 1. Audit first:
    ```bash
-   "$HOME/Development/dotfiles/.dotfiles/scripts/audit-macos-dotfiles.sh"
+   "$HOME/.dotfiles/scripts/audit-macos-dotfiles.sh"
    ```
 2. Run installer with safe links to avoid destructive overwrite:
    ```bash
-   DOTFILES_LINK_MODE=safe "$HOME/Development/dotfiles/.dotfiles/scripts/install.sh"
+   DOTFILES_LINK_MODE=safe "$HOME/.dotfiles/scripts/install.sh"
    ```
 3. Reconcile package replacement with mise:
    ```bash
-   "$HOME/Development/dotfiles/.dotfiles/scripts/migrate-to-mise.sh"
+   "$HOME/.dotfiles/scripts/migrate-to-mise.sh"
    ```
 4. Resolve skipped links manually (`Target exists, skipping`), then selectively force-link only approved files.
 5. Validate shell + Ghostty manually and run Bats tests.
@@ -85,7 +85,7 @@ MISE_AUTO_UNINSTALL_BREW_RUNTIMES=1 "$HOME/Development/dotfiles/.dotfiles/script
 
 1. **Pin mise runtimes** to explicit major/minor versions before broad rollout.
 2. **Add CI audit job** for script syntax, JSON validity, and Bats checks where environment allows.
-3. **Track release cadence monthly** for `ghostty`, `mise`, `starship`, `tmux`, `jq`, `llama.cpp`, and `@github/copilot-sdk`.
+3. **Track release cadence monthly** for `ghostty`, `mise`, `starship`, `tmux`, `jq`, and `@github/copilot-sdk`.
 4. **Review runtime ownership drift** monthly (`brew list --formula` + `mise ls`).
 
 ## 6) Suggested migration operating model
@@ -101,9 +101,9 @@ MISE_AUTO_UNINSTALL_BREW_RUNTIMES=1 "$HOME/Development/dotfiles/.dotfiles/script
 Run the dotfiles audit and inspect the `MCRN AI Copilot SDK alignment` section to verify:
 
 - `@github/copilot-sdk` dependency is current and Node engine compatibility is met.
-- helper uses SDK-recommended lifecycle (`session.disconnect()`).
+- helper uses the current lifecycle teardown (`session.destroy()`).
 - helper uses `systemMessage` append mode to preserve SDK guardrails.
 
 ```bash
-"$HOME/Development/dotfiles/.dotfiles/scripts/audit-macos-dotfiles.sh"
+"$HOME/.dotfiles/scripts/audit-macos-dotfiles.sh"
 ```

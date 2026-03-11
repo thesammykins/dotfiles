@@ -6,7 +6,7 @@ It is the single source of truth for the palette, typography, and prompt style.
 ## Design Intent
 
 - Emulate The Expanse MCRN tactical UI: warm, utilitarian, and high contrast.
-- Prefer uppercase, label-style UI elements over icons or emoji.
+- Prefer terse tactical glyphs and labels over emoji.
 - Keep the interface low-glare for long sessions.
 
 ## Core Palette
@@ -22,9 +22,9 @@ It is the single source of truth for the palette, typography, and prompt style.
 
 ## Typography
 
-- Primary: `Space Mono` (installed)
-- Optional: `Share Tech Mono` for a squarer, engineering-deck feel
-- Header style: uppercase labels like `DIR::`, `GIT::`, `SYS::`
+- Primary: `TX-02 Nerd Font`
+- Fallback: `SpaceMono Nerd Font`
+- Keep glyphs technical and sparse; no emoji in the prompt.
 
 ## Ghostty
 
@@ -34,14 +34,15 @@ It is the single source of truth for the palette, typography, and prompt style.
 
 ## Starship Prompt
 
-Prompt style uses tactical labels instead of icons.
+Prompt style uses tactical glyphs with a two-line strip.
 
 Example layout:
-`SYS::roci DIR::~/ops GIT::main` on line 1
-`►` on line 2
+`⬡ ~/ops Δ ↑ ↓ T+ 1s 󰌠 󰎙` on line 1
+`›` on line 2
 
 Key rules:
-- Uppercase labels
+- Use Nerd Font glyphs, not emoji
+- Keep the right prompt empty
 - No emoji
 - Use amber for primary, rust for labels, red for alerts
 
