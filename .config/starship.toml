@@ -44,6 +44,14 @@ read_only = "🔒 "
 read_only_style = "fg:carbon"
 home_symbol = "~"
 truncate_to_repo = true
+before_repo_root_style = "fg:holomap"
+repo_root_style = "fg:ice bold"
+repo_root_format = "[⬡ $before_root_path]($before_repo_root_style)[$repo_root]($repo_root_style)[$path ]($style)"
+
+[directory.substitutions]
+"$HOME/Development" = "~/Dev"
+"$HOME/Code" = "~/Code"
+"$HOME/Projects" = "~/Projects"
 
 [git_branch]
 symbol = " "
@@ -101,12 +109,12 @@ style = "fg:ice"
 format = "[$symbol]($style)"
 
 [ruby]
-symbol = "💎 "
+symbol = " "
 style = "fg:sensor_ghost"
 format = "[$symbol]($style)"
 
 [java]
-symbol = "☕ "
+symbol = " "
 style = "fg:warning"
 format = "[$symbol]($style)"
 
