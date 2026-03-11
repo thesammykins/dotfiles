@@ -19,6 +19,17 @@ log_warn() { echo -e "${YELLOW}[WARN]${NC} $1"; }
 log_error() { echo -e "${RED}[ERROR]${NC} $1" >&2; }
 log_step() { echo -e "${BLUE}[STEP]${NC} $1"; }
 
+load_runtime_formulas() {
+  local formulas_file="$DOTFILES_DIR/.dotfiles/scripts/runtime-formulas.txt"
+
+  if [[ ! -f "$formulas_file" ]]; then
+    log_error "runtime formulas file not found at: $formulas_file"
+    exit 1
+  fi
+
+  mapfile -t RUNTIME_FORMULAS < "$formulas_file"
+}
+
 require_cmd() {
   local cmd="$1"
   if ! command -v "$cmd" &>/dev/null; then
@@ -39,23 +50,7 @@ main() {
   log_step "Installing runtimes declared in mise config..."
   MISE_GLOBAL_CONFIG_FILE="$MISE_CONFIG" mise install
 
-  # Runtime formulas to migrate away from Homebrew.
-  # Keep Homebrew for system tools/casks; use mise for runtimes.
-  local runtime_formulas=(
-    node
-    python
-    python@3
-    go
-    openjdk
-    temurin
-    terraform
-    gradle
-    dotnet
-    asdf
-    fnm
-    pyenv
-    rbenv
-  )
+  load_runtime_formulas
 
   if ! command -v brew &>/dev/null; then
     log_info "Homebrew not installed; runtime migration complete (mise-only environment)."
@@ -68,7 +63,7 @@ main() {
 
   local overlaps=()
   local formula
-  for formula in "${runtime_formulas[@]}"; do
+  for formula in "${RUNTIME_FORMULAS[@]}"; do
     if echo "$installed" | grep -Fxq "$formula"; then
       overlaps+=("$formula")
     fi
