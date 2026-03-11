@@ -84,8 +84,10 @@ _mcrn_ai_call_copilot() {
     zle -M "[MCRN ERROR] NODE NOT FOUND."
     return 1
   fi
-  if [[ ! -x "$(command -v copilot)" ]]; then
-    zle -M "[MCRN ERROR] COPILOT CLI NOT FOUND."
+  local node_major
+  node_major="$(node -p 'process.versions.node.split(".")[0]' 2>/dev/null || echo 0)"
+  if (( node_major < 20 )); then
+    zle -M "[MCRN ERROR] NODE 20+ REQUIRED FOR COPILOT SDK."
     return 1
   fi
   _mcrn_ai_debug_log "copilot: invoking helper"

@@ -51,6 +51,15 @@ PRESS `CTRL+G` AND TYPE A NATURAL LANGUAGE REQUEST. THE BUFFER REPLACES WITH A S
 - SCHEMA: `$HOME/.dotfiles/zsh/plugins/mcrn-ai/config.schema.json`
 - TOOLS: `$HOME/.dotfiles/zsh/plugins/mcrn-ai/tools/index.mjs`
 
+## AUDIT + MIGRATION PATHWAY
+```bash
+"$HOME/Development/dotfiles/.dotfiles/scripts/audit-macos-dotfiles.sh"
+"$HOME/Development/dotfiles/.dotfiles/scripts/migrate-to-mise.sh"
+```
+- Detailed runbook: `.dotfiles/docs/macos-install-migration-pathway.md`
+- Use this before onboarding new Macs and before reconciling drifted existing Macs.
+- For runtime cleanup on existing Macs: `MISE_AUTO_UNINSTALL_BREW_RUNTIMES=1 .../migrate-to-mise.sh`.
+
 ## TESTS
 ```bash
 bats "$HOME/Development/dotfiles/test/"*.bats
