@@ -261,7 +261,7 @@ initialize_tools() {
         log_info "Setting up mise global toolchain..."
         if [[ -f "$DOTFILES_ROOT/scripts/migrate-to-mise.sh" ]]; then
             log_info "Reconciling Homebrew runtime overlap with mise..."
-            DOTFILES_DIR="$DOTFILES_WORKTREE" sh "$DOTFILES_ROOT/scripts/migrate-to-mise.sh"
+            DOTFILES_DIR="$DOTFILES_WORKTREE" bash "$DOTFILES_ROOT/scripts/migrate-to-mise.sh"
         else
             DOTFILES_DIR="$DOTFILES_WORKTREE" mise install
         fi
@@ -359,7 +359,7 @@ check_1password() {
     fi
     
     # Check if configured (macOS doesn't ship GNU timeout; use perl alarm fallback)
-    if perl -e 'alarm shift; exec @ARGV' 5 op account list &>/dev/null 2>&1; then
+    if perl -e 'alarm shift; exec @ARGV' 5 op account list &>/dev/null; then
         log_info "1Password CLI configured"
     else
         echo ""
