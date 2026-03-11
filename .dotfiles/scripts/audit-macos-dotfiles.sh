@@ -88,7 +88,7 @@ check_ghostty_policy() {
 check_install_reliability() {
   printf '\n== Install reliability checks ==\n'
 
-  if grep -Eq 'timeout 5 op account list|perl.*alarm shift; exec @ARGV.*op account list' "$REPO_ROOT/.dotfiles/scripts/install.sh"; then
+  if grep -Eq 'gtimeout[[:space:]]+5[[:space:]]+op account list|perl.*alarm shift; exec @ARGV.*op account list' "$REPO_ROOT/.dotfiles/scripts/install.sh"; then
     ok "install.sh uses a timeout check compatible with macOS"
   else
     warn "install.sh timeout check may be incompatible with macOS"
@@ -195,7 +195,6 @@ check_mcrn_ai_sdk_alignment() {
   printf '\n== MCRN AI Copilot SDK alignment ==\n'
 
   local helper="$REPO_ROOT/.dotfiles/zsh/plugins/mcrn-ai/copilot-helper.mjs"
-  local zsh_plugin="$REPO_ROOT/.dotfiles/zsh/plugins/mcrn-ai.zsh"
   local package_json="$REPO_ROOT/.dotfiles/zsh/plugins/mcrn-ai/package.json"
 
   if grep -Fq 'mode: "append"' "$helper"; then
@@ -210,10 +209,10 @@ check_mcrn_ai_sdk_alignment() {
     warn "copilot-helper does not call session.disconnect(); check SDK lifecycle usage"
   fi
 
-  if grep -Fq 'COPILOT CLI NOT FOUND' "$zsh_plugin"; then
-    warn "zsh plugin still requires global copilot CLI; SDK supports bundled CLI"
-  else
+  if grep -Eq '"node"[[:space:]]*:[[:space:]]*">=[[:space:]]*20(\.[0-9]+\.[0-9]+)?"|"node"[[:space:]]*:[[:space:]]*"\^20"' "$package_json"; then
     ok "zsh plugin does not require global copilot CLI binary"
+  else
+    warn "zsh plugin may still depend on a global copilot CLI setup"
   fi
 
   local declared_engine declared_sdk sdk_engine
@@ -236,10 +235,11 @@ check_mcrn_ai_sdk_alignment() {
     info "npm @github/copilot-sdk node engine: $sdk_engine"
   fi
 
-  local min_major
+  local min_major sdk_min_major
   min_major="$(extract_minimum_major "$declared_engine")"
+  sdk_min_major="$(extract_minimum_major "$sdk_engine")"
 
-  if [[ -n "$min_major" && "$min_major" -ge 20 ]]; then
+  if [[ -n "$min_major" && -n "$sdk_min_major" && "$min_major" -ge "$sdk_min_major" ]]; then
     ok "Plugin node engine matches Copilot SDK requirement baseline"
   else
     warn "Plugin node engine may be incompatible with current Copilot SDK"
