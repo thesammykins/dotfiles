@@ -15,10 +15,9 @@ setup() {
   [ "$status" -ne 0 ]
 }
 
-@test "Ghostty library mirror matches source config" {
-  run cmp -s "$DOTFILES_DIR/.config/ghostty/config" \
-    "$DOTFILES_DIR/Library/Application Support/com.mitchellh.ghostty/config"
-  [ "$status" -eq 0 ]
+@test "Ghostty library mirror is not tracked in repo" {
+  run test -e "$DOTFILES_DIR/Library/Application Support/com.mitchellh.ghostty/config"
+  [ "$status" -ne 0 ]
 }
 
 @test "README and AGENTS describe canonical path" {

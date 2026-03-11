@@ -4,7 +4,7 @@ This guide is the operational pathway to move both **new Macs** and **drifted ex
 
 ## 1) High-impact findings from current audit
 
-1. **Ghostty config drift risk exists** because two config paths are present in-repo (`.config/ghostty/config` and `Library/Application Support/com.mitchellh.ghostty/config`). The source-of-truth should remain `.config/ghostty/config`.
+1. **Ghostty should have one tracked source of truth**: keep only `.config/ghostty/config` in the repo and link the macOS Library path to it during install.
 2. **Installer portability issue was addressed** (`timeout 5 ...` replaced with a stock-macOS-compatible Perl alarm wrapper).
 3. **Mise currently uses floating versions** (`latest`, `lts`) which is convenient but can introduce drift between machines over time.
 4. **Package replacement needed explicit handling**: runtimes should be moved from Homebrew to mise, and legacy Homebrew runtime formulas should be removed after mise install.
