@@ -17,6 +17,8 @@ DOTFILES_LINK_MODE="${DOTFILES_LINK_MODE:-migrate}"
 DOTFILES_ROOT="${DOTFILES_ROOT:-$DOTFILES_WORKTREE}"
 DOTFILES_DRY_RUN="${DOTFILES_DRY_RUN:-0}"
 DOTFILES_INSTALL_WORKSTATION="${DOTFILES_INSTALL_WORKSTATION:-0}"
+DOTFILES_APPLY_MACOS_DEFAULTS="${DOTFILES_APPLY_MACOS_DEFAULTS:-0}"
+DOTFILES_APPLY_DOCK="${DOTFILES_APPLY_DOCK:-0}"
 BREW_BIN=""
 
 # Colors
@@ -37,6 +39,14 @@ fail() {
 
 dry_run_enabled() {
     [[ "$DOTFILES_DRY_RUN" == "1" ]]
+}
+
+apply_macos_defaults_enabled() {
+    [[ "$DOTFILES_APPLY_MACOS_DEFAULTS" == "1" ]]
+}
+
+apply_dock_enabled() {
+    [[ "$DOTFILES_APPLY_DOCK" == "1" ]]
 }
 
 run_cmd() {
@@ -164,6 +174,23 @@ resolve_brew_bin() {
 
     BREW_BIN=""
     return 1
+}
+
+ensure_dockutil() {
+    if ! apply_dock_enabled; then
+        return 0
+    fi
+
+    if command -v dockutil &>/dev/null; then
+        return 0
+    fi
+
+    log_step "Installing dockutil for Dock automation..."
+    if ! resolve_brew_bin; then
+        fail "Homebrew is required to install dockutil"
+    fi
+
+    run_cmd "$BREW_BIN" install dockutil
 }
 
 # ============================================================================
@@ -488,6 +515,70 @@ EOF
     fi
 }
 
+apply_macos_defaults() {
+    if ! apply_macos_defaults_enabled; then
+        return 0
+    fi
+
+    log_step "Applying macOS defaults..."
+
+    local screenshot_dir="$HOME/Pictures/Screenshots"
+    run_cmd mkdir -p "$screenshot_dir"
+    run_cmd defaults write NSGlobalDomain AppleShowAllExtensions -bool true
+    run_cmd defaults write com.apple.finder ShowPathbar -bool true
+    run_cmd defaults write com.apple.finder ShowStatusBar -bool true
+    run_cmd defaults write com.apple.finder FXPreferredViewStyle -string Nlsv
+    run_cmd defaults write com.apple.finder _FXSortFoldersFirst -bool true
+    run_cmd defaults write com.apple.dock show-recents -bool false
+    run_cmd defaults write com.apple.screencapture type -string png
+    run_cmd defaults write com.apple.screencapture location -string "$screenshot_dir"
+
+    if dry_run_enabled; then
+        log_info "Would restart Finder, Dock, and SystemUIServer"
+        return 0
+    fi
+
+    killall Finder >/dev/null 2>&1 || true
+    killall Dock >/dev/null 2>&1 || true
+    killall SystemUIServer >/dev/null 2>&1 || true
+    log_info "macOS defaults applied"
+}
+
+apply_dock_layout() {
+    if ! apply_dock_enabled; then
+        return 0
+    fi
+
+    log_step "Applying Dock layout..."
+    ensure_dockutil
+
+    local dock_apps=(
+        "/System/Applications/Calendar.app"
+        "/Applications/1Password.app"
+        "/Applications/Arc.app"
+        "/Applications/Ghostty.app"
+        "/Applications/Zed.app"
+    )
+    local app_path
+
+    run_cmd dockutil --no-restart --remove all
+    for app_path in "${dock_apps[@]}"; do
+        if [[ -e "$app_path" ]]; then
+            run_cmd dockutil --no-restart --add "$app_path"
+        else
+            log_warn "Dock app missing, skipping: $app_path"
+        fi
+    done
+
+    if dry_run_enabled; then
+        log_info "Would restart Dock"
+        return 0
+    fi
+
+    killall Dock >/dev/null 2>&1 || true
+    log_info "Dock layout applied"
+}
+
 # ============================================================================
 # CHECK 1PASSWORD
 # ============================================================================
@@ -575,6 +666,8 @@ main() {
     initialize_tools
     ensure_mcrn_ai_dependencies
     create_local_config
+    apply_macos_defaults
+    apply_dock_layout
     check_1password
     print_post_install
 }
