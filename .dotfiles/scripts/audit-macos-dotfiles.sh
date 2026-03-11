@@ -100,7 +100,7 @@ check_install_reliability() {
     warn "DOTFILES path in .zshrc is not canonical"
   fi
 
-  if grep -Eq ' = "(latest|lts)"' "$REPO_ROOT/.config/mise/config.toml"; then
+  if grep -Eq '[[:space:]]*=[[:space:]]*"(latest|lts)"' "$REPO_ROOT/.config/mise/config.toml"; then
     warn "mise config uses floating versions (latest/lts); this can cause machine drift"
   else
     ok "mise config appears pinned for reproducibility"
