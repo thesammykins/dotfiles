@@ -109,7 +109,7 @@ const main = async () => {
     const session = await client.createSession({
       model: MODEL,
       systemMessage: {
-        mode: "replace",
+        mode: "append",
         content: systemPrompt({ cwd, home, os, policy }),
       },
       availableTools: Array.from(allowlist),
@@ -138,7 +138,7 @@ const main = async () => {
     const response = await session.sendAndWait({ prompt }, TIMEOUT_MS);
     const content = response?.data?.content ?? "";
     const command = sanitizeCommand(content);
-    await session.destroy();
+    await session.disconnect();
     await client.stop();
 
     process.stdout.write(safeJson({
