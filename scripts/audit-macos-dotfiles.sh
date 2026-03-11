@@ -1,7 +1,8 @@
 #!/bin/bash
 set -euo pipefail
 
-REPO_ROOT="${DOTFILES_REPO_ROOT:-$HOME/Development/dotfiles}"
+SCRIPT_DIR="$(cd -- "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="${DOTFILES_REPO_ROOT:-$(cd -- "$SCRIPT_DIR/.." && pwd)}"
 
 if [[ ! -e "$REPO_ROOT/.git" ]]; then
   echo "[ERROR] Dotfiles repo not found at: $REPO_ROOT" >&2
@@ -13,7 +14,7 @@ info() { echo "[INFO] $*"; }
 ok() { echo "[OK]   $*"; }
 
 load_runtime_formulas() {
-  local formulas_file="$REPO_ROOT/.dotfiles/scripts/runtime-formulas.txt"
+  local formulas_file="$REPO_ROOT/scripts/runtime-formulas.txt"
   local line
 
   if [[ ! -f "$formulas_file" ]]; then
@@ -52,9 +53,6 @@ fetch_version_signal() {
     jq)
       printf '%s\n' "$value" | sed -n 's/^[[:space:]]*url ".*jq-\([0-9.]*\)\.tar\.gz".*/\1/p' | head -n1
       ;;
-    llama)
-      printf '%s\n' "$value" | sed -n 's/^[[:space:]]*tag:[[:space:]]*"\([^"]*\)".*/\1/p' | head -n1
-      ;;
   esac
 }
 
@@ -82,6 +80,10 @@ check_ghostty_policy() {
     'font-family = "TX02 Nerd Font"'
     'cursor-style-blink = false'
     'scrollback-limit = 10000000'
+    'window-inherit-working-directory = true'
+    'macos-titlebar-style = native'
+    'confirm-close-surface = true'
+    'copy-on-select = clipboard'
   )
 
   for line in "${required[@]}"; do
@@ -105,16 +107,22 @@ check_ghostty_policy() {
 check_install_reliability() {
   printf '\n== Install reliability checks ==\n'
 
-  if grep -Eq 'gtimeout[[:space:]]+5[[:space:]]+op account list|perl.*alarm shift; exec @ARGV.*op account list' "$REPO_ROOT/.dotfiles/scripts/install.sh"; then
+  if grep -Eq 'gtimeout[[:space:]]+5[[:space:]]+op account list|perl.*alarm shift; exec @ARGV.*op account list' "$REPO_ROOT/scripts/install.sh"; then
     ok "install.sh uses a timeout check compatible with macOS"
   else
     warn "install.sh timeout check may be incompatible with macOS"
   fi
 
-  if grep -q 'DOTFILES="$HOME/Development/dotfiles"' "$REPO_ROOT/.zshrc"; then
+  if grep -q "DOTFILES=\"\$HOME/.dotfiles\"" "$REPO_ROOT/.zshrc"; then
     ok "DOTFILES path points to canonical repo location"
   else
     warn "DOTFILES path in .zshrc is not canonical"
+  fi
+
+  if grep -Eq "source \"\\\$HOME/\\.zshrc\"|source \"\\\$ZDOTDIR/\\.zshrc\"|source \"\\\$HOME/\\.config/[^ ]*zshrc\"" "$REPO_ROOT/.zprofile"; then
+    warn ".zprofile sources .zshrc; login shells will double-load shell init"
+  else
+    ok ".zprofile does not source .zshrc"
   fi
 
   if grep -Eq '[[:space:]]*=[[:space:]]*"(latest|lts)"' "$REPO_ROOT/.config/mise/config.toml"; then
@@ -128,20 +136,18 @@ check_version_signals() {
   printf '\n== Upstream version signals ==\n'
 
   # Version checks are pulled from upstream formula/cask definitions so this audit can run without brew installed.
-  local ghostty mise starship tmux jq llama
+  local ghostty mise starship tmux jq
   ghostty="$(fetch_version_signal https://raw.githubusercontent.com/Homebrew/homebrew-cask/master/Casks/g/ghostty.rb ghostty || true)"
   mise="$(fetch_version_signal https://raw.githubusercontent.com/Homebrew/homebrew-core/master/Formula/m/mise.rb tarball || true)"
   starship="$(fetch_version_signal https://raw.githubusercontent.com/Homebrew/homebrew-core/master/Formula/s/starship.rb tarball || true)"
   tmux="$(fetch_version_signal https://raw.githubusercontent.com/Homebrew/homebrew-core/master/Formula/t/tmux.rb tmux || true)"
   jq="$(fetch_version_signal https://raw.githubusercontent.com/Homebrew/homebrew-core/master/Formula/j/jq.rb jq || true)"
-  llama="$(fetch_version_signal https://raw.githubusercontent.com/Homebrew/homebrew-core/master/Formula/l/llama.cpp.rb llama || true)"
 
   info "Homebrew cask latest Ghostty: ${ghostty:-unknown}"
   info "Homebrew formula latest mise: ${mise:-unknown}"
   info "Homebrew formula latest starship: ${starship:-unknown}"
   info "Homebrew formula latest tmux: ${tmux:-unknown}"
   info "Homebrew formula latest jq: ${jq:-unknown}"
-  info "Homebrew formula latest llama.cpp tag: ${llama:-unknown}"
 
   local declared_copilot latest_copilot
   if ! command -v jq &>/dev/null || ! command -v npm &>/dev/null; then
@@ -149,7 +155,7 @@ check_version_signals() {
     return 0
   fi
 
-  declared_copilot="$(jq -r '.dependencies["@github/copilot-sdk"] // empty' "$REPO_ROOT/.dotfiles/zsh/plugins/mcrn-ai/package.json")"
+  declared_copilot="$(jq -r '.dependencies["@github/copilot-sdk"] // empty' "$REPO_ROOT/zsh/plugins/mcrn-ai/package.json")"
   latest_copilot="$(npm view @github/copilot-sdk version --json 2>/dev/null | tr -d '"')"
 
   if [[ -n "$declared_copilot" ]]; then
@@ -189,7 +195,7 @@ check_runtime_migration() {
 
   if [[ "${#overlaps[@]}" -gt 0 ]]; then
     warn "Found runtime formulas still on Homebrew: ${overlaps[*]}"
-    warn "Use .dotfiles/scripts/migrate-to-mise.sh to reconcile package replacement"
+    warn "Use scripts/migrate-to-mise.sh to reconcile package replacement"
   else
     ok "No Homebrew runtime overlap detected (mise migration clean)"
   fi
@@ -198,8 +204,8 @@ check_runtime_migration() {
 check_mcrn_ai_sdk_alignment() {
   printf '\n== MCRN AI Copilot SDK alignment ==\n'
 
-  local helper="$REPO_ROOT/.dotfiles/zsh/plugins/mcrn-ai/copilot-helper.mjs"
-  local package_json="$REPO_ROOT/.dotfiles/zsh/plugins/mcrn-ai/package.json"
+  local helper="$REPO_ROOT/zsh/plugins/mcrn-ai/copilot-helper.mjs"
+  local package_json="$REPO_ROOT/zsh/plugins/mcrn-ai/package.json"
 
   if grep -Fq 'mode: "append"' "$helper"; then
     ok "copilot-helper uses systemMessage append mode (SDK guardrails retained)"
@@ -207,10 +213,22 @@ check_mcrn_ai_sdk_alignment() {
     warn "copilot-helper is not using append mode; may bypass SDK default guardrails"
   fi
 
-  if grep -Fq 'session.disconnect()' "$helper"; then
-    ok "copilot-helper uses session.disconnect() per current SDK guidance"
+  if grep -Fq 'session.destroy()' "$helper"; then
+    ok "copilot-helper uses session.destroy() per current SDK guidance"
   else
-    warn "copilot-helper does not call session.disconnect(); check SDK lifecycle usage"
+    warn "copilot-helper does not call session.destroy(); check SDK lifecycle usage"
+  fi
+
+  if grep -Eq 'MCRN_COPILOT_MODEL.*gpt-5-mini|process\.env\.MCRN_COPILOT_MODEL \|\| "gpt-5-mini"' "$helper" "$REPO_ROOT/zsh/plugins/mcrn-ai.zsh"; then
+    ok "gpt-5-mini is the canonical default Copilot model"
+  else
+    warn "gpt-5-mini default model is not configured consistently"
+  fi
+
+  if grep -Eq '_mcrn_ai_call_local|_mcrn_ensure_server|MCRN_AI_PROVIDER|MCRN_LLM_' "$REPO_ROOT/zsh/plugins/mcrn-ai.zsh"; then
+    warn "Legacy local-model fallback code still exists in the zsh widget"
+  else
+    ok "Legacy local-model fallback code has been removed from the zsh widget"
   fi
 
   if grep -Eq '"node"[[:space:]]*:[[:space:]]*">=[[:space:]]*20(\.[0-9]+\.[0-9]+)?"|"node"[[:space:]]*:[[:space:]]*"\^20"' "$package_json"; then
@@ -256,7 +274,7 @@ pathway() {
 1) On existing Macs, run this audit first and capture output to a ticket/docs.
 2) Pin mise runtime versions in .config/mise/config.toml before rollout.
 3) Run installer with safe links first:
-   DOTFILES_LINK_MODE=safe SKIP_MODEL_DOWNLOAD=1 ~/.dotfiles/scripts/install.sh
+   DOTFILES_LINK_MODE=safe ~/.dotfiles/scripts/install.sh
 4) Resolve any skipped links manually, then rerun with force only if needed.
 5) After install: run bats tests and a manual Ghostty verification pass.
 6) Roll into bootstrap automation (MDM/Ansible) by calling install.sh + this audit script.

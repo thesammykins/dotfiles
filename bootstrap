@@ -2,8 +2,8 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd -- "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-SCRIPT_DIR="$ROOT_DIR/.dotfiles/scripts"
-DOTFILES_LOCAL="$ROOT_DIR/.dotfiles"
+SCRIPT_DIR="$ROOT_DIR/scripts"
+DOTFILES_LOCAL="$ROOT_DIR"
 
 SCRIPT_FILES=(
     "install.sh"
@@ -18,7 +18,6 @@ SCRIPT_FILES=(
 DRY_RUN="0"
 GUM_AVAILABLE="0"
 LINK_MODE="migrate"
-SKIP_MODEL_DOWNLOAD="0"
 DOTFILES_CLOUD_BACKUP="0"
 
 GREEN='\033[0;32m'
@@ -61,7 +60,7 @@ require_tty() {
 
 require_repo_root() {
     if [[ ! -d "$SCRIPT_DIR" ]]; then
-        log_error "Cannot find .dotfiles/scripts. Run ./bootstrap from repo root."
+        log_error "Cannot find scripts. Run ./bootstrap from repo root."
         exit 1
     fi
 }
@@ -117,7 +116,7 @@ script_is_unsafe() {
 script_explainer() {
     case "$1" in
         install.sh)
-            echo "Installs Homebrew deps, links dotfiles, sets up tools, and may download the local model. Creates backups in ~/.dotfiles.backup."
+            echo "Installs Homebrew deps, links dotfiles, and sets up tools. Creates backups in ~/.dotfiles.backup."
             ;;
         setup-git.sh)
             echo "Sets git user.name/email (via gh if available) and default branch name."
@@ -146,7 +145,7 @@ script_explainer() {
 script_options() {
     case "$1" in
         install.sh)
-            echo "DOTFILES_LINK_MODE, SKIP_MODEL_DOWNLOAD, DOTFILES_CLOUD_BACKUP, DOTFILES_WORKTREE, DOTFILES_BACKUP_DIR"
+            echo "DOTFILES_LINK_MODE, DOTFILES_CLOUD_BACKUP, DOTFILES_WORKTREE, DOTFILES_BACKUP_DIR"
             ;;
         restore-dotfiles.sh)
             echo "Backups live under ~/.dotfiles.backup/<timestamp>"
@@ -378,7 +377,6 @@ prompt_install_options_gum() {
         "Link mode: migrate (recommended)" \
         "Link mode: safe" \
         "Link mode: force" \
-        "Skip model download" \
         "Enable iCloud backup" \
         "Dry-run (no commands will execute)" \
         | gum choose --no-limit --header "Install options (space to toggle)")
@@ -391,9 +389,6 @@ prompt_install_options_gum() {
     fi
     if [[ "$selections" == *"Link mode: migrate"* || "$selections" == *"Link mode: migrate (recommended)"* ]]; then
         LINK_MODE="migrate"
-    fi
-    if [[ "$selections" == *"Skip model download"* ]]; then
-        SKIP_MODEL_DOWNLOAD="1"
     fi
     if [[ "$selections" == *"Enable iCloud backup"* ]]; then
         DOTFILES_CLOUD_BACKUP="1"
@@ -408,12 +403,6 @@ prompt_install_options_plain() {
     read -r -p "Link mode (migrate/safe/force) [migrate]: " mode
     if [[ -n "$mode" ]]; then
         LINK_MODE="$mode"
-    fi
-
-    local skip_model
-    read -r -p "Skip model download? [y/N]: " skip_model
-    if [[ "$skip_model" =~ ^[Yy]$ ]]; then
-        SKIP_MODEL_DOWNLOAD="1"
     fi
 
     local cloud_backup
@@ -435,8 +424,8 @@ build_command_preview() {
     local file="$1"
     case "$file" in
         install.sh)
-            printf 'DOTFILES="%s" DOTFILES_WORKTREE="%s" DOTFILES_LINK_MODE="%s" SKIP_MODEL_DOWNLOAD="%s" DOTFILES_CLOUD_BACKUP="%s" DOTFILES_BACKUP_DIR="%s" bash "%s"\n' \
-                "$DOTFILES_LOCAL" "$ROOT_DIR" "$LINK_MODE" "$SKIP_MODEL_DOWNLOAD" "$DOTFILES_CLOUD_BACKUP" "" "$SCRIPT_DIR/$file"
+            printf 'DOTFILES="%s" DOTFILES_WORKTREE="%s" DOTFILES_LINK_MODE="%s" DOTFILES_CLOUD_BACKUP="%s" DOTFILES_BACKUP_DIR="%s" bash "%s"\n' \
+                "$DOTFILES_LOCAL" "$ROOT_DIR" "$LINK_MODE" "$DOTFILES_CLOUD_BACKUP" "" "$SCRIPT_DIR/$file"
             ;;
         restore-dotfiles.sh)
             printf 'bash "%s" "%s"\n' "$SCRIPT_DIR/$file" "<backup-dir>"
@@ -482,7 +471,6 @@ run_script() {
             DOTFILES="$DOTFILES_LOCAL" \
                 DOTFILES_WORKTREE="$ROOT_DIR" \
                 DOTFILES_LINK_MODE="$LINK_MODE" \
-                SKIP_MODEL_DOWNLOAD="$SKIP_MODEL_DOWNLOAD" \
                 DOTFILES_CLOUD_BACKUP="$DOTFILES_CLOUD_BACKUP" \
                 DOTFILES_BACKUP_DIR="" \
                 bash "$SCRIPT_DIR/$file"
