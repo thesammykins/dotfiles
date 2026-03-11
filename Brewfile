@@ -82,6 +82,6 @@ cask "tailscale"                  # VPN/mesh networking
 # cask "obs"                      # Streaming/recording
 # cask "karabiner-elements"       # Keyboard customization
 # cask "notion-calendar"          # Calendar app
-# cask "docker"                   # Container platform
-cask "orbstack"                 # Docker Desktop alternative (lighter)
+# cask "orbstack"                # Docker Desktop alternative (lighter)
+cask "docker-desktop"            # Container platform
 # cask "microsoft-remote-desktop" # RDP client

@@ -8,8 +8,10 @@ cask "github"
 cask "discord"
 cask "beeper"
 cask "bartender"
+cask "betterdisplay"
 cask "cleanshot"
 cask "google-drive"
+mas "QuickDrop", id: 6740147178
 
 # Media / extra utilities
 cask "stolendata-mpv"
