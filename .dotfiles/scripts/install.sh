@@ -10,10 +10,13 @@ set -euo pipefail
 DOTFILES_REPO="https://github.com/sammykins/dotfiles.git"
 DOTFILES_WORKTREE="${DOTFILES_WORKTREE:-$HOME/Development/dotfiles}"
 DOTFILES_CLOUD_BACKUP="${DOTFILES_CLOUD_BACKUP:-0}"
-BACKUP_DIR="$HOME/.dotfiles.backup/$(date +%Y%m%d_%H%M%S)"
+DOTFILES_BACKUP_DIR="${DOTFILES_BACKUP_DIR:-}"
+BACKUP_DIR="${DOTFILES_BACKUP_DIR:-$HOME/.dotfiles.backup/$(date +%Y%m%d_%H%M%S)}"
 SKIP_MODEL_DOWNLOAD="${SKIP_MODEL_DOWNLOAD:-0}"
-DOTFILES_LINK_MODE="${DOTFILES_LINK_MODE:-safe}"
+DOTFILES_LINK_MODE="${DOTFILES_LINK_MODE:-migrate}"
 DOTFILES_ROOT="${DOTFILES_ROOT:-$HOME/.dotfiles}"
+DOTFILES_DRY_RUN="${DOTFILES_DRY_RUN:-0}"
+BREW_BIN=""
 
 # Colors
 GREEN='\033[0;32m'
@@ -26,6 +29,42 @@ log_info() { echo -e "${GREEN}[INFO]${NC} $1"; }
 log_warn() { echo -e "${YELLOW}[WARN]${NC} $1"; }
 log_error() { echo -e "${RED}[ERROR]${NC} $1" >&2; }
 log_step() { echo -e "${BLUE}[STEP]${NC} $1"; }
+
+dry_run_enabled() {
+    [[ "$DOTFILES_DRY_RUN" == "1" ]]
+}
+
+run_cmd() {
+    if dry_run_enabled; then
+        printf '[DRY-RUN] '
+        printf '%q ' "$@"
+        printf '\n'
+        return 0
+    fi
+
+    "$@"
+}
+
+run_shell() {
+    local command="$1"
+
+    if dry_run_enabled; then
+        printf '[DRY-RUN] %s\n' "$command"
+        return 0
+    fi
+
+    bash -lc "$command"
+}
+
+validate_link_mode() {
+    case "$DOTFILES_LINK_MODE" in
+        safe|force|migrate) return 0 ;;
+        *)
+            log_warn "Unknown DOTFILES_LINK_MODE=$DOTFILES_LINK_MODE. Defaulting to migrate."
+            DOTFILES_LINK_MODE="migrate"
+            ;;
+    esac
+}
 
 # ============================================================================
 # PREFLIGHT CHECKS
@@ -53,8 +92,47 @@ check_prerequisites() {
     if [[ -d "$HOME/.dotfiles.backup" ]]; then
         log_warn "Existing backup directory found."
     fi
+
+    validate_link_mode
+
+    if dry_run_enabled; then
+        log_warn "Dry-run mode enabled. No file system or package manager changes will be applied."
+    fi
     
     log_info "Prerequisites OK"
+}
+
+ensure_parent_dir() {
+    local target="$1"
+    local parent
+    parent=$(dirname "$target")
+    if [[ ! -d "$parent" ]]; then
+        mkdir -p "$parent"
+    fi
+}
+
+resolve_brew_bin() {
+    if command -v brew &>/dev/null; then
+        BREW_BIN=$(command -v brew)
+        return 0
+    fi
+
+    local arch
+    arch=$(uname -m)
+    if [[ "$arch" == "arm64" ]]; then
+        if [[ -x "/opt/homebrew/bin/brew" ]]; then
+            BREW_BIN="/opt/homebrew/bin/brew"
+            return 0
+        fi
+    else
+        if [[ -x "/usr/local/bin/brew" ]]; then
+            BREW_BIN="/usr/local/bin/brew"
+            return 0
+        fi
+    fi
+
+    BREW_BIN=""
+    return 1
 }
 
 # ============================================================================
@@ -91,9 +169,13 @@ resolve_dotfiles_root() {
 # ============================================================================
 backup_configs() {
     log_step "Backing up existing configurations..."
-    
-    mkdir -p "$BACKUP_DIR"
-    
+
+    if dry_run_enabled; then
+        log_info "Would create backup directory: $BACKUP_DIR"
+    else
+        mkdir -p "$BACKUP_DIR"
+    fi
+     
     # Files to backup
     local files=(
         ".zshrc"
@@ -111,11 +193,23 @@ backup_configs() {
     
     for file in "${files[@]}"; do
         local src="$HOME/$file"
-        if [[ -e "$src" && ! -L "$src" ]]; then
+        if [[ -e "$src" ]]; then
             local dest="$BACKUP_DIR/$file"
+            if dry_run_enabled; then
+                log_info "Would back up: $src -> $dest"
+                continue
+            fi
+
             mkdir -p "$(dirname "$dest")"
-            cp -R "$src" "$dest"
-            log_info "Backed up: $file"
+            if [[ -L "$src" ]]; then
+                local link_target
+                link_target=$(readlink "$src")
+                printf '%s\n' "$link_target" > "${dest}.symlink"
+                log_info "Backed up symlink: $file"
+            else
+                cp -R "$src" "$dest"
+                log_info "Backed up: $file"
+            fi
         fi
     done
     
@@ -128,8 +222,12 @@ backup_configs() {
         if [[ -d "$cloud_dir" ]]; then
             local cloud_target
             cloud_target="$cloud_dir/$(basename "$BACKUP_DIR")"
-            cp -R "$BACKUP_DIR" "$cloud_target" 2>/dev/null || true
-            log_info "iCloud backup saved to: $cloud_target"
+            if dry_run_enabled; then
+                log_info "Would copy backup to iCloud: $cloud_target"
+            else
+                cp -R "$BACKUP_DIR" "$cloud_target" 2>/dev/null || true
+                log_info "iCloud backup saved to: $cloud_target"
+            fi
         else
             log_warn "iCloud Drive not found. Skipping cloud backup."
         fi
@@ -142,13 +240,18 @@ backup_configs() {
 link_item() {
     local source="$1"
     local target="$2"
+    local label="$3"
 
     if [[ ! -e "$source" ]]; then
         log_warn "Source missing: $source"
         return 0
     fi
 
-    mkdir -p "$(dirname "$target")"
+    if dry_run_enabled; then
+        log_info "Would link $target -> $source"
+    else
+        mkdir -p "$(dirname "$target")"
+    fi
 
     if [[ -L "$target" ]]; then
         local current
@@ -157,36 +260,56 @@ link_item() {
             log_info "Link already set: $target"
             return 0
         fi
-        if [[ "$DOTFILES_LINK_MODE" != "force" ]]; then
+        if [[ "$DOTFILES_LINK_MODE" == "safe" ]]; then
             log_warn "Link differs, skipping: $target"
             return 0
         fi
-        rm -f "$target"
+        if [[ "$DOTFILES_LINK_MODE" == "migrate" ]]; then
+            local backup_target="$BACKUP_DIR/${label}.symlink"
+            if dry_run_enabled; then
+                log_info "Would back up existing symlink: $target -> $backup_target"
+            else
+                mkdir -p "$(dirname "$backup_target")"
+                printf '%s\n' "$current" > "$backup_target"
+                log_info "Backed up existing symlink: $target"
+            fi
+        fi
+        run_cmd rm -f "$target"
     elif [[ -e "$target" ]]; then
-        if [[ "$DOTFILES_LINK_MODE" != "force" ]]; then
+        if [[ "$DOTFILES_LINK_MODE" == "safe" ]]; then
             log_warn "Target exists, skipping: $target"
             return 0
         fi
-        rm -rf "$target"
+        if [[ "$DOTFILES_LINK_MODE" == "migrate" ]]; then
+            local backup_target="$BACKUP_DIR/$label"
+            if dry_run_enabled; then
+                log_info "Would back up existing target: $target -> $backup_target"
+            else
+                mkdir -p "$(dirname "$backup_target")"
+                cp -R "$target" "$backup_target"
+                log_info "Backed up existing target: $target"
+            fi
+        fi
+        run_cmd rm -rf "$target"
     fi
 
-    ln -s "$source" "$target"
+    run_cmd ln -s "$source" "$target"
     log_info "Linked: $target -> $source"
 }
 
 link_dotfiles() {
     log_step "Linking dotfiles (mode: $DOTFILES_LINK_MODE)..."
 
-    link_item "$DOTFILES_WORKTREE/.dotfiles" "$HOME/.dotfiles"
-    link_item "$DOTFILES_WORKTREE/.zshrc" "$HOME/.zshrc"
-    link_item "$DOTFILES_WORKTREE/.zprofile" "$HOME/.zprofile"
-    link_item "$DOTFILES_WORKTREE/.tmux.conf" "$HOME/.tmux.conf"
-    link_item "$DOTFILES_WORKTREE/.config/starship.toml" "$HOME/.config/starship.toml"
-    link_item "$DOTFILES_WORKTREE/.config/mise/config.toml" "$HOME/.config/mise/config.toml"
-    link_item "$DOTFILES_WORKTREE/.config/ghostty/config" "$HOME/.config/ghostty/config"
-    link_item "$DOTFILES_WORKTREE/.config/fastfetch/config.jsonc" "$HOME/.config/fastfetch/config.jsonc"
-    link_item "$DOTFILES_WORKTREE/.config/fastfetch/mcrn_logo.txt" "$HOME/.config/fastfetch/mcrn_logo.txt"
-    link_item "$DOTFILES_WORKTREE/.config/ghostty/config" "$HOME/Library/Application Support/com.mitchellh.ghostty/config"
+    link_item "$DOTFILES_WORKTREE/.dotfiles" "$HOME/.dotfiles" ".dotfiles"
+    link_item "$DOTFILES_WORKTREE/.zshrc" "$HOME/.zshrc" ".zshrc"
+    link_item "$DOTFILES_WORKTREE/.zprofile" "$HOME/.zprofile" ".zprofile"
+    link_item "$DOTFILES_WORKTREE/.tmux.conf" "$HOME/.tmux.conf" ".tmux.conf"
+    link_item "$DOTFILES_WORKTREE/.config/starship.toml" "$HOME/.config/starship.toml" ".config/starship.toml"
+    link_item "$DOTFILES_WORKTREE/.config/mise/config.toml" "$HOME/.config/mise/config.toml" ".config/mise/config.toml"
+    link_item "$DOTFILES_WORKTREE/.config/ghostty/config" "$HOME/.config/ghostty/config" ".config/ghostty/config"
+    link_item "$DOTFILES_WORKTREE/.config/fastfetch/config.jsonc" "$HOME/.config/fastfetch/config.jsonc" ".config/fastfetch/config.jsonc"
+    link_item "$DOTFILES_WORKTREE/.config/fastfetch/mcrn_logo.txt" "$HOME/.config/fastfetch/mcrn_logo.txt" ".config/fastfetch/mcrn_logo.txt"
+    link_item "$DOTFILES_WORKTREE/.config/ghostty/config" "$HOME/Library/Application Support/com.mitchellh.ghostty/config" "Library/Application Support/com.mitchellh.ghostty/config"
 }
 
 # ============================================================================
@@ -195,17 +318,27 @@ link_dotfiles() {
 install_homebrew() {
     log_step "Checking Homebrew..."
     
-    if command -v brew &>/dev/null; then
+    if resolve_brew_bin; then
         log_info "Homebrew already installed"
-        eval "$(brew shellenv)"
+        eval "$("$BREW_BIN" shellenv)"
         return 0
     fi
     
     log_info "Installing Homebrew..."
+    if dry_run_enabled; then
+        log_info "Would install Homebrew from official installer"
+        return 0
+    fi
+
     /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
     
+    if ! resolve_brew_bin; then
+        log_error "Homebrew installed but brew not found on PATH. Open a new shell and re-run."
+        exit 1
+    fi
+
     # Add to PATH for current session
-    eval "$(brew shellenv)"
+    eval "$("$BREW_BIN" shellenv)"
     
     log_info "Homebrew installed successfully"
 }
@@ -219,12 +352,13 @@ setup_bare_repo() {
     if [[ -d "$DOTFILES_WORKTREE/.git" ]]; then
         log_info "Repo already exists at $DOTFILES_WORKTREE"
     else
+        ensure_parent_dir "$DOTFILES_WORKTREE"
         log_info "Cloning repository into $DOTFILES_WORKTREE"
-        git clone "$DOTFILES_REPO" "$DOTFILES_WORKTREE"
+        run_cmd git clone "$DOTFILES_REPO" "$DOTFILES_WORKTREE"
     fi
 
     if ! git config --global alias.dotfiles &>/dev/null; then
-        git config --global alias.dotfiles "!git -C \"$DOTFILES_WORKTREE\""
+        run_cmd git config --global alias.dotfiles "!git -C \"$DOTFILES_WORKTREE\""
         log_info "Created 'dotfiles' alias"
     fi
 
@@ -245,7 +379,16 @@ install_dependencies() {
     fi
     
     log_info "Running brew bundle..."
-    brew bundle install --file="$brewfile"
+    if ! resolve_brew_bin; then
+        log_error "Homebrew not available. Aborting dependency install."
+        exit 1
+    fi
+
+    if dry_run_enabled; then
+        run_cmd "$BREW_BIN" bundle install --file="$brewfile"
+    else
+        "$BREW_BIN" bundle install --file="$brewfile"
+    fi
     
     log_info "Dependencies installed"
 }
@@ -263,7 +406,11 @@ initialize_tools() {
             log_info "Reconciling Homebrew runtime overlap with mise..."
             DOTFILES_DIR="$DOTFILES_WORKTREE" bash "$DOTFILES_ROOT/scripts/migrate-to-mise.sh"
         else
-            DOTFILES_DIR="$DOTFILES_WORKTREE" mise install
+            if dry_run_enabled; then
+                DOTFILES_DIR="$DOTFILES_WORKTREE" DOTFILES_DRY_RUN=1 run_cmd mise install
+            else
+                DOTFILES_DIR="$DOTFILES_WORKTREE" mise install
+            fi
         fi
     fi
     
@@ -275,11 +422,19 @@ initialize_tools() {
     # Initialize fzf
     if [[ -f "$HOMEBREW_PREFIX/opt/fzf/install" ]]; then
         log_info "Setting up fzf..."
-        "$HOMEBREW_PREFIX/opt/fzf/install" --all --no-bash --no-fish --no-update-rc 2>/dev/null || true
+        if dry_run_enabled; then
+            run_cmd "$HOMEBREW_PREFIX/opt/fzf/install" --all --no-bash --no-fish --no-update-rc
+        else
+            "$HOMEBREW_PREFIX/opt/fzf/install" --all --no-bash --no-fish --no-update-rc 2>/dev/null || true
+        fi
     fi
     
     # Make scripts executable
-    chmod +x "$DOTFILES_ROOT/scripts/"*.sh 2>/dev/null || true
+    if dry_run_enabled; then
+        run_shell "chmod +x \"$DOTFILES_ROOT/scripts/\"*.sh"
+    else
+        chmod +x "$DOTFILES_ROOT/scripts/"*.sh 2>/dev/null || true
+    fi
     
     log_info "Tools initialized"
 }
@@ -294,7 +449,11 @@ setup_mcrn_ai() {
     local llm_file="qwen3-codersmall-q8_0.gguf"
     local llm_url="https://huggingface.co/echos-keeper/Qwen3-CoderSmall-Q8_0-GGUF/resolve/main/qwen3-codersmall-q8_0.gguf"
 
-    mkdir -p "$llm_dir"
+    if dry_run_enabled; then
+        log_info "Would ensure model cache directory exists: $llm_dir"
+    else
+        mkdir -p "$llm_dir"
+    fi
 
     if [[ ! -f "$llm_dir/$llm_file" ]]; then
         if [[ "$SKIP_MODEL_DOWNLOAD" == "1" ]]; then
@@ -307,7 +466,7 @@ setup_mcrn_ai() {
             return 0
         fi
         log_info "Downloading Qwen3-CoderSmall model (approx 767MB)..."
-        curl -L -o "$llm_dir/$llm_file" "$llm_url"
+        run_cmd curl -L -o "$llm_dir/$llm_file" "$llm_url"
         log_info "Model downloaded successfully."
     else
         log_info "Model already exists at $llm_dir/$llm_file"
@@ -327,6 +486,11 @@ create_local_config() {
     log_step "Creating local configuration template..."
     
     if [[ ! -f "$HOME/.zshrc.local" ]]; then
+        if dry_run_enabled; then
+            log_info "Would create ~/.zshrc.local template"
+            return 0
+        fi
+
         cat > "$HOME/.zshrc.local" << 'EOF'
 # ~/.zshrc.local - Local overrides (not tracked in git)
 # Add your machine-specific settings here
@@ -361,14 +525,15 @@ check_1password() {
     # Check if configured (macOS doesn't ship GNU timeout; use perl alarm fallback)
     if perl -e 'alarm shift; exec @ARGV' 5 op account list &>/dev/null; then
         log_info "1Password CLI configured"
-    else
-        echo ""
-        log_warn "1Password CLI installed but not configured"
-        echo ""
-        echo "To set up 1Password, run:"
-        echo "  op account add"
-        echo ""
+        return 0
     fi
+
+    echo ""
+    log_warn "1Password CLI installed but not configured"
+    echo ""
+    echo "To set up 1Password, run:"
+    echo "  op account add"
+    echo ""
 }
 
 # ============================================================================
@@ -401,7 +566,12 @@ print_post_install() {
     echo "   - Type 'z <directory>' to jump around"
     echo "   - Type 'ls' to see eza in action"
     echo ""
-    echo "Backups saved to: $BACKUP_DIR"
+    if dry_run_enabled; then
+        echo "Dry-run mode: no changes were applied."
+        echo "Planned backup location: $BACKUP_DIR"
+    else
+        echo "Backups saved to: $BACKUP_DIR"
+    fi
     echo ""
     echo "Happy hacking."
     echo ""

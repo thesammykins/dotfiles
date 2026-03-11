@@ -31,13 +31,29 @@ exec zsh
 - WARP IS NOT REMOVED. SETTINGS MIGRATION IS MANUAL.
 - BACKUPS ARE CREATED UNDER `$HOME/.dotfiles.backup/`.
 - OPTIONAL ICLOUD BACKUP: `DOTFILES_CLOUD_BACKUP=1`.
-- SAFE LINKING DEFAULT: EXISTING FILES ARE NOT OVERWRITTEN.
+- MIGRATE MODE DEFAULT: EXISTING FILES ARE BACKED UP THEN REPLACED.
 
 ## OPTIONAL FLAGS
 - SKIP MODEL DOWNLOAD: `SKIP_MODEL_DOWNLOAD=1` (AVOID 767MB DOWNLOAD)
 - CUSTOM WORKTREE: `DOTFILES_WORKTREE=/path/to/dotfiles`
-- LINK MODE: `DOTFILES_LINK_MODE=safe|force` (DEFAULT: SAFE)
+- LINK MODE: `DOTFILES_LINK_MODE=migrate|safe|force` (DEFAULT: MIGRATE)
+- DRY RUN: `DOTFILES_DRY_RUN=1` (PREVIEW BACKUPS, LINKS, BREW, MISE, AND MODEL DOWNLOAD STEPS)
 - ICLOUD BACKUP: `DOTFILES_CLOUD_BACKUP=1`
+- CUSTOM BACKUP DIR: `DOTFILES_BACKUP_DIR=/path/to/backup`
+
+## DRY-RUN REHEARSAL
+```bash
+DOTFILES_DRY_RUN=1 SKIP_MODEL_DOWNLOAD=1 DOTFILES_LINK_MODE=migrate \
+  "$HOME/Development/dotfiles/.dotfiles/scripts/install.sh"
+```
+- USE THIS TO REHEARSE MIGRATION/LINK CHANGES WITHOUT TOUCHING FILES, BREW, OR MISE.
+- FOLLOW WITH `"$HOME/Development/dotfiles/.dotfiles/scripts/audit-macos-dotfiles.sh"` TO REVIEW POLICY/DRIFT SIGNALS.
+
+## RESTORE FROM BACKUP
+```bash
+"$HOME/Development/dotfiles/.dotfiles/scripts/restore-dotfiles.sh"
+```
+Pass a specific backup path to restore from a known timestamp.
 
 ## REQUIRED LOCATIONS
 - REPO: `$HOME/Development/dotfiles`
@@ -53,6 +69,7 @@ PRESS `CTRL+G` AND TYPE A NATURAL LANGUAGE REQUEST. THE BUFFER REPLACES WITH A S
 
 ## AUDIT + MIGRATION PATHWAY
 ```bash
+DOTFILES_DRY_RUN=1 "$HOME/Development/dotfiles/.dotfiles/scripts/migrate-to-mise.sh"
 "$HOME/Development/dotfiles/.dotfiles/scripts/audit-macos-dotfiles.sh"
 "$HOME/Development/dotfiles/.dotfiles/scripts/migrate-to-mise.sh"
 ```

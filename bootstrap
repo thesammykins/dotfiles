@@ -1,0 +1,603 @@
+#!/bin/bash
+set -euo pipefail
+
+ROOT_DIR="$(cd -- "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SCRIPT_DIR="$ROOT_DIR/.dotfiles/scripts"
+DOTFILES_LOCAL="$ROOT_DIR/.dotfiles"
+
+SCRIPT_FILES=(
+    "install.sh"
+    "setup-git.sh"
+    "refresh-quotes.sh"
+    "motd.sh"
+    "random-quote.sh"
+    "test.sh"
+    "restore-dotfiles.sh"
+)
+
+DRY_RUN="0"
+GUM_AVAILABLE="0"
+LINK_MODE="migrate"
+SKIP_MODEL_DOWNLOAD="0"
+DOTFILES_CLOUD_BACKUP="0"
+
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+RED='\033[0;31m'
+BLUE='\033[0;34m'
+NC='\033[0m'
+
+log_info() { echo -e "${GREEN}[INFO]${NC} $1"; }
+log_warn() { echo -e "${YELLOW}[WARN]${NC} $1"; }
+log_error() { echo -e "${RED}[ERROR]${NC} $1" >&2; }
+log_step() { echo -e "${BLUE}[STEP]${NC} $1"; }
+
+parse_args() {
+    while [[ ${#} -gt 0 ]]; do
+        case "$1" in
+            --dry-run|-n)
+                DRY_RUN="1"
+                shift
+                ;;
+            --help|-h)
+                echo "Usage: ./bootstrap [--dry-run]"
+                exit 0
+                ;;
+            *)
+                log_error "Unknown argument: $1"
+                echo "Usage: ./bootstrap [--dry-run]"
+                exit 1
+                ;;
+        esac
+    done
+}
+
+require_tty() {
+    if [[ ! -t 0 || ! -t 1 ]]; then
+        log_error "Interactive TTY required. Run ./bootstrap in a terminal."
+        exit 1
+    fi
+}
+
+require_repo_root() {
+    if [[ ! -d "$SCRIPT_DIR" ]]; then
+        log_error "Cannot find .dotfiles/scripts. Run ./bootstrap from repo root."
+        exit 1
+    fi
+}
+
+require_macos() {
+    if [[ "$(uname)" != "Darwin" ]]; then
+        log_error "This bootstrap is for macOS only."
+        exit 1
+    fi
+}
+
+refuse_root() {
+    if [[ "$(id -u)" -eq 0 ]]; then
+        log_error "Do not run bootstrap as root."
+        exit 1
+    fi
+}
+
+script_label() {
+    case "$1" in
+        install.sh) echo "install.sh";;
+        setup-git.sh) echo "setup-git.sh";;
+        refresh-quotes.sh) echo "refresh-quotes.sh";;
+        motd.sh) echo "motd.sh";;
+        random-quote.sh) echo "random-quote.sh";;
+        test.sh) echo "test.sh";;
+        restore-dotfiles.sh) echo "restore-dotfiles.sh";;
+        *) echo "$1";;
+    esac
+}
+
+script_description() {
+    case "$1" in
+        install.sh) echo "Bootstrap + link dotfiles (unsafe)";;
+        setup-git.sh) echo "Configure git user.name/email";;
+        refresh-quotes.sh) echo "Refresh AI quote cache";;
+        motd.sh) echo "Show daily MOTD";;
+        random-quote.sh) echo "Print a random quote";;
+        test.sh) echo "Run shellcheck/bats (if available)";;
+        restore-dotfiles.sh) echo "Restore dotfiles from backup";;
+        *) echo "";;
+    esac
+}
+
+script_is_unsafe() {
+    case "$1" in
+        install.sh) return 0;;
+        restore-dotfiles.sh) return 0;;
+        *) return 1;;
+    esac
+}
+
+script_explainer() {
+    case "$1" in
+        install.sh)
+            echo "Installs Homebrew deps, links dotfiles, sets up tools, and may download the local model. Creates backups in ~/.dotfiles.backup."
+            ;;
+        setup-git.sh)
+            echo "Sets git user.name/email (via gh if available) and default branch name."
+            ;;
+        refresh-quotes.sh)
+            echo "Regenerates quotes via opencode and updates ~/.dotfiles/quotes cache."
+            ;;
+        motd.sh)
+            echo "Displays the daily MOTD (no persistent changes)."
+            ;;
+        random-quote.sh)
+            echo "Prints a random quote from the local cache."
+            ;;
+        test.sh)
+            echo "Runs shellcheck and bats if installed (no changes)."
+            ;;
+        restore-dotfiles.sh)
+            echo "Restores dotfiles from a backup directory created during install.sh."
+            ;;
+        *)
+            echo ""
+            ;;
+    esac
+}
+
+script_options() {
+    case "$1" in
+        install.sh)
+            echo "DOTFILES_LINK_MODE, SKIP_MODEL_DOWNLOAD, DOTFILES_CLOUD_BACKUP, DOTFILES_WORKTREE, DOTFILES_BACKUP_DIR"
+            ;;
+        restore-dotfiles.sh)
+            echo "Backups live under ~/.dotfiles.backup/<timestamp>"
+            ;;
+        *)
+            echo ""
+            ;;
+    esac
+}
+
+print_explainers() {
+    local selected=("$@")
+    local details=""
+    local file
+    for file in "${selected[@]}"; do
+        local desc
+        local explain
+        local options
+        desc=$(script_description "$file")
+        explain=$(script_explainer "$file")
+        options=$(script_options "$file")
+        details+=":: $file\n"
+        if [[ -n "$desc" ]]; then
+            details+="   $desc\n"
+        fi
+        if script_is_unsafe "$file"; then
+            details+="   [UNSAFE] This script can modify system config.\n"
+        fi
+        if [[ -n "$explain" ]]; then
+            details+="   $explain\n"
+        fi
+        if [[ -n "$options" ]]; then
+            details+="   Options: $options\n"
+        fi
+        details+="\n"
+    done
+
+    if use_gum; then
+        local rendered
+        local cols
+        local width
+        rendered=$(printf '%b' "$details")
+        width=100
+        if command -v tput &>/dev/null; then
+            cols=$(tput cols 2>/dev/null || echo "0")
+            if [[ "$cols" =~ ^[0-9]+$ ]] && (( cols > 0 )); then
+                width=$((cols - 4))
+            fi
+        fi
+        if (( width > 100 )); then
+            width=100
+        fi
+        if (( width < 60 )); then
+            width=60
+        fi
+        gum style --border normal --padding "1 2" --margin "0 0" --width "$width" --align left "$rendered"
+    else
+        printf '%b' "$details"
+    fi
+}
+
+print_header() {
+    echo "========================================"
+    echo " MCRN // DOTFILES BOOTSTRAP"
+    echo "========================================"
+    if [[ "$DRY_RUN" == "1" ]]; then
+        echo " DRY-RUN: ENABLED (no commands will execute)"
+        echo ""
+    fi
+    echo ""
+}
+
+use_gum() {
+    [[ "$GUM_AVAILABLE" == "1" ]]
+}
+
+detect_homebrew_prefix() {
+    local arch
+    arch=$(uname -m)
+    if [[ "$arch" == "arm64" ]]; then
+        echo "/opt/homebrew"
+    else
+        echo "/usr/local"
+    fi
+}
+
+ensure_homebrew() {
+    if command -v brew &>/dev/null; then
+        eval "$(brew shellenv)"
+        return 0
+    fi
+
+    if [[ "$DRY_RUN" == "1" ]]; then
+        log_warn "Dry-run: would install Homebrew. Skipping."
+        return 1
+    fi
+
+    log_warn "Homebrew not found."
+    if ! confirm_plain "Install Homebrew now?"; then
+        return 1
+    fi
+
+    log_step "Installing Homebrew..."
+    /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+
+    local brew_prefix
+    brew_prefix=$(detect_homebrew_prefix)
+    if [[ -x "$brew_prefix/bin/brew" ]]; then
+        eval "$("$brew_prefix/bin/brew" shellenv)"
+    fi
+
+    command -v brew &>/dev/null
+}
+
+ensure_gum() {
+    if command -v gum &>/dev/null; then
+        GUM_AVAILABLE="1"
+        return 0
+    fi
+
+    if [[ "$DRY_RUN" == "1" ]]; then
+        log_warn "Dry-run: gum not installed. Using plain fallback."
+        GUM_AVAILABLE="0"
+        return 1
+    fi
+
+    log_warn "gum not found."
+    if ! confirm_plain "Install gum via Homebrew now?"; then
+        GUM_AVAILABLE="0"
+        return 1
+    fi
+
+    if ! ensure_homebrew; then
+        log_warn "Homebrew install skipped; using plain fallback."
+        GUM_AVAILABLE="0"
+        return 1
+    fi
+
+    log_step "Installing gum..."
+    brew install gum
+
+    if command -v gum &>/dev/null; then
+        GUM_AVAILABLE="1"
+        return 0
+    fi
+
+    log_warn "gum install failed; using plain fallback."
+    GUM_AVAILABLE="0"
+    return 1
+}
+
+select_scripts_gum() {
+    local choices=()
+    local file
+    for file in "${SCRIPT_FILES[@]}"; do
+        choices+=("$(script_label "$file")|$(script_description "$file")")
+    done
+
+    local selected_lines
+    if ! selected_lines=$(printf '%s\n' "${choices[@]}" | gum choose --no-limit --header "Select tasks (space to toggle, enter to confirm)"); then
+        return 1
+    fi
+
+    if [[ -z "$selected_lines" ]]; then
+        return 1
+    fi
+
+    local selected_files=()
+    while IFS= read -r line; do
+        local file_id
+        file_id="${line%%|*}"
+        selected_files+=("$file_id")
+    done <<< "$selected_lines"
+
+    printf '%s\n' "${selected_files[@]}"
+}
+
+select_scripts_plain() {
+    local i
+    local tty="/dev/tty"
+    if [[ ! -r "$tty" || ! -w "$tty" ]]; then
+        log_error "TTY not available for interactive selection."
+        return 1
+    fi
+
+    echo "Available tasks:" > "$tty"
+    for i in "${!SCRIPT_FILES[@]}"; do
+        local idx=$((i + 1))
+        printf "  %d) %s - %s\n" "$idx" "$(script_label "${SCRIPT_FILES[$i]}")" "$(script_description "${SCRIPT_FILES[$i]}")" > "$tty"
+    done
+    echo "" > "$tty"
+    read -r -p "Select tasks (comma-separated numbers, empty to cancel): " selection < "$tty"
+    if [[ -z "$selection" ]]; then
+        return 1
+    fi
+
+    selection="${selection// /}"
+    local selected_files=()
+    local selected_set="|"
+    local IFS=','
+    read -r -a numbers <<< "$selection"
+    for num in "${numbers[@]}"; do
+        if [[ ! "$num" =~ ^[0-9]+$ ]]; then
+            printf "[WARN] Invalid selection: %s\n" "$num" > "$tty"
+            continue
+        fi
+        if (( num < 1 || num > ${#SCRIPT_FILES[@]} )); then
+            printf "[WARN] Out of range selection: %s\n" "$num" > "$tty"
+            continue
+        fi
+        local file="${SCRIPT_FILES[$((num - 1))]}"
+        if [[ "$selected_set" == *"|$file|"* ]]; then
+            continue
+        fi
+        selected_set+="$file|"
+        selected_files+=("$file")
+    done
+
+    if [[ ${#selected_files[@]} -eq 0 ]]; then
+        return 1
+    fi
+
+    printf '%s\n' "${selected_files[@]}"
+}
+
+prompt_install_options_gum() {
+    local selections
+    selections=$(printf '%s\n' \
+        "Link mode: migrate (recommended)" \
+        "Link mode: safe" \
+        "Link mode: force" \
+        "Skip model download" \
+        "Enable iCloud backup" \
+        "Dry-run (no commands will execute)" \
+        | gum choose --no-limit --header "Install options (space to toggle)")
+
+    if [[ "$selections" == *"Link mode: force"* ]]; then
+        LINK_MODE="force"
+    fi
+    if [[ "$selections" == *"Link mode: safe"* || "$selections" == *"Link mode: safe (recommended)"* ]]; then
+        LINK_MODE="safe"
+    fi
+    if [[ "$selections" == *"Link mode: migrate"* || "$selections" == *"Link mode: migrate (recommended)"* ]]; then
+        LINK_MODE="migrate"
+    fi
+    if [[ "$selections" == *"Skip model download"* ]]; then
+        SKIP_MODEL_DOWNLOAD="1"
+    fi
+    if [[ "$selections" == *"Enable iCloud backup"* ]]; then
+        DOTFILES_CLOUD_BACKUP="1"
+    fi
+    if [[ "$selections" == *"Dry-run (no commands will execute)"* ]]; then
+        DRY_RUN="1"
+    fi
+}
+
+prompt_install_options_plain() {
+    local mode
+    read -r -p "Link mode (migrate/safe/force) [migrate]: " mode
+    if [[ -n "$mode" ]]; then
+        LINK_MODE="$mode"
+    fi
+
+    local skip_model
+    read -r -p "Skip model download? [y/N]: " skip_model
+    if [[ "$skip_model" =~ ^[Yy]$ ]]; then
+        SKIP_MODEL_DOWNLOAD="1"
+    fi
+
+    local cloud_backup
+    read -r -p "Enable iCloud backup? [y/N]: " cloud_backup
+    if [[ "$cloud_backup" =~ ^[Yy]$ ]]; then
+        DOTFILES_CLOUD_BACKUP="1"
+    fi
+
+    local dry_run
+    if [[ "$DRY_RUN" == "0" ]]; then
+        read -r -p "Enable dry-run (no commands will execute)? [y/N]: " dry_run
+        if [[ "$dry_run" =~ ^[Yy]$ ]]; then
+            DRY_RUN="1"
+        fi
+    fi
+}
+
+build_command_preview() {
+    local file="$1"
+    case "$file" in
+        install.sh)
+            printf 'DOTFILES="%s" DOTFILES_WORKTREE="%s" DOTFILES_LINK_MODE="%s" SKIP_MODEL_DOWNLOAD="%s" DOTFILES_CLOUD_BACKUP="%s" DOTFILES_BACKUP_DIR="%s" bash "%s"\n' \
+                "$DOTFILES_LOCAL" "$ROOT_DIR" "$LINK_MODE" "$SKIP_MODEL_DOWNLOAD" "$DOTFILES_CLOUD_BACKUP" "" "$SCRIPT_DIR/$file"
+            ;;
+        restore-dotfiles.sh)
+            printf 'bash "%s" "%s"\n' "$SCRIPT_DIR/$file" "<backup-dir>"
+            ;;
+        *)
+            printf 'DOTFILES="%s" bash "%s"\n' "$DOTFILES_LOCAL" "$SCRIPT_DIR/$file"
+            ;;
+    esac
+}
+
+print_plan() {
+    local plan_items=("$@")
+    local i=1
+    echo ""
+    echo "Execution plan:"
+    if [[ "$DRY_RUN" == "1" ]]; then
+        echo "  DRY-RUN: enabled (no commands will execute)"
+    fi
+    for item in "${plan_items[@]}"; do
+        printf "  %d) %s\n" "$i" "$item"
+        i=$((i + 1))
+    done
+    echo ""
+}
+
+confirm_plain() {
+    local prompt="$1"
+    read -r -p "$prompt [y/N]: " answer
+    [[ "$answer" =~ ^[Yy]$ ]]
+}
+
+confirm_gum() {
+    local prompt="$1"
+    local choice
+    choice=$(printf '%s\n' "No (recommended)" "Yes" | gum choose --header "$prompt")
+    [[ "$choice" == Yes* ]]
+}
+
+run_script() {
+    local file="$1"
+    case "$file" in
+        install.sh)
+            DOTFILES="$DOTFILES_LOCAL" \
+                DOTFILES_WORKTREE="$ROOT_DIR" \
+                DOTFILES_LINK_MODE="$LINK_MODE" \
+                SKIP_MODEL_DOWNLOAD="$SKIP_MODEL_DOWNLOAD" \
+                DOTFILES_CLOUD_BACKUP="$DOTFILES_CLOUD_BACKUP" \
+                DOTFILES_BACKUP_DIR="" \
+                bash "$SCRIPT_DIR/$file"
+            ;;
+        restore-dotfiles.sh)
+            bash "$SCRIPT_DIR/$file"
+            ;;
+        *)
+            DOTFILES="$DOTFILES_LOCAL" bash "$SCRIPT_DIR/$file"
+            ;;
+    esac
+}
+
+main() {
+    parse_args "$@"
+    require_tty
+    require_repo_root
+    require_macos
+    refuse_root
+
+    print_header
+
+    ensure_gum
+
+    local selected=()
+    local selection_output=""
+    if use_gum; then
+        if ! selection_output=$(select_scripts_gum); then
+            log_warn "No tasks selected. Exiting."
+            exit 0
+        fi
+    else
+        if ! selection_output=$(select_scripts_plain); then
+            log_warn "No tasks selected. Exiting."
+            exit 0
+        fi
+    fi
+
+    while IFS= read -r line; do
+        if [[ -n "$line" ]]; then
+            selected+=("$line")
+        fi
+    done <<< "$selection_output"
+
+    local selected_set="|"
+    local file
+    for file in "${selected[@]}"; do
+        selected_set+="$file|"
+    done
+
+    print_explainers "${selected[@]}"
+
+    local install_selected="0"
+    if [[ "$selected_set" == *"|install.sh|"* ]]; then
+        install_selected="1"
+    fi
+
+    if [[ "$install_selected" == "1" ]]; then
+        log_step "Configure install options"
+        if use_gum; then
+            prompt_install_options_gum
+        else
+            prompt_install_options_plain
+        fi
+    fi
+
+    local plan_items=()
+    for file in "${SCRIPT_FILES[@]}"; do
+        if [[ "$selected_set" == *"|$file|"* ]]; then
+            plan_items+=("$(build_command_preview "$file")")
+        fi
+    done
+
+    print_plan "${plan_items[@]}"
+
+    if [[ "$DRY_RUN" == "1" ]]; then
+        log_info "Dry-run enabled. No commands will execute."
+        exit 0
+    fi
+
+    if use_gum; then
+        if ! confirm_gum "Run the selected tasks?"; then
+            log_warn "Cancelled."
+            exit 0
+        fi
+    else
+        if ! confirm_plain "Run the selected tasks?"; then
+            log_warn "Cancelled."
+            exit 0
+        fi
+    fi
+
+    if [[ "$install_selected" == "1" ]]; then
+        if use_gum; then
+            if ! confirm_gum "Unsafe task selected (install.sh). Continue?"; then
+                log_warn "Cancelled."
+                exit 0
+            fi
+        else
+            if ! confirm_plain "Unsafe task selected (install.sh). Continue?"; then
+                log_warn "Cancelled."
+                exit 0
+            fi
+        fi
+    fi
+
+    log_step "Executing tasks"
+    for file in "${SCRIPT_FILES[@]}"; do
+        if [[ "$selected_set" == *"|$file|"* ]]; then
+            log_info "Running: $file"
+            run_script "$file"
+        fi
+    done
+
+    log_info "All selected tasks completed."
+}
+
+main "$@"
