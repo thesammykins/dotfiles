@@ -1,0 +1,13 @@
+node
+python
+python@3
+go
+openjdk
+temurin
+terraform
+gradle
+dotnet
+asdf
+fnm
+pyenv
+rbenv
