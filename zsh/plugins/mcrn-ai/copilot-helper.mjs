@@ -5,7 +5,7 @@ import { fileURLToPath } from "node:url";
 import { loadConfig } from "./config.mjs";
 import { getAllowlist, getAvailableTools, isDevopsTool } from "./tools/index.mjs";
 
-const MODEL = "gpt-5-mini";
+const MODEL = process.env.MCRN_COPILOT_MODEL || "gpt-5-mini";
 const TIMEOUT_MS = Number.parseInt(process.env.MCRN_AI_TIMEOUT_MS || "12000", 10);
 
 const TOOL_BLOCK_MESSAGE =
@@ -26,14 +26,17 @@ const loadPolicy = () => {
   }
 };
 
-const systemPrompt = ({ cwd, home, os, policy }) => `You are a strict CLI command generator for macOS zsh.
+const systemPrompt = ({ cwd, dotfiles, home, inGitRepo, os, shell, termProgram, policy }) => `You are a strict CLI command generator for macOS zsh.
 Your ONLY job is to translate natural language into a single, valid, raw shell command.
 
 ENVIRONMENT:
 - OS: ${os}
-- Shell: zsh
+- Shell: ${shell}
+- Terminal: ${termProgram}
 - Home: ${home}
 - PWD: ${cwd}
+- Dotfiles: ${dotfiles}
+- In git repo: ${inGitRepo ? "yes" : "no"}
 
 RULES:
 1. NEVER explain. NEVER use markdown. NEVER use backticks.
@@ -82,6 +85,52 @@ const sanitizeCommand = (value) => {
 const safeJson = (payload) =>
   JSON.stringify(payload, (_key, val) => (typeof val === "string" ? val : val));
 
+const getModelId = (model) => {
+  if (!model || typeof model !== "object") return "";
+  if (typeof model.id === "string" && model.id.length > 0) return model.id;
+  if (typeof model.name === "string" && model.name.length > 0) return model.name;
+  return "";
+};
+
+const classifyError = (error) => {
+  const message = error instanceof Error ? error.message : String(error || "copilot_error");
+  const normalized = message.toLowerCase();
+
+  if (normalized.includes("timeout") || normalized.includes("timed out")) {
+    return { error: message, error_code: "copilot_timeout" };
+  }
+  if (normalized.includes("model") && (
+    normalized.includes("not found") ||
+    normalized.includes("unsupported") ||
+    normalized.includes("invalid") ||
+    normalized.includes("rejected")
+  )) {
+    return { error: message, error_code: "copilot_model_rejected" };
+  }
+  if (
+    normalized.includes("enoent") ||
+    normalized.includes("not found") ||
+    normalized.includes("command not found") ||
+    normalized.includes("executable")
+  ) {
+    return { error: message, error_code: "copilot_cli_missing" };
+  }
+  if (
+    normalized.includes("login") ||
+    normalized.includes("auth") ||
+    normalized.includes("sign in") ||
+    normalized.includes("unauthorized") ||
+    normalized.includes("forbidden")
+  ) {
+    return { error: message, error_code: "copilot_auth_required" };
+  }
+  if (normalized.includes("copilot")) {
+    return { error: message, error_code: "copilot_error" };
+  }
+
+  return { error: message, error_code: "copilot_error" };
+};
+
 const main = async () => {
   const prompt = await readStdin();
   if (!prompt) {
@@ -96,6 +145,10 @@ const main = async () => {
 
   const cwd = process.env.PWD || process.cwd();
   const home = process.env.HOME || "";
+  const dotfiles = process.env.DOTFILES || (home ? `${home}/.dotfiles` : "");
+  const shell = process.env.SHELL || "zsh";
+  const termProgram = process.env.TERM_PROGRAM || "unknown";
+  const inGitRepo = process.env.MCRN_AI_IN_GIT_REPO === "1" || fs.existsSync(path.join(cwd, ".git"));
   const os = `${process.platform} (${process.arch})`;
 
   const policy = loadPolicy();
@@ -104,13 +157,30 @@ const main = async () => {
   const allowlist = getAllowlist();
   const tools = getAvailableTools();
   const devopsEnabled = config.tools.devopsEnabled;
+  let session;
   try {
     await client.start();
-    const session = await client.createSession({
+    const availableModels = await client.listModels();
+    const supportedModelIds = new Set(availableModels.map(getModelId).filter(Boolean));
+    if (!supportedModelIds.has(MODEL)) {
+      process.stdout.write(safeJson({
+        command: "",
+        confidence: 0,
+        provider: "copilot",
+        model: MODEL,
+        error: `Unsupported Copilot model: ${MODEL}`,
+        error_code: "copilot_model_rejected",
+        available_models: Array.from(supportedModelIds).sort(),
+      }));
+      await client.stop();
+      return;
+    }
+
+    session = await client.createSession({
       model: MODEL,
       systemMessage: {
         mode: "append",
-        content: systemPrompt({ cwd, home, os, policy }),
+        content: systemPrompt({ cwd, dotfiles, home, inGitRepo, os, shell, termProgram, policy }),
       },
       availableTools: Array.from(allowlist),
       tools,
@@ -138,30 +208,40 @@ const main = async () => {
     const response = await session.sendAndWait({ prompt }, TIMEOUT_MS);
     const content = response?.data?.content ?? "";
     const command = sanitizeCommand(content);
-    await session.disconnect();
+    if (typeof session.destroy === "function") {
+      await session.destroy();
+    }
     await client.stop();
 
     process.stdout.write(safeJson({
       command,
       confidence: command ? 1 : 0,
       provider: "copilot",
+      model: MODEL,
     }));
   } catch (error) {
+    if (typeof session?.destroy === "function") {
+      await session.destroy().catch(() => undefined);
+    }
+    const classified = classifyError(error);
     await client.forceStop().catch(() => undefined);
     process.stdout.write(safeJson({
       command: "",
       confidence: 0,
       provider: "copilot",
-      error: error instanceof Error ? error.message : "copilot_error",
+      model: MODEL,
+      ...classified,
     }));
   }
 };
 
 main().catch((error) => {
+  const classified = classifyError(error);
   process.stdout.write(safeJson({
     command: "",
     confidence: 0,
     provider: "copilot",
-    error: error instanceof Error ? error.message : "copilot_error",
+    model: MODEL,
+    ...classified,
   }));
 });

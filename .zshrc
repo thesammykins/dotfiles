@@ -25,7 +25,7 @@ if command -v nvim &>/dev/null; then
 fi
 
 # Dotfiles location
-export DOTFILES="$HOME/Development/dotfiles"
+export DOTFILES="$HOME/.dotfiles"
 
 # ============================================================================
 # HISTORY CONFIGURATION
@@ -153,15 +153,15 @@ fi
 # ============================================================================
 # AI INTEGRATION - MCRN Tactical Widget (Load last to avoid conflicts)
 # ============================================================================
-if [[ -f "$DOTFILES/.dotfiles/zsh/plugins/mcrn-ai.zsh" ]]; then
-    source "$DOTFILES/.dotfiles/zsh/plugins/mcrn-ai.zsh"
+if [[ -f "$DOTFILES/zsh/plugins/mcrn-ai.zsh" ]]; then
+    source "$DOTFILES/zsh/plugins/mcrn-ai.zsh"
 fi
 
 # ============================================================================
 # MOTD - Rocinante Bridge Boot Sequence
 # ============================================================================
 if [[ -o login ]]; then
-    "$DOTFILES/.dotfiles/scripts/motd.sh" 2>/dev/null || true
+    "$DOTFILES/scripts/motd.sh" 2>/dev/null || true
 fi
 
 # ============================================================================
@@ -172,7 +172,7 @@ fi
 # ============================================================================
 # DOTFILES ALIAS
 # ============================================================================
-alias dotfiles='git -C "$HOME/Development/dotfiles"'
+alias dotfiles='git -C "$DOTFILES"'
 # peon-ping quick controls
 alias peon="bash $HOME/.claude/hooks/peon-ping/peon.sh"
 [ -f $HOME/.claude/hooks/peon-ping/completions.bash ] && source $HOME/.claude/hooks/peon-ping/completions.bash

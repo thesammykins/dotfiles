@@ -4,7 +4,7 @@
 Extend the MCRN AI plugin with SAFE, READ-ONLY tools. The core contract remains: one raw command line per response.
 
 ## TOOL WIRING
-- TOOLS LIVE IN `/.dotfiles/zsh/plugins/mcrn-ai/tools/`.
+- TOOLS LIVE IN `/zsh/plugins/mcrn-ai/tools/`.
 - COPILOT PATH LOADS `tools/index.mjs` AND `config.json`.
 - ENV OVERRIDES: `MCRN_AI_TOOLS_ALLOWLIST`, `MCRN_AI_TOOLS_DEVOPS`, `MCRN_AI_TOOL_MAX_OUTPUT_BYTES`, `MCRN_AI_TOOL_MAX_FILE_BYTES`, `MCRN_AI_TOOL_TIMEOUT_MS`.
 
@@ -31,8 +31,8 @@ Extend the MCRN AI plugin with SAFE, READ-ONLY tools. The core contract remains:
 - TOOL RUNNERS SHOULD ENFORCE TIMEOUTS AND OUTPUT BYTE LIMITS.
 
 ## CONFIG FILES
-- CONFIG: `/.dotfiles/zsh/plugins/mcrn-ai/config.json`
-- SCHEMA: `/.dotfiles/zsh/plugins/mcrn-ai/config.schema.json`
+- CONFIG: `/zsh/plugins/mcrn-ai/config.json`
+- SCHEMA: `/zsh/plugins/mcrn-ai/config.schema.json`
 
 ## RECOMMENDED TOOL CATALOG
 
@@ -126,9 +126,8 @@ hooks: {
 - STRIP "command:" PREFIX IF PRESENT.
 - FAIL CLOSED ON INVALID OUTPUT.
 
-## LOCAL DEFAULTS
+## DEFAULTS
 - TOOLS ARE ONLY FOR THE COPILOT PATH.
-- LOCAL MODEL PATH: `$HOME/.cache/llm-models/qwen3-codersmall-q8_0.gguf`.
 
 ## INITIAL TESTS (MANUAL)
 1) TOOL ALLOWLIST: CALL A NON-ALLOWLISTED TOOL -> DENIED.
@@ -139,9 +138,8 @@ hooks: {
 6) CONFIG: EDIT `config.json` THEN RESTART SHELL, VERIFY ALLOWLIST CHANGES APPLY.
 
 ## REFERENCES
-- POLICY: `/.dotfiles/zsh/plugins/mcrn-ai/policy.txt`
-- COPILOT HELPER: `/.dotfiles/zsh/plugins/mcrn-ai/copilot-helper.mjs`
-- LOCAL HELPER: `/.dotfiles/zsh/plugins/mcrn-ai/local-helper.sh`
-- TOOLS: `/.dotfiles/zsh/plugins/mcrn-ai/tools/index.mjs`
-- CONFIG: `/.dotfiles/zsh/plugins/mcrn-ai/config.json`
-- SCHEMA: `/.dotfiles/zsh/plugins/mcrn-ai/config.schema.json`
+- POLICY: `/zsh/plugins/mcrn-ai/policy.txt`
+- COPILOT HELPER: `/zsh/plugins/mcrn-ai/copilot-helper.mjs`
+- TOOLS: `/zsh/plugins/mcrn-ai/tools/index.mjs`
+- CONFIG: `/zsh/plugins/mcrn-ai/config.json`
+- SCHEMA: `/zsh/plugins/mcrn-ai/config.schema.json`
