@@ -12,6 +12,17 @@ warn() { echo "[WARN] $*"; }
 info() { echo "[INFO] $*"; }
 ok() { echo "[OK]   $*"; }
 
+load_runtime_formulas() {
+  local formulas_file="$REPO_ROOT/.dotfiles/scripts/runtime-formulas.txt"
+
+  if [[ ! -f "$formulas_file" ]]; then
+    warn "Missing runtime formulas file: $formulas_file"
+    return 1
+  fi
+
+  mapfile -t RUNTIME_FORMULAS < "$formulas_file"
+}
+
 fetch_version_signal() {
   local url="$1"
   local mode="$2"
@@ -151,21 +162,7 @@ check_version_signals() {
 check_runtime_migration() {
   printf '\n== Runtime migration checks (Homebrew -> mise) ==\n'
 
-  local runtime_formulas=(
-    node
-    python
-    python@3
-    go
-    openjdk
-    temurin
-    terraform
-    gradle
-    dotnet
-    asdf
-    fnm
-    pyenv
-    rbenv
-  )
+  load_runtime_formulas || return 0
 
   if ! command -v brew &>/dev/null; then
     warn "brew not installed in this environment; runtime overlap check skipped"
@@ -177,7 +174,7 @@ check_runtime_migration() {
 
   local overlaps=()
   local formula
-  for formula in "${runtime_formulas[@]}"; do
+  for formula in "${RUNTIME_FORMULAS[@]}"; do
     if echo "$installed" | grep -Fxq "$formula"; then
       overlaps+=("$formula")
     fi
@@ -210,9 +207,9 @@ check_mcrn_ai_sdk_alignment() {
   fi
 
   if grep -Eq '"node"[[:space:]]*:[[:space:]]*">=[[:space:]]*20(\.[0-9]+\.[0-9]+)?"|"node"[[:space:]]*:[[:space:]]*"\^20"' "$package_json"; then
-    ok "zsh plugin does not require global copilot CLI binary"
+    ok "package.json declares a Node 20+ baseline for the Copilot SDK path"
   else
-    warn "zsh plugin may still depend on a global copilot CLI setup"
+    warn "package.json does not clearly declare the Node 20+ baseline for the Copilot SDK path"
   fi
 
   local declared_engine declared_sdk sdk_engine
