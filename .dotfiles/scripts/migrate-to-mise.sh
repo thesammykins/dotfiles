@@ -37,7 +37,7 @@ main() {
   fi
 
   log_step "Installing runtimes declared in mise config..."
-  mise install
+  MISE_GLOBAL_CONFIG_FILE="$MISE_CONFIG" mise install
 
   # Runtime formulas to migrate away from Homebrew.
   # Keep Homebrew for system tools/casks; use mise for runtimes.
@@ -84,6 +84,7 @@ main() {
   if [[ "$AUTO_UNINSTALL" == "1" ]]; then
     log_step "Uninstalling overlapping runtime formulas from Homebrew..."
     brew uninstall "${overlaps[@]}" || true
+    log_warn "Some formulas may remain if Homebrew reports dependency conflicts. Resolve manually with 'brew uninstall --ignore-dependencies ...' if needed."
     log_info "Requested Homebrew runtime uninstall complete."
   else
     log_warn "No changes made. To uninstall overlaps automatically, rerun with:"

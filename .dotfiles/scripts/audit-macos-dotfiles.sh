@@ -3,7 +3,7 @@ set -euo pipefail
 
 REPO_ROOT="${DOTFILES_REPO_ROOT:-$HOME/Development/dotfiles}"
 
-if [[ ! -d "$REPO_ROOT/.git" ]]; then
+if [[ ! -e "$REPO_ROOT/.git" ]]; then
   echo "[ERROR] Dotfiles repo not found at: $REPO_ROOT" >&2
   exit 1
 fi
@@ -12,13 +12,47 @@ warn() { echo "[WARN] $*"; }
 info() { echo "[INFO] $*"; }
 ok() { echo "[OK]   $*"; }
 
+fetch_version_signal() {
+  local url="$1"
+  local mode="$2"
+  local value=""
+
+  if ! value="$(curl -fsSL "$url" 2>/dev/null)"; then
+    warn "Unable to fetch upstream version signal from $url"
+    return 1
+  fi
+
+  case "$mode" in
+    ghostty)
+      printf '%s\n' "$value" | sed -n 's/^[[:space:]]*version "\([^"]*\)".*/\1/p' | head -n1
+      ;;
+    tarball)
+      printf '%s\n' "$value" | extract_version_from_url
+      ;;
+    tmux)
+      printf '%s\n' "$value" | sed -n 's/^[[:space:]]*url ".*releases\/download\/\([^/]*\)\/.*".*/\1/p' | head -n1
+      ;;
+    jq)
+      printf '%s\n' "$value" | sed -n 's/^[[:space:]]*url ".*jq-\([0-9.]*\)\.tar\.gz".*/\1/p' | head -n1
+      ;;
+    llama)
+      printf '%s\n' "$value" | sed -n 's/^[[:space:]]*tag:[[:space:]]*"\([^"]*\)".*/\1/p' | head -n1
+      ;;
+  esac
+}
+
+extract_minimum_major() {
+  local version_spec="$1"
+  printf '%s\n' "$version_spec" | grep -oE '[0-9]+' | head -n1
+}
+
 extract_version_from_url() {
   sed -n 's/.*\/v\{0,1\}\([0-9][^\"/]*\)\.tar\.gz.*/\1/p' | head -n1
 }
 
 check_ghostty_policy() {
   local cfg="$REPO_ROOT/.config/ghostty/config"
-  echo "\n== Ghostty policy checks =="
+  printf '\n== Ghostty policy checks ==\n'
 
   [[ -f "$cfg" ]] || { warn "Missing $cfg"; return; }
 
@@ -52,12 +86,12 @@ check_ghostty_policy() {
 }
 
 check_install_reliability() {
-  echo "\n== Install reliability checks =="
+  printf '\n== Install reliability checks ==\n'
 
-  if grep -q 'timeout 5 op account list' "$REPO_ROOT/.dotfiles/scripts/install.sh"; then
-    warn "install.sh uses GNU timeout; macOS does not ship timeout by default"
+  if grep -Eq 'timeout 5 op account list|perl.*alarm shift; exec @ARGV.*op account list' "$REPO_ROOT/.dotfiles/scripts/install.sh"; then
+    ok "install.sh uses a timeout check compatible with macOS"
   else
-    ok "install.sh avoids GNU timeout dependency"
+    warn "install.sh timeout check may be incompatible with macOS"
   fi
 
   if grep -q 'DOTFILES="$HOME/Development/dotfiles"' "$REPO_ROOT/.zshrc"; then
@@ -74,16 +108,16 @@ check_install_reliability() {
 }
 
 check_version_signals() {
-  echo "\n== Upstream version signals =="
+  printf '\n== Upstream version signals ==\n'
 
   # Version checks are pulled from upstream formula/cask definitions so this audit can run without brew installed.
   local ghostty mise starship tmux jq llama
-  ghostty="$(curl -fsSL https://raw.githubusercontent.com/Homebrew/homebrew-cask/master/Casks/g/ghostty.rb | sed -n 's/^[[:space:]]*version "\([^"]*\)".*/\1/p' | head -n1)"
-  mise="$(curl -fsSL https://raw.githubusercontent.com/Homebrew/homebrew-core/master/Formula/m/mise.rb | extract_version_from_url)"
-  starship="$(curl -fsSL https://raw.githubusercontent.com/Homebrew/homebrew-core/master/Formula/s/starship.rb | extract_version_from_url)"
-  tmux="$(curl -fsSL https://raw.githubusercontent.com/Homebrew/homebrew-core/master/Formula/t/tmux.rb | sed -n 's/^[[:space:]]*url ".*releases\/download\/\([^/]*\)\/.*".*/\1/p' | head -n1)"
-  jq="$(curl -fsSL https://raw.githubusercontent.com/Homebrew/homebrew-core/master/Formula/j/jq.rb | sed -n 's/^[[:space:]]*url ".*jq-\([0-9.]*\)\.tar\.gz".*/\1/p' | head -n1)"
-  llama="$(curl -fsSL https://raw.githubusercontent.com/Homebrew/homebrew-core/master/Formula/l/llama.cpp.rb | sed -n 's/^[[:space:]]*tag:[[:space:]]*"\([^"]*\)".*/\1/p' | head -n1)"
+  ghostty="$(fetch_version_signal https://raw.githubusercontent.com/Homebrew/homebrew-cask/master/Casks/g/ghostty.rb ghostty || true)"
+  mise="$(fetch_version_signal https://raw.githubusercontent.com/Homebrew/homebrew-core/master/Formula/m/mise.rb tarball || true)"
+  starship="$(fetch_version_signal https://raw.githubusercontent.com/Homebrew/homebrew-core/master/Formula/s/starship.rb tarball || true)"
+  tmux="$(fetch_version_signal https://raw.githubusercontent.com/Homebrew/homebrew-core/master/Formula/t/tmux.rb tmux || true)"
+  jq="$(fetch_version_signal https://raw.githubusercontent.com/Homebrew/homebrew-core/master/Formula/j/jq.rb jq || true)"
+  llama="$(fetch_version_signal https://raw.githubusercontent.com/Homebrew/homebrew-core/master/Formula/l/llama.cpp.rb llama || true)"
 
   info "Homebrew cask latest Ghostty: ${ghostty:-unknown}"
   info "Homebrew formula latest mise: ${mise:-unknown}"
@@ -93,6 +127,11 @@ check_version_signals() {
   info "Homebrew formula latest llama.cpp tag: ${llama:-unknown}"
 
   local declared_copilot latest_copilot
+  if ! command -v jq &>/dev/null || ! command -v npm &>/dev/null; then
+    warn "Skipping @github/copilot-sdk version signal check; jq and/or npm not found on PATH"
+    return 0
+  fi
+
   declared_copilot="$(jq -r '.dependencies["@github/copilot-sdk"] // empty' "$REPO_ROOT/.dotfiles/zsh/plugins/mcrn-ai/package.json")"
   latest_copilot="$(npm view @github/copilot-sdk version --json 2>/dev/null | tr -d '"')"
 
@@ -110,7 +149,7 @@ check_version_signals() {
 
 
 check_runtime_migration() {
-  echo "\n== Runtime migration checks (Homebrew -> mise) =="
+  printf '\n== Runtime migration checks (Homebrew -> mise) ==\n'
 
   local runtime_formulas=(
     node
@@ -153,7 +192,7 @@ check_runtime_migration() {
 }
 
 check_mcrn_ai_sdk_alignment() {
-  echo "\n== MCRN AI Copilot SDK alignment =="
+  printf '\n== MCRN AI Copilot SDK alignment ==\n'
 
   local helper="$REPO_ROOT/.dotfiles/zsh/plugins/mcrn-ai/copilot-helper.mjs"
   local zsh_plugin="$REPO_ROOT/.dotfiles/zsh/plugins/mcrn-ai.zsh"
@@ -178,6 +217,11 @@ check_mcrn_ai_sdk_alignment() {
   fi
 
   local declared_engine declared_sdk sdk_engine
+  if ! command -v jq &>/dev/null || ! command -v npm &>/dev/null; then
+    warn "Skipping package metadata checks; jq and/or npm not found on PATH"
+    return 0
+  fi
+
   declared_engine="$(jq -r '.engines.node // empty' "$package_json")"
   declared_sdk="$(jq -r '.dependencies["@github/copilot-sdk"] // empty' "$package_json")"
   sdk_engine="$(npm view @github/copilot-sdk engines.node --json 2>/dev/null | tr -d '"')"
@@ -192,7 +236,10 @@ check_mcrn_ai_sdk_alignment() {
     info "npm @github/copilot-sdk node engine: $sdk_engine"
   fi
 
-  if [[ "$declared_engine" == ">=20" ]]; then
+  local min_major
+  min_major="$(extract_minimum_major "$declared_engine")"
+
+  if [[ -n "$min_major" && "$min_major" -ge 20 ]]; then
     ok "Plugin node engine matches Copilot SDK requirement baseline"
   else
     warn "Plugin node engine may be incompatible with current Copilot SDK"

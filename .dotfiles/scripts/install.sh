@@ -259,11 +259,11 @@ initialize_tools() {
     # Initialize mise (Toolchain manager)
     if command -v mise &>/dev/null; then
         log_info "Setting up mise global toolchain..."
-        mise install
-
         if [[ -x "$DOTFILES_ROOT/scripts/migrate-to-mise.sh" ]]; then
             log_info "Reconciling Homebrew runtime overlap with mise..."
             DOTFILES_DIR="$DOTFILES_WORKTREE" "$DOTFILES_ROOT/scripts/migrate-to-mise.sh" || true
+        else
+            mise install
         fi
     fi
     
