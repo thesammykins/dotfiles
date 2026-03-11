@@ -4,7 +4,8 @@
 
 set -euo pipefail
 
-DOTFILES_DIR="${DOTFILES_DIR:-$HOME/Development/dotfiles}"
+SCRIPT_DIR="$(cd -- "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+DOTFILES_DIR="${DOTFILES_DIR:-$(cd -- "$SCRIPT_DIR/.." && pwd)}"
 MISE_CONFIG="${MISE_CONFIG:-$DOTFILES_DIR/.config/mise/config.toml}"
 AUTO_UNINSTALL="${MISE_AUTO_UNINSTALL_BREW_RUNTIMES:-0}"
 DOTFILES_DRY_RUN="${DOTFILES_DRY_RUN:-0}"
@@ -36,7 +37,7 @@ run_cmd() {
 }
 
 load_runtime_formulas() {
-  local formulas_file="$DOTFILES_DIR/.dotfiles/scripts/runtime-formulas.txt"
+  local formulas_file="$DOTFILES_DIR/scripts/runtime-formulas.txt"
   local line
 
   if [[ ! -f "$formulas_file" ]]; then
@@ -116,7 +117,7 @@ main() {
     fi
   else
     log_warn "No changes made. To uninstall overlaps automatically, rerun with:"
-    echo "  MISE_AUTO_UNINSTALL_BREW_RUNTIMES=1 DOTFILES_DRY_RUN=$DOTFILES_DRY_RUN $DOTFILES_DIR/.dotfiles/scripts/migrate-to-mise.sh"
+    echo "  MISE_AUTO_UNINSTALL_BREW_RUNTIMES=1 DOTFILES_DRY_RUN=$DOTFILES_DRY_RUN $DOTFILES_DIR/scripts/migrate-to-mise.sh"
   fi
 
   log_step "Runtime migration check complete."

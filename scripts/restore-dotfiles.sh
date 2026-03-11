@@ -32,7 +32,7 @@ resolve_backup_dir() {
     fi
 
     local latest
-    latest=$(ls -1dt "$root"/* 2>/dev/null | head -n 1)
+    latest=$(find "$root" -mindepth 1 -maxdepth 1 -type d -print 2>/dev/null | sort -r | head -n 1)
     if [[ -n "$latest" && -d "$latest" ]]; then
         BACKUP_DIR="$latest"
         return 0

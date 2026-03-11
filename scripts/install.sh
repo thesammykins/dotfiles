@@ -8,14 +8,15 @@ set -euo pipefail
 # CONFIGURATION
 # ============================================================================
 DOTFILES_REPO="https://github.com/sammykins/dotfiles.git"
-DOTFILES_WORKTREE="${DOTFILES_WORKTREE:-$HOME/Development/dotfiles}"
+SCRIPT_DIR="$(cd -- "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+DOTFILES_WORKTREE="${DOTFILES_WORKTREE:-$(cd -- "$SCRIPT_DIR/.." && pwd)}"
 DOTFILES_CLOUD_BACKUP="${DOTFILES_CLOUD_BACKUP:-0}"
 DOTFILES_BACKUP_DIR="${DOTFILES_BACKUP_DIR:-}"
 BACKUP_DIR="${DOTFILES_BACKUP_DIR:-$HOME/.dotfiles.backup/$(date +%Y%m%d_%H%M%S)}"
-SKIP_MODEL_DOWNLOAD="${SKIP_MODEL_DOWNLOAD:-0}"
 DOTFILES_LINK_MODE="${DOTFILES_LINK_MODE:-migrate}"
-DOTFILES_ROOT="${DOTFILES_ROOT:-$HOME/.dotfiles}"
+DOTFILES_ROOT="${DOTFILES_ROOT:-$DOTFILES_WORKTREE}"
 DOTFILES_DRY_RUN="${DOTFILES_DRY_RUN:-0}"
+DOTFILES_INSTALL_WORKSTATION="${DOTFILES_INSTALL_WORKSTATION:-0}"
 BREW_BIN=""
 
 # Colors
@@ -29,6 +30,10 @@ log_info() { echo -e "${GREEN}[INFO]${NC} $1"; }
 log_warn() { echo -e "${YELLOW}[WARN]${NC} $1"; }
 log_error() { echo -e "${RED}[ERROR]${NC} $1" >&2; }
 log_step() { echo -e "${BLUE}[STEP]${NC} $1"; }
+fail() {
+    log_error "$1"
+    exit 1
+}
 
 dry_run_enabled() {
     [[ "$DOTFILES_DRY_RUN" == "1" ]]
@@ -54,6 +59,32 @@ run_shell() {
     fi
 
     bash -lc "$command"
+}
+
+ensure_mcrn_ai_dependencies() {
+    local plugin_dir="$DOTFILES_ROOT/zsh/plugins/mcrn-ai"
+    local package_json="$plugin_dir/package.json"
+    local package_lock="$plugin_dir/package-lock.json"
+
+    if [[ ! -f "$package_json" || ! -f "$package_lock" ]]; then
+        log_warn "Skipping MCRN AI dependency install; package manifest missing."
+        return 0
+    fi
+
+    log_step "Installing MCRN AI dependencies..."
+
+    if dry_run_enabled; then
+        if command -v npm &>/dev/null; then
+            run_shell "cd \"$plugin_dir\" && npm ci --dry-run --no-audit --no-fund --loglevel=error"
+        else
+            log_info "Would run npm ci in $plugin_dir after Node/npm are available."
+        fi
+        return 0
+    fi
+
+    command -v npm &>/dev/null || fail "npm not found after tool initialization. Node/npm is required for the MCRN AI widget."
+    (cd "$plugin_dir" && npm ci --no-audit --no-fund --loglevel=error)
+    log_info "MCRN AI dependencies installed"
 }
 
 validate_link_mode() {
@@ -145,26 +176,6 @@ show_migration_notice() {
     fi
 }
 
-# ============================================================================
-# RESOLVE DOTFILES ROOT
-# ============================================================================
-resolve_dotfiles_root() {
-    if [[ -f "$HOME/.dotfiles/Brewfile" ]]; then
-        DOTFILES_ROOT="$HOME/.dotfiles"
-        return 0
-    fi
-
-    if [[ -f "$DOTFILES_WORKTREE/.dotfiles/Brewfile" ]]; then
-        DOTFILES_ROOT="$DOTFILES_WORKTREE/.dotfiles"
-        log_warn "Using repo dotfiles root at $DOTFILES_ROOT"
-        return 0
-    fi
-
-    DOTFILES_ROOT="$HOME/.dotfiles"
-    log_warn "Unable to locate Brewfile; using $DOTFILES_ROOT"
-}
-
-# ============================================================================
 # BACKUP EXISTING CONFIGS
 # ============================================================================
 backup_configs() {
@@ -300,7 +311,6 @@ link_item() {
 link_dotfiles() {
     log_step "Linking dotfiles (mode: $DOTFILES_LINK_MODE)..."
 
-    link_item "$DOTFILES_WORKTREE/.dotfiles" "$HOME/.dotfiles" ".dotfiles"
     link_item "$DOTFILES_WORKTREE/.zshrc" "$HOME/.zshrc" ".zshrc"
     link_item "$DOTFILES_WORKTREE/.zprofile" "$HOME/.zprofile" ".zprofile"
     link_item "$DOTFILES_WORKTREE/.tmux.conf" "$HOME/.tmux.conf" ".tmux.conf"
@@ -370,26 +380,32 @@ setup_bare_repo() {
 # ============================================================================
 install_dependencies() {
     log_step "Installing Homebrew dependencies..."
-    
-    local brewfile="$DOTFILES_ROOT/Brewfile"
-    
-    if [[ ! -f "$brewfile" ]]; then
-        log_warn "Brewfile not found at $brewfile"
-        return 0
-    fi
-    
+
     log_info "Running brew bundle..."
     if ! resolve_brew_bin; then
         log_error "Homebrew not available. Aborting dependency install."
         exit 1
     fi
 
-    if dry_run_enabled; then
-        run_cmd "$BREW_BIN" bundle install --file="$brewfile"
-    else
-        "$BREW_BIN" bundle install --file="$brewfile"
+    local brewfiles=("$DOTFILES_ROOT/Brewfile")
+    if [[ "$DOTFILES_INSTALL_WORKSTATION" == "1" && -f "$DOTFILES_ROOT/Brewfile.workstation" ]]; then
+        brewfiles+=("$DOTFILES_ROOT/Brewfile.workstation")
     fi
-    
+
+    local brewfile
+    for brewfile in "${brewfiles[@]}"; do
+        if [[ ! -f "$brewfile" ]]; then
+            log_warn "Brewfile not found at $brewfile"
+            continue
+        fi
+
+        if dry_run_enabled; then
+            run_cmd "$BREW_BIN" bundle install --file="$brewfile"
+        else
+            "$BREW_BIN" bundle install --file="$brewfile"
+        fi
+    done
+
     log_info "Dependencies installed"
 }
 
@@ -404,7 +420,8 @@ initialize_tools() {
         log_info "Setting up mise global toolchain..."
         if [[ -f "$DOTFILES_ROOT/scripts/migrate-to-mise.sh" ]]; then
             log_info "Reconciling Homebrew runtime overlap with mise..."
-            DOTFILES_DIR="$DOTFILES_WORKTREE" bash "$DOTFILES_ROOT/scripts/migrate-to-mise.sh"
+            DOTFILES_DIR="$DOTFILES_WORKTREE" DOTFILES_DRY_RUN="$DOTFILES_DRY_RUN" \
+                bash "$DOTFILES_ROOT/scripts/migrate-to-mise.sh"
         else
             if dry_run_enabled; then
                 DOTFILES_DIR="$DOTFILES_WORKTREE" DOTFILES_DRY_RUN=1 run_cmd mise install
@@ -437,46 +454,6 @@ initialize_tools() {
     fi
     
     log_info "Tools initialized"
-}
-
-# ============================================================================
-# SETUP MCRN TACTICAL AI (Local LLM)
-# ============================================================================
-setup_mcrn_ai() {
-    log_step "Setting up MCRN Tactical AI (Local LLM)..."
-
-    local llm_dir="$HOME/.cache/llm-models"
-    local llm_file="qwen3-codersmall-q8_0.gguf"
-    local llm_url="https://huggingface.co/echos-keeper/Qwen3-CoderSmall-Q8_0-GGUF/resolve/main/qwen3-codersmall-q8_0.gguf"
-
-    if dry_run_enabled; then
-        log_info "Would ensure model cache directory exists: $llm_dir"
-    else
-        mkdir -p "$llm_dir"
-    fi
-
-    if [[ ! -f "$llm_dir/$llm_file" ]]; then
-        if [[ "$SKIP_MODEL_DOWNLOAD" == "1" ]]; then
-            log_warn "Skipping model download (SKIP_MODEL_DOWNLOAD=1)"
-            if command -v llama-server &>/dev/null; then
-                log_info "llama-server is ready."
-            else
-                log_warn "llama-server not found. Ensure llama.cpp was installed via Brewfile."
-            fi
-            return 0
-        fi
-        log_info "Downloading Qwen3-CoderSmall model (approx 767MB)..."
-        run_cmd curl -L -o "$llm_dir/$llm_file" "$llm_url"
-        log_info "Model downloaded successfully."
-    else
-        log_info "Model already exists at $llm_dir/$llm_file"
-    fi
-
-    if command -v llama-server &>/dev/null; then
-        log_info "llama-server is ready."
-    else
-        log_warn "llama-server not found. Ensure llama.cpp was installed via Brewfile."
-    fi
 }
 
 # ============================================================================
@@ -554,13 +531,15 @@ print_post_install() {
     echo "   gh auth login"
     echo "   $HOME/.dotfiles/scripts/setup-git.sh"
     echo ""
-    echo "3. Set up 1Password (optional):"
+    echo "3. Verify GitHub Copilot access in your terminal session."
+    echo ""
+    echo "4. Set up 1Password (optional):"
     echo "   op account add"
     echo ""
-    echo "4. Refresh quotes weekly:"
+    echo "5. Refresh quotes weekly:"
     echo "   $HOME/.dotfiles/scripts/refresh-quotes.sh"
     echo ""
-    echo "5. Test your setup:"
+    echo "6. Test your setup:"
     echo "   - Press Ctrl+G and type a command description"
     echo "   - Press Ctrl+R for fuzzy history search"
     echo "   - Type 'z <directory>' to jump around"
@@ -592,10 +571,9 @@ main() {
     install_homebrew
     setup_bare_repo
     link_dotfiles
-    resolve_dotfiles_root
     install_dependencies
-    setup_mcrn_ai
     initialize_tools
+    ensure_mcrn_ai_dependencies
     create_local_config
     check_1password
     print_post_install
