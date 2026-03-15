@@ -1,0 +1,23 @@
+[delta]
+    navigate = true
+    line-numbers = true
+    side-by-side = false
+    syntax-theme = ansi
+    plus-style = syntax "#1f2b14"
+    plus-emph-style = syntax "#2a3d1a"
+    minus-style = syntax "#2b1010"
+    minus-emph-style = syntax "#3d1a1a"
+    plus-empty-line-marker-style = "#e8a15b"
+    minus-empty-line-marker-style = "#ff2929"
+    file-style = "#f3eadb"
+    file-decoration-style = "#c35a3a"
+    hunk-header-style = "#f3eadb"
+    hunk-header-decoration-style = "#c35a3a"
+    line-numbers-left-style = "#c9895c"
+    line-numbers-right-style = "#c9895c"
+    line-numbers-minus-style = "#ff2929"
+    line-numbers-plus-style = "#e8a15b"
+    line-numbers-zero-style = "#ffd34e"
+    commit-decoration-style = "#c35a3a"
+    commit-style = "#f3eadb"
+    whitespace-error-style = "reverse #ff2929"

@@ -1,0 +1,375 @@
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import { loadConfig } from "./config.mjs";
+import {
+  detectIntentMode,
+  parseAliasContext,
+  rankCommandCandidates,
+} from "./logic.mjs";
+
+const TOOL_BLOCK_MESSAGE = "Tool use is disabled. Return only the command.";
+const TOOL_DEVOPS_MESSAGE = "Dev/Ops tools require opt-in.";
+
+const helperDir = path.dirname(fileURLToPath(import.meta.url));
+const policyPath =
+  process.env.MCRN_AI_POLICY_FILE || path.join(helperDir, "policy.txt");
+const sdkSessionPath = path.join(
+  helperDir,
+  "node_modules",
+  "@github",
+  "copilot-sdk",
+  "dist",
+  "session.js"
+);
+
+const ensureSdkCompatibilityPatch = () => {
+  try {
+    const sdkPkgPath = path.join(
+      helperDir,
+      "node_modules",
+      "@github",
+      "copilot-sdk",
+      "package.json"
+    );
+    if (!fs.existsSync(sdkPkgPath)) return;
+    const sdkPkg = JSON.parse(fs.readFileSync(sdkPkgPath, "utf8"));
+    const version = sdkPkg.version || "";
+    // Only patch known-affected versions (0.1.x series)
+    if (!version.startsWith("0.1.")) return;
+    if (!fs.existsSync(sdkSessionPath)) return;
+    const content = fs.readFileSync(sdkSessionPath, "utf8");
+    const brokenImport = 'from "vscode-jsonrpc/node";';
+    if (!content.includes(brokenImport)) return;
+    const patched = content.replace(
+      brokenImport,
+      'from "vscode-jsonrpc/node.js";'
+    );
+    if (patched !== content) {
+      fs.writeFileSync(sdkSessionPath, patched, "utf8");
+    }
+  } catch {
+    // Best effort patching only.
+  }
+};
+
+const loadPolicy = () => {
+  try {
+    if (!fs.existsSync(policyPath)) return "";
+    const content = fs.readFileSync(policyPath, "utf8").trim();
+    return content.length > 0 ? content : "";
+  } catch {
+    return "";
+  }
+};
+
+const getModelId = (model) => {
+  if (!model || typeof model !== "object") return "";
+  if (typeof model.id === "string" && model.id.length > 0) return model.id;
+  if (typeof model.name === "string" && model.name.length > 0) return model.name;
+  return "";
+};
+
+export const classifyError = (error) => {
+  const message = error instanceof Error ? error.message : String(error || "copilot_error");
+  const normalized = message.toLowerCase();
+
+  if (
+    normalized.includes("vscode-jsonrpc/node") ||
+    normalized.includes("err_module_not_found")
+  ) {
+    return { error: message, error_code: "copilot_sdk_runtime_incompatible" };
+  }
+
+  if (normalized.includes("timeout") || normalized.includes("timed out")) {
+    return { error: message, error_code: "copilot_timeout" };
+  }
+  if (
+    normalized.includes("model") &&
+    (normalized.includes("not found") ||
+      normalized.includes("unsupported") ||
+      normalized.includes("invalid") ||
+      normalized.includes("rejected"))
+  ) {
+    return { error: message, error_code: "copilot_model_rejected" };
+  }
+  if (
+    normalized.includes("enoent") ||
+    normalized.includes("not found") ||
+    normalized.includes("command not found") ||
+    normalized.includes("executable")
+  ) {
+    return { error: message, error_code: "copilot_cli_missing" };
+  }
+  if (
+    normalized.includes("login") ||
+    normalized.includes("auth") ||
+    normalized.includes("sign in") ||
+    normalized.includes("unauthorized") ||
+    normalized.includes("forbidden")
+  ) {
+    return { error: message, error_code: "copilot_auth_required" };
+  }
+  if (normalized.includes("copilot")) {
+    return { error: message, error_code: "copilot_error" };
+  }
+
+  return { error: message, error_code: "copilot_error" };
+};
+
+const systemPrompt = ({
+  cwd,
+  dotfiles,
+  home,
+  inGitRepo,
+  os,
+  shell,
+  termProgram,
+  policy,
+  intentMode,
+  aliasContext,
+}) => `You are a strict CLI command generator for macOS zsh.
+Your ONLY job is to translate natural language into a single, valid, raw shell command.
+
+ENVIRONMENT:
+- OS: ${os}
+- Shell: ${shell}
+- Terminal: ${termProgram}
+- Home: ${home}
+- PWD: ${cwd}
+- Dotfiles: ${dotfiles}
+- In git repo: ${inGitRepo ? "yes" : "no"}
+- Intent mode: ${intentMode}
+- Aliases: ${Object.keys(aliasContext).length > 0 ? Object.entries(aliasContext).map(([k, v]) => `${k}=${v}`).join(", ") : "none"}
+
+RULES:
+1. NEVER explain. NEVER use markdown. NEVER use backticks.
+2. Output exactly one command and nothing else.
+3. Prefer standard macOS paths (e.g., ~/Downloads, ~/Desktop) unless a local path is explicitly implied.
+4. Use modern macOS/zsh idiomatic commands (e.g., find, rg, awk, lsof, ipconfig, pbcopy).
+5. If the prompt implies your current location, use the PWD provided.
+6. Prefer readable output and avoid truncated fields when better alternatives exist.
+7. When using ps, prefer full command/args output (command/args) over comm when clarity matters.
+8. Avoid unnecessary pipes if a single command/flag can do the job.
+9. If common utilities are aliased, prefer command <utility> to bypass alias side-effects.
+10. In inspect mode, prefer read-only commands.
+11. If user intent is delete/destructive, still output one command, but it must be for manual execution only and never assume auto-run.
+
+EXAMPLES:
+User: list files larger than 10MB in downloads
+Command: find ~/Downloads -type f -size +10M
+
+User: kill process listening on port 8080
+Command: lsof -ti:8080 | xargs kill -9
+
+User: find text 'TODO' in python files here
+Command: rg 'TODO' -g '*.py'
+${policy ? `\n\n${policy}` : ""}`;
+
+const makeErrorPayload = ({ model, ...errorPayload }) => ({
+  command: "",
+  confidence: 0,
+  provider: "copilot",
+  model,
+  ...errorPayload,
+});
+
+export class CopilotService {
+  constructor({ model = "gpt-5-mini", timeoutMs = 30000 } = {}) {
+    this.model = model;
+    this.timeoutMs = timeoutMs;
+    this.client = null;
+    this.approveAll = null;
+    this.getAllowlist = null;
+    this.getAvailableTools = null;
+    this.isDevopsTool = null;
+    this.supportedModelIds = new Set();
+    this.started = false;
+  }
+
+  async start() {
+    if (this.started) return;
+
+    ensureSdkCompatibilityPatch();
+
+    try {
+      const sdk = await import("@github/copilot-sdk");
+      this.CopilotClient = sdk.CopilotClient;
+      this.approveAll = sdk.approveAll;
+    } catch (error) {
+      throw new Error(classifyError(error).error);
+    }
+
+    try {
+      const toolsModule = await import("./tools/index.mjs");
+      this.getAllowlist = toolsModule.getAllowlist;
+      this.getAvailableTools = toolsModule.getAvailableTools;
+      this.isDevopsTool = toolsModule.isDevopsTool;
+    } catch (error) {
+      throw new Error(classifyError(error).error);
+    }
+
+    this.client = new this.CopilotClient();
+    await this.client.start();
+
+    const availableModels = await this.client.listModels();
+    this.supportedModelIds = new Set(
+      availableModels.map(getModelId).filter(Boolean)
+    );
+    this.started = true;
+  }
+
+  async stop() {
+    if (!this.client) return;
+    try {
+      await this.client.stop();
+    } catch {
+      await this.client.forceStop().catch(() => undefined);
+    }
+    this.client = null;
+    this.started = false;
+  }
+
+  async request({
+    prompt,
+    timeoutMs,
+    model,
+    cwd,
+    home,
+    dotfiles,
+    shell,
+    termProgram,
+    inGitRepo,
+    aliasContextRaw,
+  }) {
+    const requestModel =
+      typeof model === "string" && model.trim().length > 0
+        ? model.trim()
+        : this.model;
+    const effectiveTimeout = Number.isFinite(timeoutMs)
+      ? timeoutMs
+      : this.timeoutMs;
+
+    if (!prompt || typeof prompt !== "string" || prompt.trim().length === 0) {
+      return makeErrorPayload({ model: requestModel, error: "empty_prompt" });
+    }
+
+    if (!this.started) {
+      try {
+        await this.start();
+      } catch (error) {
+        return makeErrorPayload({
+          model: requestModel,
+          ...classifyError(error),
+        });
+      }
+    }
+
+    if (!this.supportedModelIds.has(requestModel)) {
+      return {
+        command: "",
+        confidence: 0,
+        provider: "copilot",
+        model: requestModel,
+        error: `Unsupported Copilot model: ${requestModel}`,
+        error_code: "copilot_model_rejected",
+        available_models: Array.from(this.supportedModelIds).sort(),
+      };
+    }
+
+    const resolvedCwd = cwd || process.env.PWD || process.cwd();
+    const resolvedHome = home || process.env.HOME || "";
+    const resolvedDotfiles =
+      dotfiles || process.env.DOTFILES || (resolvedHome ? `${resolvedHome}/.dotfiles` : "");
+    const resolvedShell = shell || process.env.SHELL || "zsh";
+    const resolvedTermProgram = termProgram || process.env.TERM_PROGRAM || "unknown";
+    const resolvedInGitRepo =
+      inGitRepo === true ||
+      inGitRepo === "1" ||
+      fs.existsSync(path.join(resolvedCwd, ".git"));
+    const resolvedOs = `${process.platform} (${process.arch})`;
+    const aliasContext = parseAliasContext(aliasContextRaw || "");
+    const intentMode = detectIntentMode(prompt);
+
+    const policy = loadPolicy();
+    const config = loadConfig();
+    const allowlist = this.getAllowlist();
+    const tools = this.getAvailableTools();
+    const devopsEnabled = config.tools.devopsEnabled;
+    const skipTools = allowlist.size === 0;
+
+    let session;
+    try {
+      session = await this.client.createSession({
+        model: requestModel,
+        onPermissionRequest: this.approveAll,
+        systemMessage: {
+          mode: "append",
+          content: systemPrompt({
+            cwd: resolvedCwd,
+            dotfiles: resolvedDotfiles,
+            home: resolvedHome,
+            inGitRepo: resolvedInGitRepo,
+            os: resolvedOs,
+            shell: resolvedShell,
+            termProgram: resolvedTermProgram,
+            policy,
+            intentMode,
+            aliasContext,
+          }),
+        },
+        availableTools: skipTools ? undefined : Array.from(allowlist),
+        tools: skipTools ? [] : tools,
+        hooks: {
+          onPreToolUse: async ({ toolName }) => {
+            if (!allowlist.has(toolName)) {
+              return {
+                permissionDecision: "deny",
+                additionalContext: TOOL_BLOCK_MESSAGE,
+              };
+            }
+            if (this.isDevopsTool(toolName) && !devopsEnabled) {
+              return {
+                permissionDecision: "deny",
+                additionalContext: TOOL_DEVOPS_MESSAGE,
+              };
+            }
+            return {
+              permissionDecision: "allow",
+            };
+          },
+        },
+      });
+
+      const response = await session.sendAndWait(
+        { prompt },
+        effectiveTimeout
+      );
+      const content = response?.data?.content ?? "";
+      const ranked = rankCommandCandidates({
+        rawCommand: content,
+        aliasContext,
+        intentMode,
+        userPrompt: prompt,
+      });
+
+      return {
+        command: ranked.command,
+        confidence: ranked.command ? 1 : 0,
+        provider: "copilot",
+        model: requestModel,
+        intent_mode: intentMode,
+        candidates: ranked.candidates,
+      };
+    } catch (error) {
+      return makeErrorPayload({
+        model: requestModel,
+        ...classifyError(error),
+      });
+    } finally {
+      if (typeof session?.destroy === "function") {
+        await session.destroy().catch(() => undefined);
+      }
+    }
+  }
+}
