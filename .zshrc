@@ -189,6 +189,13 @@ alias gd='git diff'
 alias ..='cd ..'
 alias ...='cd ../..'
 alias ....='cd ../../..'
+# ============================================================================
+# WARP-LIKE HELPERS (yy, cdj, ts, bookmarks, fzf theme)
+# ============================================================================
+if [[ -f "$DOTFILES/zsh/plugins/warp-helpers.zsh" ]]; then
+    source "$DOTFILES/zsh/plugins/warp-helpers.zsh"
+fi
+
 
 vrun() {
     command varlock run --path "$DOTFILES/.config/varlock" -- "$@"
