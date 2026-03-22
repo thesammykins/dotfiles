@@ -4,6 +4,7 @@
 
 # Toolchain and validation
 brew "bats-core"
+brew "copilot-cli"
 brew "mise"
 brew "opencode"
 brew "shellcheck"
