@@ -4,15 +4,16 @@ setup() {
   export DOTFILES_DIR="$(cd "$(dirname "$BATS_TEST_FILENAME")/.." && pwd)"
 }
 
-@test "workstation Brewfile includes BetterDisplay and QuickDrop" {
-  run rg -n 'cask "betterdisplay"|mas "QuickDrop", id: 6740147178' "$DOTFILES_DIR/Brewfile.workstation"
+@test "workstation Brewfile includes Beeper, Vesktop, and QuickDrop" {
+  run rg -n 'cask "beeper"|cask "vesktop"|mas "QuickDrop", id: 6740147178' "$DOTFILES_DIR/Brewfile.workstation"
   [ "$status" -eq 0 ]
-  [[ "$output" =~ "betterdisplay" ]]
+  [[ "$output" =~ "beeper" ]]
+  [[ "$output" =~ "vesktop" ]]
   [[ "$output" =~ "QuickDrop" ]]
 }
 
-@test "core Brewfile standardizes on Docker Desktop" {
-  run rg -n 'cask "docker-desktop"' "$DOTFILES_DIR/Brewfile"
+@test "developer Brewfile standardizes on OrbStack and OpenCode" {
+  run rg -n 'cask "orbstack"|brew "opencode"' "$DOTFILES_DIR/Brewfile.dev"
   [ "$status" -eq 0 ]
 }
 

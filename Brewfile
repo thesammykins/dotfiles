@@ -1,87 +1,44 @@
-# Brewfile - 2026 Ready Terminal Stack
+# Brewfile - 2026 Core Mac baseline
 # Run: brew bundle install --file=Brewfile
 
 # ============================================================================
-# TERMINAL
+# TERMINAL AND SHELL
 # ============================================================================
-cask "ghostty"                    # Modern, fast terminal emulator (GUI)
-brew "fastfetch"                  # System info display (neofetch replacement)
-brew "tmux"                       # Terminal multiplexer
-
-# ============================================================================
-# MODERN CLI REPLACEMENTS
-# ============================================================================
-brew "zoxide"                     # Smarter cd command (learns your habits)
-brew "eza"                        # Modern ls replacement (icons, git status)
-brew "bat"                        # Cat with syntax highlighting
-brew "ripgrep"                    # Fast grep replacement
-brew "fd"                         # Fast find replacement
-brew "btop"                       # Modern top replacement
-brew "dust"                       # Better du (disk usage)
-brew "fzf"                        # Fuzzy finder
-brew "git-delta"                  # Syntax-highlighted git diffs
-
-# ============================================================================
-# SHELL ENHANCEMENTS
-# ============================================================================
-brew "starship"                   # Fast, customizable prompt
+cask "ghostty"                    # Modern terminal emulator
+brew "starship"                   # Two-line MCRN prompt
 brew "zsh-autosuggestions"        # Inline command suggestions
-brew "zsh-fast-syntax-highlighting"  # Syntax highlighting (faster alternative)
+brew "zsh-fast-syntax-highlighting"  # Fast syntax highlighting
 brew "zsh-completions"            # Additional completions
 
 # ============================================================================
-# DEVELOPMENT TOOLS
+# MODERN CLI STACK
+# ============================================================================
+brew "bat"                        # Cat with syntax highlighting
+brew "btop"                       # Interactive process viewer
+brew "direnv"                     # Directory-specific env vars
+brew "eza"                        # Modern ls replacement
+brew "fd"                         # Fast find replacement
+brew "fastfetch"                  # System info display
+brew "fzf"                        # Fuzzy finder
+brew "git-delta"                  # Syntax-highlighted git diffs
+brew "jq"                         # JSON processor
+brew "ripgrep"                    # Fast grep replacement
+brew "zoxide"                     # Smarter cd command
+
+# ============================================================================
+# CORE DEVELOPMENT ACCESS
 # ============================================================================
 brew "gh"                         # GitHub CLI
-brew "git"                        # Version control (latest)
-brew "jq"                         # JSON processor (for scripts)
-cask "1password-cli"              # 1Password command-line interface (Cask)
-brew "direnv"                     # Directory-specific env vars
-brew "mise"                       # Global toolchain manager (Node, Python, Go, Java, etc.)
-
-# ============================================================================
-# TESTING TOOLS (Dotfiles Gates)
-# ============================================================================
-brew "bats-core"                  # Functional testing framework for bash
-brew "shellcheck"                 # Static analysis for bash scripts
-brew "shfmt"                      # Shell script formatter
-
-# ============================================================================
-# ADDITIONAL CLI TOOLS (From your installed apps)
-# ============================================================================
-brew "imagemagick"                # Image manipulation
-brew "ffmpeg"                     # Video/audio processing
-brew "glances"                    # System monitoring (htop alternative)
-brew "htop"                       # Interactive process viewer
-
-# ============================================================================
-# OPTIONAL TOOLS (Uncomment if needed)
-# ============================================================================
-# brew "lazygit"                  # TUI for git
-# brew "httpie"                   # Modern curl alternative
-# brew "xh"                       # Fast HTTP client
-# brew "hyperfine"                # Benchmarking tool
-# brew "tokei"                    # Code statistics
-# brew "tre-command"              # Tree command replacement
-# brew "zellij"                   # Modern tmux alternative (Rust)
-
-# ============================================================================
-# CASK APPLICATIONS (GUI apps - Based on your installed apps)
-# ============================================================================
-# Essential
+brew "git"                        # Version control
+brew "mas"                        # Mac App Store automation
 cask "1password"                  # Password manager
-cask "raycast"                    # Spotlight replacement + window management
-cask "arc"                        # Modern browser
+cask "1password-cli"              # 1Password CLI integration
+cask "tailscale-app"              # Mesh VPN
 
-# Development
-cask "zed"                        # High-performance editor
-cask "tailscale"                  # VPN/mesh networking
-
-# Other (Uncomment if needed on new machine)
-# cask "chatgpt"                  # AI chat desktop app
-# cask "obs"                      # Streaming/recording
-# cask "karabiner-elements"       # Keyboard customization
-# cask "notion-calendar"          # Calendar app
-# cask "orbstack"                # Docker Desktop alternative (lighter)
-cask "docker-desktop"            # Container platform
-# cask "microsoft-remote-desktop" # RDP client
+# ============================================================================
+# OPTIONAL UTILITIES
+# ============================================================================
+# brew "dust"                     # Better du (disk usage)
+# brew "hyperfine"                # Benchmarking tool
+# brew "lazygit"                  # Git TUI
+# brew "xh"                       # Fast HTTP client

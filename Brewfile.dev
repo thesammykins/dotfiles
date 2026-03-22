@@ -1,0 +1,13 @@
+# Developer-machine additions.
+# Install with:
+#   DOTFILES_INSTALL_DEV=1 ~/.dotfiles/scripts/install.sh
+
+# Toolchain and validation
+brew "bats-core"
+brew "mise"
+brew "opencode"
+brew "shellcheck"
+brew "shfmt"
+
+# Local containers
+cask "orbstack"
