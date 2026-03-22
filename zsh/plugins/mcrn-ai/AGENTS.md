@@ -7,7 +7,7 @@ This plugin turns natural language into a single, raw zsh command. It is NOT a c
 - OUTPUT MUST BE EXACTLY ONE COMMAND LINE. NO MARKDOWN. NO EXPLANATIONS. NO MULTILINE OUTPUT.
 - TOOLS ARE DISABLED BY DEFAULT. ONLY ENABLE WITH AN EXPLICIT ALLOWLIST.
 - SAFETY POLICY IN `policy.txt` IS REQUIRED INPUT TO SYSTEM PROMPT.
-- MODEL LOCK: COPILOT MUST USE `gpt-5-mini` ONLY.
+- MODEL DEFAULT: COPILOT SHOULD DEFAULT TO `gpt-5-mini`.
 - DO NOT ADD DESTRUCTIVE COMMANDS UNLESS USER EXPLICITLY REQUESTS THEM.
 
 ## REQUIRED STYLE
@@ -18,6 +18,7 @@ This plugin turns natural language into a single, raw zsh command. It is NOT a c
 ## TOOL WIRING
 - TOOL DEFINITIONS LIVE IN `/zsh/plugins/mcrn-ai/tools/`.
 - PRIMARY CONFIG: `/zsh/plugins/mcrn-ai/config.json`.
+- MODEL QUICK CONFIG: `config.json` -> `model.default`, or override with `MCRN_COPILOT_MODEL`.
 - ENV OVERRIDES: `MCRN_AI_TOOLS_ALLOWLIST`, `MCRN_AI_TOOLS_DEVOPS`.
 - OPTIONAL OVERRIDE PATH: `MCRN_AI_CONFIG_FILE`.
 
@@ -41,6 +42,7 @@ This plugin turns natural language into a single, raw zsh command. It is NOT a c
 ## REFERENCES
 - POLICY: `/zsh/plugins/mcrn-ai/policy.txt`
 - COPILOT HELPER: `/zsh/plugins/mcrn-ai/copilot-helper.mjs`
+- COPILOT CLI: INSTALLED VIA `brew install copilot-cli`
 - TOOLS: `/zsh/plugins/mcrn-ai/tools/index.mjs`
 - CONFIG: `/zsh/plugins/mcrn-ai/config.json`
 - SCHEMA: `/zsh/plugins/mcrn-ai/config.schema.json`

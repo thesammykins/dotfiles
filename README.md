@@ -75,7 +75,10 @@ DOTFILES_DRY_RUN=1 "$HOME/.dotfiles/scripts/migrate-to-mise.sh"
 - Use this before onboarding a new Mac or reconciling an existing one.
 
 ## AI Command Generation
-Press `Ctrl+G` and type a natural language request. The buffer is replaced with a single shell command. The widget uses GitHub Copilot SDK with `gpt-5-mini` by default, and you can override that with `MCRN_COPILOT_MODEL`.
+Press `Ctrl+G` and type a natural language request. The buffer is replaced with a single shell command. The widget uses GitHub Copilot SDK with `gpt-5-mini` by default, and it now expects the standalone `copilot` CLI to be installed via `Brewfile.dev`.
+
+- Quick model override: set `MCRN_COPILOT_MODEL` in `~/.zshrc.local`.
+- Repo default model: edit `zsh/plugins/mcrn-ai/config.json` under `model.default`.
 
 ## MCRN AI Paths
 - Config: `$HOME/.dotfiles/zsh/plugins/mcrn-ai/config.json`
