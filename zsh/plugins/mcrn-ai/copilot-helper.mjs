@@ -5,7 +5,6 @@ import { fileURLToPath } from "node:url";
 import { loadConfig } from "./config.mjs";
 import { getAllowlist, getAvailableTools, isDevopsTool } from "./tools/index.mjs";
 
-const MODEL = process.env.MCRN_COPILOT_MODEL || "gpt-5-mini";
 const TIMEOUT_MS = Number.parseInt(process.env.MCRN_AI_TIMEOUT_MS || "12000", 10);
 
 const TOOL_BLOCK_MESSAGE =
@@ -13,6 +12,9 @@ const TOOL_BLOCK_MESSAGE =
 const TOOL_DEVOPS_MESSAGE = "Dev/Ops tools require opt-in.";
 
 const helperDir = path.dirname(fileURLToPath(import.meta.url));
+const isDirectRun = process.argv[1]
+  ? path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)
+  : false;
 const policyPath =
   process.env.MCRN_AI_POLICY_FILE || path.join(helperDir, "policy.txt");
 
@@ -70,7 +72,7 @@ const readStdin = async () =>
     process.stdin.on("error", reject);
   });
 
-const sanitizeCommand = (value) => {
+export const sanitizeCommand = (value) => {
   if (typeof value !== "string") return "";
   let trimmed = value.trim();
   if (trimmed.length === 0) return "";
@@ -79,7 +81,20 @@ const sanitizeCommand = (value) => {
   trimmed = trimmed.replace(/^command:\s*/i, "");
   if (trimmed.length === 0) return "";
   if (/[\u0000-\u001F\u007F]/.test(trimmed)) return "";
+  if (/[;&|]/.test(trimmed)) return "";
+  if (trimmed.includes("$(") || trimmed.includes(">") || trimmed.includes("<")) return "";
   return trimmed;
+};
+
+const disconnectSession = async (session) => {
+  if (!session) return;
+  if (typeof session.disconnect === "function") {
+    await session.disconnect();
+    return;
+  }
+  if (typeof session.destroy === "function") {
+    await session.destroy();
+  }
 };
 
 const safeJson = (payload) =>
@@ -131,13 +146,26 @@ const classifyError = (error) => {
   return { error: message, error_code: "copilot_error" };
 };
 
+export const resolveModel = (config = loadConfig(), env = process.env) => {
+  if (typeof env.MCRN_COPILOT_MODEL === "string" && env.MCRN_COPILOT_MODEL.trim().length > 0) {
+    return env.MCRN_COPILOT_MODEL.trim();
+  }
+  if (config?.model && typeof config.model.default === "string" && config.model.default.trim().length > 0) {
+    return config.model.default.trim();
+  }
+  return "gpt-5-mini";
+};
+
 const main = async () => {
   const prompt = await readStdin();
+  const config = loadConfig();
+  const model = resolveModel(config);
   if (!prompt) {
     process.stdout.write(safeJson({
       command: "",
       confidence: 0,
       provider: "copilot",
+      model,
       error: "empty_prompt",
     }));
     return;
@@ -153,7 +181,6 @@ const main = async () => {
 
   const policy = loadPolicy();
   const client = new CopilotClient();
-  const config = loadConfig();
   const allowlist = getAllowlist();
   const tools = getAvailableTools();
   const devopsEnabled = config.tools.devopsEnabled;
@@ -162,13 +189,13 @@ const main = async () => {
     await client.start();
     const availableModels = await client.listModels();
     const supportedModelIds = new Set(availableModels.map(getModelId).filter(Boolean));
-    if (!supportedModelIds.has(MODEL)) {
+    if (!supportedModelIds.has(model)) {
       process.stdout.write(safeJson({
         command: "",
         confidence: 0,
         provider: "copilot",
-        model: MODEL,
-        error: `Unsupported Copilot model: ${MODEL}`,
+        model,
+        error: `Unsupported Copilot model: ${model}`,
         error_code: "copilot_model_rejected",
         available_models: Array.from(supportedModelIds).sort(),
       }));
@@ -177,7 +204,7 @@ const main = async () => {
     }
 
     session = await client.createSession({
-      model: MODEL,
+      model,
       systemMessage: {
         mode: "append",
         content: systemPrompt({ cwd, dotfiles, home, inGitRepo, os, shell, termProgram, policy }),
@@ -208,40 +235,40 @@ const main = async () => {
     const response = await session.sendAndWait({ prompt }, TIMEOUT_MS);
     const content = response?.data?.content ?? "";
     const command = sanitizeCommand(content);
-    if (typeof session.destroy === "function") {
-      await session.destroy();
-    }
+    await disconnectSession(session);
     await client.stop();
 
     process.stdout.write(safeJson({
       command,
       confidence: command ? 1 : 0,
       provider: "copilot",
-      model: MODEL,
+      model,
     }));
   } catch (error) {
-    if (typeof session?.destroy === "function") {
-      await session.destroy().catch(() => undefined);
-    }
+    await disconnectSession(session).catch(() => undefined);
     const classified = classifyError(error);
     await client.forceStop().catch(() => undefined);
     process.stdout.write(safeJson({
       command: "",
       confidence: 0,
       provider: "copilot",
-      model: MODEL,
+      model,
       ...classified,
     }));
   }
 };
 
-main().catch((error) => {
-  const classified = classifyError(error);
-  process.stdout.write(safeJson({
-    command: "",
-    confidence: 0,
-    provider: "copilot",
-    model: MODEL,
-    ...classified,
-  }));
-});
+if (isDirectRun) {
+  main().catch((error) => {
+    const config = loadConfig();
+    const model = resolveModel(config);
+    const classified = classifyError(error);
+    process.stdout.write(safeJson({
+      command: "",
+      confidence: 0,
+      provider: "copilot",
+      model,
+      ...classified,
+    }));
+  });
+}

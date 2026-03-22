@@ -41,7 +41,7 @@ _mcrn_ai_call_copilot() {
     return 1
   fi
   if [[ ! -d "$sdk_dir" ]]; then
-    zle -M "[MCRN ERROR] COPILOT SDK NOT INSTALLED."
+    zle -M "[MCRN ERROR] COPILOT SDK NOT INSTALLED. RUN NPM CI IN ~/.DOTFILES/ZSH/PLUGINS/MCRN-AI"
     return 1
   fi
   if [[ ! -x "$(command -v node)" ]]; then
@@ -89,7 +89,13 @@ mcrn_ai_generate() {
   local command
   local error
   local error_code
+  local rc
   result="$(_mcrn_ai_call_copilot "$user_input")"
+  rc=$?
+  if (( rc != 0 )); then
+    zle redisplay
+    return
+  fi
 
   _mcrn_ai_debug_log "raw result: $result"
 
@@ -112,7 +118,7 @@ mcrn_ai_generate() {
         zle -M "[MCRN ERROR] COPILOT TIMEOUT."
         ;;
       copilot_sdk_missing)
-        zle -M "[MCRN ERROR] COPILOT SDK NOT INSTALLED."
+        zle -M "[MCRN ERROR] COPILOT SDK NOT INSTALLED. RUN NPM CI IN ~/.DOTFILES/ZSH/PLUGINS/MCRN-AI"
         ;;
       copilot_node_required)
         zle -M "[MCRN ERROR] NODE 20+ REQUIRED FOR COPILOT SDK."
