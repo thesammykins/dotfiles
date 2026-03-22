@@ -21,13 +21,15 @@ This plugin turns natural language into a single, raw zsh command. It is NOT a c
 - MODEL QUICK CONFIG: `config.json` -> `model.default`, or override with `MCRN_COPILOT_MODEL`.
 - ENV OVERRIDES: `MCRN_AI_TOOLS_ALLOWLIST`, `MCRN_AI_TOOLS_DEVOPS`.
 - OPTIONAL OVERRIDE PATH: `MCRN_AI_CONFIG_FILE`.
+- SDK PATCH HOOK: `/zsh/plugins/mcrn-ai/patch-copilot-sdk.mjs`.
 
 ## TOOLING RULES
 - USE `defineTool` + `createSession({ tools: [...] })` ALLOWLIST.
 - KEEP `hooks.onPreToolUse` DENY-BY-DEFAULT FOR NON-ALLOWLISTED TOOLS.
 - KEEP `systemMessage` IN APPEND MODE UNLESS YOU RE-IMPLEMENT ALL GUARDRAILS.
 - ENFORCE COMMAND-ONLY OUTPUT CLIENT-SIDE (REJECT MULTILINE/PROSE).
-- TOOL CONFIG LIVES IN `/zsh/plugins/mcrn-ai/tools/`.
+- KEEP THE HELPER SAFE TO IMPORT IN TESTS; DO NOT AUTO-RUN ON MODULE IMPORT.
+- TOOL CONFIG LIVES IN `/zsh/plugins/mcrn-ai/config.json`; TOOL DEFINITIONS LIVE IN `/zsh/plugins/mcrn-ai/tools/`.
 
 ## ANTI-PATTERNS
 - ENABLING TOOLS WITHOUT A SCOPED ALLOWLIST.
@@ -38,11 +40,19 @@ This plugin turns natural language into a single, raw zsh command. It is NOT a c
 
 ## DEBUGGING
 - SET `MCRN_AI_DEBUG=1` TO LOG TO `/tmp/mcrn-ai-debug.log`.
+- RUN `node ./zsh/plugins/mcrn-ai/copilot-helper.test.mjs` FOR HELPER-LEVEL REGRESSION CHECKS.
+
+## KNOWN GOTCHAS
+- `@github/copilot-sdk` on Node 24/25 still needs the `vscode-jsonrpc/node` import patched to `node.js`.
+- Preserve the post-install patch flow in `patch-copilot-sdk.mjs`, `scripts/install.sh`, and `scripts/test.sh` unless upstream fully resolves it.
+- `copilot-cli` should come from `Brewfile.dev`; avoid inventing alternate install paths in repo docs unless the bootstrap model changes.
 
 ## REFERENCES
 - POLICY: `/zsh/plugins/mcrn-ai/policy.txt`
 - COPILOT HELPER: `/zsh/plugins/mcrn-ai/copilot-helper.mjs`
-- COPILOT CLI: INSTALLED VIA `brew install copilot-cli`
+- HELPER TESTS: `/zsh/plugins/mcrn-ai/copilot-helper.test.mjs`
+- SDK PATCH: `/zsh/plugins/mcrn-ai/patch-copilot-sdk.mjs`
+- COPILOT CLI: INSTALLED VIA `Brewfile.dev`
 - TOOLS: `/zsh/plugins/mcrn-ai/tools/index.mjs`
 - CONFIG: `/zsh/plugins/mcrn-ai/config.json`
 - SCHEMA: `/zsh/plugins/mcrn-ai/config.schema.json`

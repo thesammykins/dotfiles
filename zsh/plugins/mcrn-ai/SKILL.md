@@ -7,6 +7,7 @@ Extend the MCRN AI plugin with SAFE, READ-ONLY tools. The core contract remains:
 - TOOLS LIVE IN `/zsh/plugins/mcrn-ai/tools/`.
 - COPILOT PATH LOADS `tools/index.mjs` AND `config.json`.
 - MODEL DEFAULT LIVES IN `config.json` AND CAN BE OVERRIDDEN WITH `MCRN_COPILOT_MODEL`.
+- SDK PATCH HOOK LIVES IN `patch-copilot-sdk.mjs`.
 - ENV OVERRIDES: `MCRN_AI_TOOLS_ALLOWLIST`, `MCRN_AI_TOOLS_DEVOPS`, `MCRN_AI_TOOL_MAX_OUTPUT_BYTES`, `MCRN_AI_TOOL_MAX_FILE_BYTES`, `MCRN_AI_TOOL_TIMEOUT_MS`.
 
 ## BASELINE CONSTRAINTS
@@ -22,6 +23,7 @@ Extend the MCRN AI plugin with SAFE, READ-ONLY tools. The core contract remains:
 4) ENFORCE COMMAND-ONLY OUTPUT CLIENT-SIDE. REJECT MULTILINE/PROSE.
 5) KEEP `systemMessage` MODE AS APPEND UNLESS YOU REBUILD ALL GUARDRAILS.
 6) USE CONFIG FIRST; ENV OVERRIDES ONLY WHEN NECESSARY.
+7) KEEP THE HELPER IMPORT-SAFE SO TESTS CAN LOAD IT WITHOUT STARTING A SESSION.
 
 ## TOOL DESIGN RULES
 - TOOLS MUST BE READ-ONLY.
@@ -129,7 +131,8 @@ hooks: {
 
 ## DEFAULTS
 - TOOLS ARE ONLY FOR THE COPILOT PATH.
-- COPILOT CLI SHOULD BE INSTALLED ALONGSIDE THE SDK PATH.
+- COPILOT CLI SHOULD BE INSTALLED VIA `Brewfile.dev` ALONGSIDE THE SDK PATH.
+- PATCH THE SDK IMPORT PATH AFTER `npm ci` UNTIL THE `vscode-jsonrpc/node` ISSUE IS FULLY FIXED UPSTREAM.
 
 ## INITIAL TESTS (MANUAL)
 1) TOOL ALLOWLIST: CALL A NON-ALLOWLISTED TOOL -> DENIED.
@@ -138,10 +141,14 @@ hooks: {
 4) SEARCH: `search_text` FINDS MATCHES IN CWD.
 5) DEV/OPS TOOL: `docker_ps` OR `kubectl_get` OR `aws_identity` RETURNS READ-ONLY INFO.
 6) CONFIG: EDIT `config.json` THEN RESTART SHELL, VERIFY ALLOWLIST CHANGES APPLY.
+7) MODEL OVERRIDE: SET `MCRN_COPILOT_MODEL`, RESTART SHELL, VERIFY HELPER SELECTS IT.
+8) REGRESSION TESTS: RUN `node ./zsh/plugins/mcrn-ai/copilot-helper.test.mjs`.
 
 ## REFERENCES
 - POLICY: `/zsh/plugins/mcrn-ai/policy.txt`
 - COPILOT HELPER: `/zsh/plugins/mcrn-ai/copilot-helper.mjs`
+- HELPER TESTS: `/zsh/plugins/mcrn-ai/copilot-helper.test.mjs`
+- SDK PATCH: `/zsh/plugins/mcrn-ai/patch-copilot-sdk.mjs`
 - TOOLS: `/zsh/plugins/mcrn-ai/tools/index.mjs`
 - CONFIG: `/zsh/plugins/mcrn-ai/config.json`
 - SCHEMA: `/zsh/plugins/mcrn-ai/config.schema.json`
