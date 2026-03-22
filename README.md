@@ -1,12 +1,13 @@
 # DOTFILES - MCRN TACTICAL TERMINAL
 
-MCRN-themed dotfiles for Ghostty, zsh, tmux, Starship, and a Copilot-powered AI shell widget. Built for macOS. The canonical install location is `~/.dotfiles`.
+MCRN-themed dotfiles for Ghostty, zsh, Starship, OpenCode, and a Copilot-powered AI shell widget. Built for macOS. The canonical install location is `~/.dotfiles`.
 
 ## Highlights
 - Ghostty with an MCRN palette, shell integration, native macOS titlebar, and inherited working directory.
 - Zsh with fast completions, modern CLI defaults, and local overrides in `~/.zshrc.local`.
 - Two-line Starship prompt with repo-aware path styling.
 - Reproducible runtime management via pinned `mise` versions.
+- Split Homebrew bundles for base machine, developer stack, and workstation apps.
 
 ## Quick Start
 ```bash
@@ -27,7 +28,8 @@ exec zsh
 - `DOTFILES_DRY_RUN=1`: preview filesystem, Brew, and `mise` actions.
 - `DOTFILES_CLOUD_BACKUP=1`: copy backups to iCloud if available.
 - `DOTFILES_BACKUP_DIR=/path/to/backup`: override the backup target.
-- `DOTFILES_INSTALL_WORKSTATION=1`: also install optional workstation GUI apps from `Brewfile.workstation`.
+- `DOTFILES_INSTALL_DEV=1`: also install the developer stack from `Brewfile.dev`.
+- `DOTFILES_INSTALL_WORKSTATION=1`: also install workstation apps from `Brewfile.workstation`.
 - `DOTFILES_APPLY_MACOS_DEFAULTS=1`: apply the repo's Finder, Dock recents, and screenshot defaults.
 - `DOTFILES_APPLY_DOCK=1`: apply the repo's canonical Dock layout with `dockutil`.
 
@@ -43,7 +45,25 @@ DOTFILES_DRY_RUN=1 DOTFILES_LINK_MODE=migrate \
 - `DOTFILES_APPLY_MACOS_DEFAULTS=1` applies only low-risk settings: Finder visibility/view defaults, Dock recent-app suppression, and PNG screenshots in `~/Pictures/Screenshots`.
 - `DOTFILES_APPLY_DOCK=1` resets the Dock to the repo's small canonical app set using `dockutil`.
 - Raycast should be restored with Raycast Cloud Sync or settings export/import. Do not track `~/.config/raycast/config.json`; it contains machine auth tokens.
-- iCloud Desktop/Documents is intentionally unmanaged here. This repo assumes Google Drive remains the preferred file-sync layer.
+- Dia is intentionally handled outside Homebrew. Install it from `diabrowser.com`, then use the Dia backup scripts in this repo to move the local profile between Macs.
+- iCloud Desktop/Documents is intentionally unmanaged here. This repo assumes cloud file sync is optional and browser migration is handled explicitly.
+
+## Brewfile Tiers
+- `Brewfile`: base shell, terminal, CLI, auth, and Tailscale baseline.
+- `Brewfile.dev`: developer machine additions such as `mise`, `opencode`, validation tools, and `orbstack`.
+- `Brewfile.workstation`: daily GUI apps for this personal workstation setup (`zed`, `raycast`, `beeper`, `vesktop`, `opencode-desktop`, `QuickDrop`).
+
+## Dia Backup And Restore
+Install Dia manually, launch it once, then use:
+
+```bash
+"$HOME/.dotfiles/scripts/backup-dia-profile.sh"
+"$HOME/.dotfiles/scripts/restore-dia-profile.sh" /path/to/dia-backup
+```
+
+- The backup script copies local Dia profile data while excluding caches and lock files.
+- Expect bookmarks, history, and settings to migrate well.
+- Expect some login state to need reauthentication because parts of Chromium auth can be keychain-backed.
 
 ## Runtime Migration
 ```bash
