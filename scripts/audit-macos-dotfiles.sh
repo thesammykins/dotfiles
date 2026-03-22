@@ -204,10 +204,10 @@ check_mcrn_ai_sdk_alignment() {
     warn "copilot-helper is not using append mode; may bypass SDK default guardrails"
   fi
 
-  if grep -Fq 'session.destroy()' "$helper"; then
-    ok "copilot-helper uses session.destroy() per current SDK guidance"
+  if grep -Eq 'session\.disconnect\(\)|disconnectSession' "$helper"; then
+    ok "copilot-helper uses current session disconnect lifecycle"
   else
-    warn "copilot-helper does not call session.destroy(); check SDK lifecycle usage"
+    warn "copilot-helper does not use current session disconnect lifecycle"
   fi
 
   if grep -Eq 'MCRN_COPILOT_MODEL.*gpt-5-mini|process\.env\.MCRN_COPILOT_MODEL \|\| "gpt-5-mini"' "$helper" "$REPO_ROOT/zsh/plugins/mcrn-ai.zsh"; then

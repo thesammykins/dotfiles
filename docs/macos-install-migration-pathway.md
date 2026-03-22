@@ -109,7 +109,7 @@ MISE_AUTO_UNINSTALL_BREW_RUNTIMES=1 "$HOME/.dotfiles/scripts/migrate-to-mise.sh"
 Run the dotfiles audit and inspect the `MCRN AI Copilot SDK alignment` section to verify:
 
 - `@github/copilot-sdk` dependency is current and Node engine compatibility is met.
-- helper uses the current lifecycle teardown (`session.destroy()`).
+- helper uses the current lifecycle teardown (`session.disconnect()`).
 - helper uses `systemMessage` append mode to preserve SDK guardrails.
 
 ```bash
