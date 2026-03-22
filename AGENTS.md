@@ -26,12 +26,23 @@ This dotfiles repository is themed around **The Expanse / MCRN Tactical Display*
 - **Execution**: The widget is bound to `Ctrl+G`. It sends the current shell context to the Copilot helper, enforces single-command output, and replaces the buffer with one parsed zsh command. Hitting `Ctrl+G` on an empty buffer retries the last query.
 
 ### Toolchain Mandate (Mise vs Homebrew)
-- **Homebrew**: Restricted to system tools (e.g., `git`, `jq`) and GUI Casks (e.g., `ghostty`, `zed`).
-- **Mise**: Global toolchain manager for all developer runtimes (`node`, `python`, `go`, `java`, etc.). Configured in `~/.config/mise/config.toml`.
+- **Homebrew**: Used for machine bootstrap, CLI utilities, and GUI apps. The repo is split into `Brewfile` (base), `Brewfile.dev` (developer tools), and `Brewfile.workstation` (daily-use GUI apps).
+- **Mise**: Global toolchain manager for developer runtimes (`node`, `python`, `go`, `java`, etc.). Configured in `~/.config/mise/config.toml`.
+- **Container Runtime**: Prefer OrbStack on macOS over Docker Desktop.
 
 ---
 
 ## Component Rules
+
+### Homebrew Bundle Layout
+
+**Locations**: `Brewfile`, `Brewfile.dev`, `Brewfile.workstation`
+
+**Rules**:
+- `Brewfile` should stay lean: shell, terminal, auth, core CLI, and machine bootstrap essentials.
+- `Brewfile.dev` is for developer-machine tools such as `mise`, `opencode`, `copilot-cli`, validation tools, and local containers.
+- `Brewfile.workstation` is for daily-use personal GUI apps that should exist on every primary Mac.
+- Avoid turning the Brewfiles into a dump of every installed app on one machine.
 
 ### Ghostty Configuration
 
@@ -72,6 +83,17 @@ font-family = "TX02 Nerd Font"
 
 ---
 
+### Browser Migration
+
+**Preferred Browser**: Dia
+
+**Rules**:
+- Dia is intentionally not Homebrew-managed here; future agents should treat it as a manual install.
+- Browser migration is handled by `scripts/backup-dia-profile.sh` and `scripts/restore-dia-profile.sh`.
+- Copy profile data, not caches. Expect some sign-ins to require reauthentication on a new Mac.
+
+---
+
 ### Starship Configuration
 
 **Location**: `.config/starship.toml`
@@ -100,3 +122,40 @@ starlight = "#eaeaea"      # White
 - Do not use text labels for languages (e.g., `PY::`). Use Nerd Font glyphs explicitly mapped to the MCRN color palette.
 - Keep the right prompt empty (`right_format = ""`) to reduce visual clutter.
 - Disable unused/verbose modules (username, hostname, package, cloud providers).
+
+---
+
+### MCRN AI Plugin
+
+**Locations**:
+- Loader: `zsh/plugins/mcrn-ai.zsh`
+- Helper: `zsh/plugins/mcrn-ai/copilot-helper.mjs`
+- Config: `zsh/plugins/mcrn-ai/config.json`
+
+**Rules**:
+- The widget must keep the single-command contract: no prose, no markdown, no multiline output.
+- Default model is `gpt-5-mini`, but it is configurable in `zsh/plugins/mcrn-ai/config.json` and overridable per machine with `MCRN_COPILOT_MODEL`.
+- `copilot-cli` must be present through `Brewfile.dev`; the SDK path assumes the standalone CLI exists.
+- Keep tool use deny-by-default unless the allowlist explicitly enables it.
+- Keep helper imports safe for tests; do not auto-run the helper on module import.
+
+**Known SDK Gotcha**:
+- `@github/copilot-sdk` on Node 24/25 currently needs a post-install patch for the `vscode-jsonrpc/node` import path. Preserve `zsh/plugins/mcrn-ai/patch-copilot-sdk.mjs` and the installer/test hooks that call it unless upstream fully resolves the issue.
+
+---
+
+## Validation Commands
+
+- `bash ./scripts/test.sh`
+- `bash ./scripts/audit-macos-dotfiles.sh`
+- `DOTFILES_DRY_RUN=1 DOTFILES_LINK_MODE=safe DOTFILES_INSTALL_DEV=1 DOTFILES_INSTALL_WORKSTATION=1 bash ./scripts/install.sh`
+
+Use these after touching bootstrap scripts, Brewfiles, `mise`, or the MCRN AI plugin.
+
+---
+
+## Current Operating Model
+
+- Prefer Ghostty tabs/splits over tmux on macOS; tmux is no longer part of the default repo experience.
+- Keep docs practical and migration-focused; avoid over-documenting obvious mechanics.
+- Prefer safe, dry-run-friendly installer changes and explicit migration pathways over clever automation.
