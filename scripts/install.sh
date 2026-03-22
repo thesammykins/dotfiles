@@ -95,7 +95,14 @@ ensure_mcrn_ai_dependencies() {
 
     command -v npm &>/dev/null || fail "npm not found after tool initialization. Node/npm is required for the MCRN AI widget."
     (cd "$plugin_dir" && npm ci --no-audit --no-fund --loglevel=error)
+    (cd "$plugin_dir" && node ./patch-copilot-sdk.mjs)
     log_info "MCRN AI dependencies installed"
+
+    if command -v copilot &>/dev/null; then
+        log_info "GitHub Copilot CLI detected"
+    else
+        log_warn "GitHub Copilot CLI not found. Install the dev bundle or run: brew install copilot-cli"
+    fi
 }
 
 validate_link_mode() {
