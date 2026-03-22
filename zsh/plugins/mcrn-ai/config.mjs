@@ -5,6 +5,9 @@ import { fileURLToPath } from "node:url";
 const helperDir = path.dirname(fileURLToPath(import.meta.url));
 
 const DEFAULT_CONFIG = {
+  model: {
+    default: "gpt-5-mini",
+  },
   tools: {
     allowlist: [],
     devopsEnabled: false,
@@ -42,21 +45,33 @@ const pickNumber = (value, fallback) =>
 const pickBoolean = (value, fallback) =>
   typeof value === "boolean" ? value : fallback;
 
+const pickString = (value, fallback) =>
+  typeof value === "string" && value.trim().length > 0 ? value.trim() : fallback;
+
+const clampNumber = (value, fallback, minimum) => {
+  const selected = Number.isFinite(value) ? Number(value) : fallback;
+  return selected < minimum ? fallback : selected;
+};
+
 const buildConfig = (input) => {
   const safe = input && typeof input === "object" ? input : {};
+  const modelInput = safe.model && typeof safe.model === "object" ? safe.model : {};
   const toolsInput = safe.tools && typeof safe.tools === "object" ? safe.tools : {};
   const limitsInput =
     safe.limits && typeof safe.limits === "object" ? safe.limits : {};
 
   return {
+    model: {
+      default: pickString(modelInput.default, DEFAULT_CONFIG.model.default),
+    },
     tools: {
       allowlist: normalizeAllowlist(toolsInput.allowlist),
       devopsEnabled: pickBoolean(toolsInput.devopsEnabled, false),
     },
     limits: {
-      maxOutputBytes: pickNumber(limitsInput.maxOutputBytes, DEFAULT_CONFIG.limits.maxOutputBytes),
-      maxFileBytes: pickNumber(limitsInput.maxFileBytes, DEFAULT_CONFIG.limits.maxFileBytes),
-      toolTimeoutMs: pickNumber(limitsInput.toolTimeoutMs, DEFAULT_CONFIG.limits.toolTimeoutMs),
+      maxOutputBytes: clampNumber(limitsInput.maxOutputBytes, DEFAULT_CONFIG.limits.maxOutputBytes, 1024),
+      maxFileBytes: clampNumber(limitsInput.maxFileBytes, DEFAULT_CONFIG.limits.maxFileBytes, 1024),
+      toolTimeoutMs: clampNumber(limitsInput.toolTimeoutMs, DEFAULT_CONFIG.limits.toolTimeoutMs, 250),
     },
   };
 };
@@ -72,6 +87,11 @@ export const loadConfig = () => {
   }
 
   const merged = buildConfig(fileConfig || {});
+
+  const modelEnv = process.env.MCRN_COPILOT_MODEL;
+  if (typeof modelEnv === "string" && modelEnv.trim().length > 0) {
+    merged.model.default = modelEnv.trim();
+  }
 
   const allowlistEnv = process.env.MCRN_AI_TOOLS_ALLOWLIST;
   if (typeof allowlistEnv === "string" && allowlistEnv.trim().length > 0) {
@@ -90,7 +110,11 @@ export const loadConfig = () => {
     10
   );
   if (Number.isFinite(maxOutputEnv)) {
-    merged.limits.maxOutputBytes = maxOutputEnv;
+    merged.limits.maxOutputBytes = clampNumber(
+      maxOutputEnv,
+      merged.limits.maxOutputBytes,
+      1024
+    );
   }
 
   const maxFileEnv = Number.parseInt(
@@ -98,7 +122,11 @@ export const loadConfig = () => {
     10
   );
   if (Number.isFinite(maxFileEnv)) {
-    merged.limits.maxFileBytes = maxFileEnv;
+    merged.limits.maxFileBytes = clampNumber(
+      maxFileEnv,
+      merged.limits.maxFileBytes,
+      1024
+    );
   }
 
   const timeoutEnv = Number.parseInt(
@@ -106,7 +134,11 @@ export const loadConfig = () => {
     10
   );
   if (Number.isFinite(timeoutEnv)) {
-    merged.limits.toolTimeoutMs = timeoutEnv;
+    merged.limits.toolTimeoutMs = clampNumber(
+      timeoutEnv,
+      merged.limits.toolTimeoutMs,
+      250
+    );
   }
 
   return merged;

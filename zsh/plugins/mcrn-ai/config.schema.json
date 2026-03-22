@@ -4,6 +4,20 @@
   "type": "object",
   "additionalProperties": false,
   "properties": {
+    "model": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "default": {
+          "type": "string",
+          "minLength": 1,
+          "default": "gpt-5-mini"
+        }
+      },
+      "default": {
+        "default": "gpt-5-mini"
+      }
+    },
     "tools": {
       "type": "object",
       "additionalProperties": false,

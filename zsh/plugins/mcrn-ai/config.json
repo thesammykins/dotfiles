@@ -1,4 +1,7 @@
 {
+  "model": {
+    "default": "gpt-5-mini"
+  },
   "tools": {
     "allowlist": [],
     "devopsEnabled": false
