@@ -10,7 +10,9 @@ setup() {
 }
 
 @test "Copilot model defaults to gpt-5-mini" {
-  run grep -E 'MCRN_COPILOT_MODEL.*gpt-5-mini' "$DOTFILES_DIR/zsh/plugins/mcrn-ai.zsh"
+  run rg -n 'MCRN_COPILOT_MODEL.*gpt-5-mini|"default": "gpt-5-mini"' \
+    "$DOTFILES_DIR/zsh/plugins/mcrn-ai.zsh" \
+    "$DOTFILES_DIR/zsh/plugins/mcrn-ai/config.json"
   [ "$status" -eq 0 ]
 }
 
