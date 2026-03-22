@@ -86,7 +86,6 @@ main() {
 
     restore_item ".zshrc"
     restore_item ".zprofile"
-    restore_item ".tmux.conf"
     restore_item ".zsh_aliases"
     restore_item "Library/Application Support/com.mitchellh.ghostty/config"
     restore_item ".config/ghostty/config"
@@ -95,6 +94,7 @@ main() {
     restore_item ".config/fastfetch/config.jsonc"
     restore_item ".config/fastfetch/mcrn_logo.txt"
     restore_item ".config/opencode"
+    restore_item "Library/Application Support/Dia/User Data"
 
     log_info "Restore complete."
 }

@@ -47,9 +47,6 @@ fetch_version_signal() {
     tarball)
       printf '%s\n' "$value" | extract_version_from_url
       ;;
-    tmux)
-      printf '%s\n' "$value" | sed -n 's/^[[:space:]]*url ".*releases\/download\/\([^/]*\)\/.*".*/\1/p' | head -n1
-      ;;
     jq)
       printf '%s\n' "$value" | sed -n 's/^[[:space:]]*url ".*jq-\([0-9.]*\)\.tar\.gz".*/\1/p' | head -n1
       ;;
@@ -128,18 +125,20 @@ check_version_signals() {
   printf '\n== Upstream version signals ==\n'
 
   # Version checks are pulled from upstream formula/cask definitions so this audit can run without brew installed.
-  local ghostty mise starship tmux jq
+  local ghostty mise starship jq opencode orbstack
   ghostty="$(fetch_version_signal https://raw.githubusercontent.com/Homebrew/homebrew-cask/master/Casks/g/ghostty.rb ghostty || true)"
   mise="$(fetch_version_signal https://raw.githubusercontent.com/Homebrew/homebrew-core/master/Formula/m/mise.rb tarball || true)"
   starship="$(fetch_version_signal https://raw.githubusercontent.com/Homebrew/homebrew-core/master/Formula/s/starship.rb tarball || true)"
-  tmux="$(fetch_version_signal https://raw.githubusercontent.com/Homebrew/homebrew-core/master/Formula/t/tmux.rb tmux || true)"
   jq="$(fetch_version_signal https://raw.githubusercontent.com/Homebrew/homebrew-core/master/Formula/j/jq.rb jq || true)"
+  opencode="$(fetch_version_signal https://raw.githubusercontent.com/Homebrew/homebrew-core/master/Formula/o/opencode.rb tarball || true)"
+  orbstack="$(fetch_version_signal https://raw.githubusercontent.com/Homebrew/homebrew-cask/master/Casks/o/orbstack.rb ghostty || true)"
 
   info "Homebrew cask latest Ghostty: ${ghostty:-unknown}"
   info "Homebrew formula latest mise: ${mise:-unknown}"
   info "Homebrew formula latest starship: ${starship:-unknown}"
-  info "Homebrew formula latest tmux: ${tmux:-unknown}"
   info "Homebrew formula latest jq: ${jq:-unknown}"
+  info "Homebrew formula latest opencode: ${opencode:-unknown}"
+  info "Homebrew cask latest OrbStack: ${orbstack:-unknown}"
 
   local declared_copilot latest_copilot
   if ! command -v jq &>/dev/null || ! command -v npm &>/dev/null; then
@@ -264,12 +263,12 @@ pathway() {
 
 == Migration pathway (new + existing Macs) ==
 1) On existing Macs, run this audit first and capture output to a ticket/docs.
-2) Pin mise runtime versions in .config/mise/config.toml before rollout.
-3) Run installer with safe links first:
-   DOTFILES_LINK_MODE=safe ~/.dotfiles/scripts/install.sh
-4) Resolve any skipped links manually, then rerun with force only if needed.
-5) After install: run bats tests and a manual Ghostty verification pass.
-6) Roll into bootstrap automation (MDM/Ansible) by calling install.sh + this audit script.
+2) Install base + dev + workstation bundles with safe links first:
+   DOTFILES_LINK_MODE=safe DOTFILES_INSTALL_DEV=1 DOTFILES_INSTALL_WORKSTATION=1 ~/.dotfiles/scripts/install.sh
+3) Install Dia manually, launch it once, then restore the saved profile if needed.
+4) Reconcile package replacement with mise using scripts/migrate-to-mise.sh.
+5) Resolve any skipped links manually, then rerun with force only if needed.
+6) After install: run bats tests and a manual Ghostty verification pass.
 TXT
 }
 

@@ -16,6 +16,7 @@ BACKUP_DIR="${DOTFILES_BACKUP_DIR:-$HOME/.dotfiles.backup/$(date +%Y%m%d_%H%M%S)
 DOTFILES_LINK_MODE="${DOTFILES_LINK_MODE:-migrate}"
 DOTFILES_ROOT="${DOTFILES_ROOT:-$DOTFILES_WORKTREE}"
 DOTFILES_DRY_RUN="${DOTFILES_DRY_RUN:-0}"
+DOTFILES_INSTALL_DEV="${DOTFILES_INSTALL_DEV:-0}"
 DOTFILES_INSTALL_WORKSTATION="${DOTFILES_INSTALL_WORKSTATION:-0}"
 DOTFILES_APPLY_MACOS_DEFAULTS="${DOTFILES_APPLY_MACOS_DEFAULTS:-0}"
 DOTFILES_APPLY_DOCK="${DOTFILES_APPLY_DOCK:-0}"
@@ -218,7 +219,6 @@ backup_configs() {
     local files=(
         ".zshrc"
         ".zprofile"
-        ".tmux.conf"
         ".zsh_aliases"
         "Library/Application Support/com.mitchellh.ghostty/config"
         ".config/ghostty/config"
@@ -227,6 +227,7 @@ backup_configs() {
         ".config/fastfetch/config.jsonc"
         ".config/fastfetch/mcrn_logo.txt"
         ".config/opencode"
+        "Library/Application Support/Dia/User Data"
     )
     
     for file in "${files[@]}"; do
@@ -340,7 +341,6 @@ link_dotfiles() {
 
     link_item "$DOTFILES_WORKTREE/.zshrc" "$HOME/.zshrc" ".zshrc"
     link_item "$DOTFILES_WORKTREE/.zprofile" "$HOME/.zprofile" ".zprofile"
-    link_item "$DOTFILES_WORKTREE/.tmux.conf" "$HOME/.tmux.conf" ".tmux.conf"
     link_item "$DOTFILES_WORKTREE/.config/starship.toml" "$HOME/.config/starship.toml" ".config/starship.toml"
     link_item "$DOTFILES_WORKTREE/.config/mise/config.toml" "$HOME/.config/mise/config.toml" ".config/mise/config.toml"
     link_item "$DOTFILES_WORKTREE/.config/ghostty/config" "$HOME/.config/ghostty/config" ".config/ghostty/config"
@@ -415,6 +415,9 @@ install_dependencies() {
     fi
 
     local brewfiles=("$DOTFILES_ROOT/Brewfile")
+    if [[ "$DOTFILES_INSTALL_DEV" == "1" && -f "$DOTFILES_ROOT/Brewfile.dev" ]]; then
+        brewfiles+=("$DOTFILES_ROOT/Brewfile.dev")
+    fi
     if [[ "$DOTFILES_INSTALL_WORKSTATION" == "1" && -f "$DOTFILES_ROOT/Brewfile.workstation" ]]; then
         brewfiles+=("$DOTFILES_ROOT/Brewfile.workstation")
     fi
@@ -555,7 +558,7 @@ apply_dock_layout() {
     local dock_apps=(
         "/System/Applications/Calendar.app"
         "/Applications/1Password.app"
-        "/Applications/Arc.app"
+        "/Applications/Dia.app"
         "/Applications/Ghostty.app"
         "/Applications/Zed.app"
     )

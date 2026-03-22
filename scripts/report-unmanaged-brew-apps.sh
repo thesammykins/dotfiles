@@ -56,7 +56,7 @@ parse_brewfile_entries() {
 tracked_entries() {
   local file
 
-  for file in "$REPO_ROOT/Brewfile" "$REPO_ROOT/Brewfile.workstation"; do
+  for file in "$REPO_ROOT/Brewfile" "$REPO_ROOT/Brewfile.dev" "$REPO_ROOT/Brewfile.workstation"; do
     [[ -f "$file" ]] || continue
     parse_brewfile_entries "$file"
   done | sort -u
@@ -128,6 +128,9 @@ main() {
 
   info "Tracked source files:"
   info "  $REPO_ROOT/Brewfile"
+  if [[ -f "$REPO_ROOT/Brewfile.dev" ]]; then
+    info "  $REPO_ROOT/Brewfile.dev"
+  fi
   if [[ -f "$REPO_ROOT/Brewfile.workstation" ]]; then
     info "  $REPO_ROOT/Brewfile.workstation"
   fi

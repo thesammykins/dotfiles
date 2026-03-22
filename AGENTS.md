@@ -13,7 +13,7 @@ This dotfiles repository is themed around **The Expanse / MCRN Tactical Display*
 ### Warp-like Workflow
 - **Shell Integration**: Ghostty must maintain shell integration for output selection and cursor placement
 - **Split Opacity**: `unfocused-split-opacity = 0.85` in Ghostty to focus attention on the active pane
-- **Fuzzy Navigation**: Tmux sessions and workspaces use fuzzy switching to mimic Warp's command palette
+- **Session Model**: Prefer native Ghostty tabs/splits over terminal multiplexers on macOS
 
 ### Performance Mandate
 - **Fast startup**: Shell must initialize instantly
@@ -26,7 +26,7 @@ This dotfiles repository is themed around **The Expanse / MCRN Tactical Display*
 - **Execution**: The widget is bound to `Ctrl+G`. It sends the current shell context to the Copilot helper, enforces single-command output, and replaces the buffer with one parsed zsh command. Hitting `Ctrl+G` on an empty buffer retries the last query.
 
 ### Toolchain Mandate (Mise vs Homebrew)
-- **Homebrew**: Restricted to system tools (e.g., `git`, `jq`, `tmux`) and GUI Casks (e.g., `ghostty`, `zed`).
+- **Homebrew**: Restricted to system tools (e.g., `git`, `jq`) and GUI Casks (e.g., `ghostty`, `zed`).
 - **Mise**: Global toolchain manager for all developer runtimes (`node`, `python`, `go`, `java`, etc.). Configured in `~/.config/mise/config.toml`.
 
 ---
@@ -53,17 +53,6 @@ font-family = "TX02 Nerd Font"
 - Cursor: Block style, amber (`#ffd34e`), no blink (`cursor-style-blink = false`)
 - Scrollback: `scrollback-limit = 10000000` (value in bytes)
 - Titlebar: Must be native macOS or completely hidden, do not use false.
-
----
-
-### Tmux Configuration
-
-**Location**: `.tmux.conf`
-
-**Integration Rules**:
-- Uses `tpm` (Tmux Plugin Manager) for plugins.
-- Prefix key: `Ctrl+A` (screen-style for ergonomics)
-- Status bar: Bottom position, updated every 5 seconds
 
 ---
 
