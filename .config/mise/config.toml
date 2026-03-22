@@ -6,11 +6,11 @@ node = "24.14.0"
 python = "3.13.12"
 go = "1.26.1"
 java = "21"
-dotnet = "10.0.200"
-terraform = "1.14.6"
-flyctl = "0.4.20"
-gradle = "9.4.0"
-uv = "0.10.9"
+dotnet = "10.0.201"
+terraform = "1.14.7"
+flyctl = "0.4.26"
+gradle = "9.4.1"
+uv = "0.10.12"
 
 [settings]
 experimental = true
