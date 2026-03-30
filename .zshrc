@@ -27,6 +27,9 @@ fi
 # Dotfiles location
 export DOTFILES="$HOME/.dotfiles"
 
+# Bat theme (matches MCRN warm palette)
+export BAT_THEME="ansi"
+
 # ============================================================================
 # HISTORY CONFIGURATION
 # ============================================================================
@@ -43,6 +46,7 @@ setopt HIST_FIND_NO_DUPS
 setopt HIST_IGNORE_SPACE
 setopt HIST_SAVE_NO_DUPS
 setopt HIST_VERIFY
+setopt HIST_REDUCE_BLANKS
 
 # ============================================================================
 # COMPLETIONS
@@ -78,12 +82,38 @@ if [[ -f "$HOMEBREW_PREFIX/share/zsh-fast-syntax-highlighting/fast-syntax-highli
     source "$HOMEBREW_PREFIX/share/zsh-fast-syntax-highlighting/fast-syntax-highlighting.plugin.zsh"
 fi
 
+# 3. fzf-tab - Warp-style inline completion dropdown (must load after compinit, before other plugins that wrap widgets)
+if [[ -f "$HOMEBREW_PREFIX/share/fzf-tab/fzf-tab.plugin.zsh" ]]; then
+    source "$HOMEBREW_PREFIX/share/fzf-tab/fzf-tab.plugin.zsh"
+    zstyle ':fzf-tab:*' fzf-flags --color=bg+:#3c180f,bg:#1a0b0c,fg:#ffd34e,fg+:#eaeaea,hl:#ff2929,hl+:#ff5a5a,info:#b04c2a,marker:#ff2929,prompt:#ffd34e,spinner:#b04c2a,pointer:#ffd34e,header:#c47a40,border:#c47a40
+fi
+
+# 4. Autopair - IDE-like bracket/quote auto-pairing
+if [[ -f "$HOMEBREW_PREFIX/share/zsh-autopair/autopair.zsh" ]]; then
+    source "$HOMEBREW_PREFIX/share/zsh-autopair/autopair.zsh"
+fi
+
+# 5. You-should-use - Alias discovery (MCRN tactical voice)
+if [[ -f "$HOMEBREW_PREFIX/share/zsh-you-should-use/you-should-use.plugin.zsh" ]]; then
+    export YSU_MESSAGE_FORMAT="TACTICAL NOTICE: Found alias for \"%command\" → \"%alias\""
+    export YSU_MESSAGE_POSITION="after"
+    source "$HOMEBREW_PREFIX/share/zsh-you-should-use/you-should-use.plugin.zsh"
+fi
+
 # ============================================================================
 # TOOL INITIALIZATION
 # ============================================================================
 # FZF - Fuzzy finder
-if [[ -f "$HOME/.fzf.zsh" ]]; then
-    source "$HOME/.fzf.zsh"
+if command -v fzf &>/dev/null; then
+    eval "$(fzf --zsh)" 2>/dev/null || { [[ -f "$HOME/.fzf.zsh" ]] && source "$HOME/.fzf.zsh"; }
+fi
+
+# FZF MCRN theme
+export FZF_DEFAULT_OPTS="--color=bg+:#3c180f,bg:#1a0b0c,fg:#ffd34e,fg+:#eaeaea,hl:#ff2929,hl+:#ff5a5a,info:#b04c2a,marker:#ff2929,prompt:#ffd34e,spinner:#b04c2a,pointer:#ffd34e,header:#c47a40,border:#c47a40"
+
+# Atuin - Synced shell history TUI (replaces fzf Ctrl+R)
+if command -v atuin &>/dev/null; then
+    eval "$(atuin init zsh --disable-up-arrow)"
 fi
 
 # Zoxide - Smarter cd command
@@ -111,6 +141,13 @@ if command -v op &>/dev/null; then
     eval "$(op completion zsh)" 2>/dev/null || true
 fi
 
+# Carapace - Universal shell completions (hundreds of CLI tools)
+if command -v carapace &>/dev/null; then
+    export CARAPACE_BRIDGES='zsh,fish,bash,inshellisense'
+    zstyle ':completion:*' format $'%{\e[2;37;41m%}completing %d%{\e[0m%}'
+    source <(carapace _carapace)
+fi
+
 # ============================================================================
 # ALIASES
 # ============================================================================
@@ -119,7 +156,6 @@ alias ls='eza --icons --group-directories-first --hyperlink'
 alias ll='eza --icons --group-directories-first --hyperlink -la'
 alias la='eza --icons --group-directories-first --hyperlink -a'
 alias lt='eza --icons --hyperlink --tree'
-alias l='ls -lah'
 
 alias cat='bat --paging=never --style=plain'
 alias grep='rg'
@@ -128,6 +164,17 @@ alias top='btop'
 alias du='dust'
 alias ps='procs'
 alias diff='delta'
+
+# Yazi - Terminal file manager (cd to last dir on exit)
+y() {
+    local tmp
+    tmp="$(mktemp -t "yazi-cwd.XXXXXX")"
+    yazi "$@" --cwd-file="$tmp"
+    if cwd="$(command cat -- "$tmp")" && [[ -n "$cwd" ]] && [[ "$cwd" != "$PWD" ]]; then
+        builtin cd -- "$cwd" || return
+    fi
+    rm -f -- "$tmp"
+}
 
 # Git aliases
 alias g='git'
@@ -183,4 +230,4 @@ fi
 alias dotfiles='git -C "$DOTFILES"'
 # peon-ping quick controls
 alias peon="bash $HOME/.claude/hooks/peon-ping/peon.sh"
-[ -f $HOME/.claude/hooks/peon-ping/completions.bash ] && source $HOME/.claude/hooks/peon-ping/completions.bash
+[[ -f "$HOME/.claude/hooks/peon-ping/completions.bash" ]] && source "$HOME/.claude/hooks/peon-ping/completions.bash"

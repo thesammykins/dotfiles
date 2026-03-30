@@ -7,14 +7,15 @@
 add_newline = true
 command_timeout = 500
 scan_timeout = 10
+palette = "mcrn"
 
 [palettes.mcrn]
 carbon = "#1a0b0c"
 hull_breach = "#ff2929"
 drive_plume = "#b04c2a"
 warning = "#ffd34e"
-holomap = "#75331a"
-sensor_ghost = "#b04c2a"
+holomap = "#c47a40"
+sensor_ghost = "#994444"
 ice = "#ffd34e"
 starlight = "#eaeaea"
 
@@ -22,7 +23,7 @@ starlight = "#eaeaea"
 # FORMAT - Tactical Readout Style (Two-Line)
 # ============================================================================
 format = """
-$directory$git_branch$git_status$cmd_duration$python$nodejs$rust$golang$ruby$java$kotlin$haskell$php$lua
+$directory$git_branch$git_status$cmd_duration$python$nodejs$rust$golang$ruby$java$kotlin$haskell$php$lua$terraform$docker_context
 $character"""
 
 right_format = ""
@@ -40,7 +41,7 @@ style = "fg:warning"
 format = "[$read_only]($read_only_style)[⬡ $path ]($style)"
 truncation_length = 3
 truncation_symbol = "…/"
-read_only = "🔒 "
+read_only = "󰌾 "
 read_only_style = "fg:carbon"
 home_symbol = "~"
 truncate_to_repo = true
@@ -49,9 +50,9 @@ repo_root_style = "fg:ice bold"
 repo_root_format = "[⬡ $before_root_path]($before_repo_root_style)[$repo_root]($repo_root_style)[$path ]($style)"
 
 [directory.substitutions]
-"$HOME/Development" = "~/Dev"
-"$HOME/Code" = "~/Code"
-"$HOME/Projects" = "~/Projects"
+"Development" = "Dev"
+"Code" = "Code"
+"Projects" = "Proj"
 
 [git_branch]
 symbol = " "
@@ -176,3 +177,15 @@ disabled = true
 
 [kubernetes]
 disabled = true
+
+[terraform]
+symbol = "󱁢 "
+style = "fg:holomap"
+format = "[$symbol]($style)"
+
+[docker_context]
+symbol = "󰡨 "
+style = "fg:drive_plume"
+format = "[$symbol]($style)"
+only_with_files = true
+detect_files = ["docker-compose.yml", "docker-compose.yaml", "Dockerfile", "compose.yml", "compose.yaml"]

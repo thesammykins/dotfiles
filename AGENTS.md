@@ -131,8 +131,8 @@ carbon = "#1a0b0c"         # Void black background
 hull_breach = "#ff2929"    # Alert red (errors, Rust)
 drive_plume = "#b04c2a"    # Rust orange (Node, Lua)
 warning = "#ffd34e"        # PDC Amber (primary text, Java, PHP)
-holomap = "#75331a"        # Dim blue/brown (Git branch, Kotlin, Haskell)
-sensor_ghost = "#b04c2a"   # Secondary accent (Python, Ruby)
+holomap = "#c47a40"        # Warm copper (Git branch, Kotlin, Haskell)
+sensor_ghost = "#994444"   # Burgundy-rust (Python, Ruby)
 ice = "#ffd34e"            # Bright amber (duration, Go)
 starlight = "#eaeaea"      # White
 ```

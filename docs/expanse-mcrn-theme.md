@@ -17,8 +17,9 @@ It is the single source of truth for the palette, typography, and prompt style.
 | Foreground | `#ffd34e` | Primary text, primary indicators |
 | Accent Rust | `#b04c2a` | Headers, labels, borders |
 | Alert Red | `#ff2929` | Errors, critical states |
-| Dim | `#75331a` | Secondary text, time, subdued elements |
+| Dim | `#c47a40` | Secondary text, git branch, borders, subdued elements |
 | Selection | `#3c180f` | Selection and inactive panels |
+| Sensor Ghost | `#994444` | Muted burgundy-rust, differentiates from Accent Rust |
 
 ## Typography
 
@@ -51,7 +52,7 @@ Key rules:
 - Keep MCRN logo as-is
 - Use red for dividers and labels
 - Use amber for primary values
-- Use dim brown (`#75331a`) for secondary states
+- Use warm copper (`#c47a40`) for secondary states
 
 ## TUI Theming Ideas
 

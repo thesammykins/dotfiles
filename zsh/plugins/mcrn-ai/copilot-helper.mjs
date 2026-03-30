@@ -6,6 +6,13 @@ import { loadConfig } from "./config.mjs";
 import { getAllowlist, getAvailableTools, isDevopsTool } from "./tools/index.mjs";
 
 const TIMEOUT_MS = Number.parseInt(process.env.MCRN_AI_TIMEOUT_MS || "12000", 10);
+const DEBUG = process.env.MCRN_AI_DEBUG === "1";
+
+const debugLog = (...args) => {
+  if (!DEBUG) return;
+  const ts = new Date().toISOString();
+  process.stderr.write(`[MCRN DEBUG ${ts}] ${args.join(" ")}\n`);
+};
 
 const TOOL_BLOCK_MESSAGE =
   "Tool use is disabled. Return only the command.";
@@ -28,7 +35,67 @@ const loadPolicy = () => {
   }
 };
 
-const systemPrompt = ({ cwd, dotfiles, home, inGitRepo, os, shell, termProgram, policy }) => `You are a strict CLI command generator for macOS zsh.
+// ── Input Parsing (SAM-39) ──────────────────────────────────────────
+// Accepts JSON payload from the ZLE widget or raw text for backwards compat.
+// Returns a normalized input object.
+export const parseInput = (raw) => {
+  const empty = { prompt: "", mode: "generate", recentHistory: "", gitSummary: "", lastFailure: "", priorAi: { prompt: "", command: "" } };
+  if (!raw || typeof raw !== "string" || raw.trim().length === 0) return empty;
+
+  const trimmed = raw.trim();
+  // Try JSON first (structured payload from SAM-39 ZLE widget)
+  if (trimmed.startsWith("{")) {
+    try {
+      const parsed = JSON.parse(trimmed);
+      return {
+        prompt: typeof parsed.prompt === "string" ? parsed.prompt : "",
+        mode: typeof parsed.mode === "string" ? parsed.mode : "generate",
+        recentHistory: typeof parsed.recentHistory === "string" ? parsed.recentHistory : "",
+        gitSummary: typeof parsed.gitSummary === "string" ? parsed.gitSummary : "",
+        lastFailure: typeof parsed.lastFailure === "string" ? parsed.lastFailure : "",
+        priorAi: {
+          prompt: typeof parsed.priorAi?.prompt === "string" ? parsed.priorAi.prompt : "",
+          command: typeof parsed.priorAi?.command === "string" ? parsed.priorAi.command : "",
+        },
+      };
+    } catch {
+      // Fall through to raw text handling
+    }
+  }
+
+  // Raw text fallback (legacy or pipe usage)
+  return { ...empty, prompt: trimmed };
+};
+
+// ── Context Block Builder (SAM-39) ──────────────────────────────────
+// Builds the context section appended to the system prompt.
+export const buildContextBlock = ({ mode, recentHistory, gitSummary, lastFailure, priorAi }) => {
+  const parts = [];
+
+  if (gitSummary) {
+    parts.push(`GIT: ${gitSummary}`);
+  }
+
+  if (recentHistory) {
+    parts.push(`RECENT COMMANDS:\n${recentHistory}`);
+  }
+
+  if (mode === "fix" && lastFailure) {
+    parts.push(`FAILED COMMAND: ${lastFailure}`);
+    parts.push("MODE: FIX. Analyze the failed command and output a corrected version. Consider common failure causes: typos, wrong flags, missing paths, permission issues.");
+  } else if (mode === "refine" && priorAi?.command) {
+    parts.push(`PRIOR AI COMMAND: ${priorAi.command}`);
+    if (priorAi.prompt) {
+      parts.push(`PRIOR PROMPT: ${priorAi.prompt}`);
+    }
+    parts.push("MODE: REFINE. Modify the prior command based on the new instruction. Keep unrelated parts unchanged.");
+  }
+
+  if (parts.length === 0) return "";
+  return `\nCONTEXT:\n${parts.join("\n")}`;
+};
+
+const systemPrompt = ({ cwd, dotfiles, home, inGitRepo, os, shell, termProgram, policy, context }) => `You are a strict CLI command generator for macOS zsh.
 Your ONLY job is to translate natural language into a single, valid, raw shell command.
 
 ENVIRONMENT:
@@ -42,24 +109,26 @@ ENVIRONMENT:
 
 RULES:
 1. NEVER explain. NEVER use markdown. NEVER use backticks.
-2. Output exactly one command and nothing else.
+2. Output exactly one shell line and nothing else. Pipes, redirects, and logical operators (&&, ||, ;) are allowed within that single line. Multi-line output (backslash continuations, heredocs) is forbidden.
 3. Prefer standard macOS paths (e.g., ~/Downloads, ~/Desktop) unless a local path is explicitly implied.
 4. Use modern macOS/zsh idiomatic commands (e.g., find, rg, awk, lsof, ipconfig, pbcopy).
 5. If the prompt implies your current location, use the PWD provided.
 6. Prefer readable output and avoid truncated fields when better alternatives exist.
 7. When using ps, prefer full command/args output (command/args) over comm when clarity matters.
 8. Avoid unnecessary pipes if a single command/flag can do the job.
+9. Prefer graceful signals (SIGTERM) over forceful ones (SIGKILL/kill -9) unless the user explicitly requests force.
+10. Default to safe, non-destructive alternatives (list, dry-run, preview) when the intent is ambiguous.
 
 EXAMPLES:
 User: list files larger than 10MB in downloads
 Command: find ~/Downloads -type f -size +10M
 
-User: kill process listening on port 8080
-Command: lsof -ti:8080 | xargs kill -9
+User: stop process listening on port 8080
+Command: lsof -ti:8080 | xargs kill
 
 User: find text 'TODO' in python files here
 Command: rg 'TODO' -g '*.py'
-${policy ? `\n\n${policy}` : ""}`;
+${policy ? `\n\n${policy}` : ""}${context || ""}`;
 
 const readStdin = async () =>
   new Promise((resolve, reject) => {
@@ -80,9 +149,11 @@ export const sanitizeCommand = (value) => {
   if (trimmed.includes("```")) return "";
   trimmed = trimmed.replace(/^command:\s*/i, "");
   if (trimmed.length === 0) return "";
-  if (/[\u0000-\u001F\u007F]/.test(trimmed)) return "";
-  if (/[;&|]/.test(trimmed)) return "";
-  if (trimmed.includes("$(") || trimmed.includes(">") || trimmed.includes("<")) return "";
+  // Block control characters but allow normal shell metacharacters (|, ;, &, >, <)
+  if (/[\u0000-\u0008\u000E-\u001F\u007F]/.test(trimmed)) return "";
+  // Block dangerous patterns: eval/exec injection, command nesting abuse
+  if (/\beval\b/.test(trimmed)) return "";
+  if (/`[^`]+`/.test(trimmed)) return "";
   return trimmed;
 };
 
@@ -157,10 +228,15 @@ export const resolveModel = (config = loadConfig(), env = process.env) => {
 };
 
 const main = async () => {
-  const prompt = await readStdin();
+  const raw = await readStdin();
   const config = loadConfig();
   const model = resolveModel(config);
-  if (!prompt) {
+  const input = parseInput(raw);
+
+  debugLog(`MODE=${input.mode} MODEL=${model} PROMPT_LEN=${input.prompt.length}`);
+
+  if (!input.prompt) {
+    debugLog("ABORT: empty prompt");
     process.stdout.write(safeJson({
       command: "",
       confidence: 0,
@@ -176,38 +252,34 @@ const main = async () => {
   const dotfiles = process.env.DOTFILES || (home ? `${home}/.dotfiles` : "");
   const shell = process.env.SHELL || "zsh";
   const termProgram = process.env.TERM_PROGRAM || "unknown";
-  const inGitRepo = process.env.MCRN_AI_IN_GIT_REPO === "1" || fs.existsSync(path.join(cwd, ".git"));
+  const inGitRepo = input.gitSummary.length > 0 || fs.existsSync(path.join(cwd, ".git"));
   const os = `${process.platform} (${process.arch})`;
 
   const policy = loadPolicy();
+  const context = buildContextBlock(input);
+
+  debugLog(`CONTEXT_LEN=${context.length} POLICY_LEN=${policy.length} GIT=${input.gitSummary || "none"}`);
+  if (input.mode === "fix") debugLog(`FIX_TARGET=${input.lastFailure}`);
+  if (input.mode === "refine") debugLog(`REFINE_PRIOR=${input.priorAi.command}`);
+
   const client = new CopilotClient();
   const allowlist = getAllowlist();
   const tools = getAvailableTools();
   const devopsEnabled = config.tools.devopsEnabled;
   let session;
+  const t0 = Date.now();
   try {
     await client.start();
-    const availableModels = await client.listModels();
-    const supportedModelIds = new Set(availableModels.map(getModelId).filter(Boolean));
-    if (!supportedModelIds.has(model)) {
-      process.stdout.write(safeJson({
-        command: "",
-        confidence: 0,
-        provider: "copilot",
-        model,
-        error: `Unsupported Copilot model: ${model}`,
-        error_code: "copilot_model_rejected",
-        available_models: Array.from(supportedModelIds).sort(),
-      }));
-      await client.stop();
-      return;
-    }
+
+    // SAM-43: Removed listModels() from hot path. Model validation now
+    // happens lazily — if the model is invalid, createSession or
+    // sendAndWait will throw and classifyError handles it.
 
     session = await client.createSession({
       model,
       systemMessage: {
         mode: "append",
-        content: systemPrompt({ cwd, dotfiles, home, inGitRepo, os, shell, termProgram, policy }),
+        content: systemPrompt({ cwd, dotfiles, home, inGitRepo, os, shell, termProgram, policy, context }),
       },
       availableTools: Array.from(allowlist),
       tools,
@@ -232,11 +304,14 @@ const main = async () => {
       },
     });
 
-    const response = await session.sendAndWait({ prompt }, TIMEOUT_MS);
+    const response = await session.sendAndWait({ prompt: input.prompt }, TIMEOUT_MS);
+    const latencyMs = Date.now() - t0;
     const content = response?.data?.content ?? "";
     const command = sanitizeCommand(content);
-    await disconnectSession(session);
-    await client.stop();
+
+    const sanitized = content !== command;
+    debugLog(`LATENCY=${latencyMs}ms RAW_LEN=${content.length} SANITIZED=${sanitized} CMD_LEN=${command.length}`);
+    if (sanitized && content.length > 0) debugLog(`SANITIZE_ACTION: raw="${content.slice(0, 120)}"`);
 
     process.stdout.write(safeJson({
       command,
@@ -245,9 +320,9 @@ const main = async () => {
       model,
     }));
   } catch (error) {
-    await disconnectSession(session).catch(() => undefined);
+    const latencyMs = Date.now() - t0;
     const classified = classifyError(error);
-    await client.forceStop().catch(() => undefined);
+    debugLog(`ERROR LATENCY=${latencyMs}ms CODE=${classified.error_code} MSG=${classified.error}`);
     process.stdout.write(safeJson({
       command: "",
       confidence: 0,
@@ -255,6 +330,9 @@ const main = async () => {
       model,
       ...classified,
     }));
+  } finally {
+    await disconnectSession(session).catch(() => undefined);
+    await client.stop().catch(() => undefined);
   }
 };
 

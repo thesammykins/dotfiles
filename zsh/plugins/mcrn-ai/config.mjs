@@ -17,6 +17,15 @@ const DEFAULT_CONFIG = {
     maxFileBytes: 1000000,
     toolTimeoutMs: 4000,
   },
+  context: {
+    recentHistoryCount: 5,
+    includeGitSummary: true,
+    includeLastFailure: true,
+  },
+  ui: {
+    highlightAiBuffer: true,
+    highlightStyle: "underline",
+  },
 };
 
 const normalizeAllowlist = (value) => {
@@ -60,6 +69,13 @@ const buildConfig = (input) => {
   const limitsInput =
     safe.limits && typeof safe.limits === "object" ? safe.limits : {};
 
+  const contextInput =
+    safe.context && typeof safe.context === "object" ? safe.context : {};
+  const uiInput =
+    safe.ui && typeof safe.ui === "object" ? safe.ui : {};
+
+  const validHighlightStyles = new Set(["underline", "bold", "standout", "none"]);
+
   return {
     model: {
       default: pickString(modelInput.default, DEFAULT_CONFIG.model.default),
@@ -72,6 +88,17 @@ const buildConfig = (input) => {
       maxOutputBytes: clampNumber(limitsInput.maxOutputBytes, DEFAULT_CONFIG.limits.maxOutputBytes, 1024),
       maxFileBytes: clampNumber(limitsInput.maxFileBytes, DEFAULT_CONFIG.limits.maxFileBytes, 1024),
       toolTimeoutMs: clampNumber(limitsInput.toolTimeoutMs, DEFAULT_CONFIG.limits.toolTimeoutMs, 250),
+    },
+    context: {
+      recentHistoryCount: clampNumber(contextInput.recentHistoryCount, DEFAULT_CONFIG.context.recentHistoryCount, 0),
+      includeGitSummary: pickBoolean(contextInput.includeGitSummary, DEFAULT_CONFIG.context.includeGitSummary),
+      includeLastFailure: pickBoolean(contextInput.includeLastFailure, DEFAULT_CONFIG.context.includeLastFailure),
+    },
+    ui: {
+      highlightAiBuffer: pickBoolean(uiInput.highlightAiBuffer, DEFAULT_CONFIG.ui.highlightAiBuffer),
+      highlightStyle: validHighlightStyles.has(uiInput.highlightStyle)
+        ? uiInput.highlightStyle
+        : DEFAULT_CONFIG.ui.highlightStyle,
     },
   };
 };
