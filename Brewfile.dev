@@ -9,6 +9,7 @@ brew "mise"
 brew "opencode"
 brew "shellcheck"
 brew "shfmt"
+brew "varlock"
 
 # Local containers
 cask "orbstack"

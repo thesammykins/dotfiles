@@ -509,7 +509,10 @@ create_local_config() {
 # ~/.zshrc.local - Local overrides (not tracked in git)
 # Add your machine-specific settings here
 
-# Example: API keys (use 1Password instead when possible)
+# Example: env overrides that should stay local
+# export MCRN_COPILOT_MODEL="gpt-5-mini"
+
+# Example: varlock fallback values (prefer 1Password ENV + varlock first)
 # export MY_API_KEY="..."
 
 # Example: Custom PATH additions
@@ -614,6 +617,20 @@ check_1password() {
     echo ""
 }
 
+check_varlock() {
+    log_step "Checking varlock..."
+
+    if command -v varlock &>/dev/null; then
+        log_info "varlock installed"
+        return 0
+    fi
+
+    log_warn "varlock not found"
+    echo "Install the developer bundle to get varlock:"
+    echo "  DOTFILES_INSTALL_DEV=1 $HOME/.dotfiles/scripts/install.sh"
+    echo ""
+}
+
 # ============================================================================
 # PRINT POST-INSTALL CHECKLIST
 # ============================================================================
@@ -637,10 +654,14 @@ print_post_install() {
     echo "4. Set up 1Password (optional):"
     echo "   op account add"
     echo ""
-    echo "5. Refresh quotes weekly:"
+    echo "5. Set up ENV-backed varlock secrets (optional):"
+    echo "   op vault get ENV >/dev/null 2>&1 || op vault create ENV"
+    echo "   vopencode"
+    echo ""
+    echo "6. Refresh quotes weekly:"
     echo "   $HOME/.dotfiles/scripts/refresh-quotes.sh"
     echo ""
-    echo "6. Test your setup:"
+    echo "7. Test your setup:"
     echo "   - Press Ctrl+G and type a command description"
     echo "   - Press Ctrl+R for fuzzy history search"
     echo "   - Type 'z <directory>' to jump around"
@@ -679,6 +700,7 @@ main() {
     apply_macos_defaults
     apply_dock_layout
     check_1password
+    check_varlock
     print_post_install
 }
 
