@@ -8,6 +8,7 @@ MCRN-themed dotfiles for Ghostty, zsh, Starship, OpenCode, and a Copilot-powered
 - Two-line Starship prompt with repo-aware path styling.
 - Reproducible runtime management via pinned `mise` versions.
 - Split Homebrew bundles for base machine, developer stack, and workstation apps.
+- A tracked `.agents/` directory for `dotagents`-style cross-tool AI rule and skill sync.
 
 ## Quick Start
 ```bash
@@ -50,8 +51,28 @@ DOTFILES_DRY_RUN=1 DOTFILES_LINK_MODE=migrate \
 
 ## Brewfile Tiers
 - `Brewfile`: base shell, terminal, CLI, auth, and Tailscale baseline.
-- `Brewfile.dev`: developer machine additions such as `mise`, `opencode`, validation tools, and `orbstack`.
+- `Brewfile.dev`: developer machine additions such as `mise`, `opencode`, `varlock`, validation tools, and `orbstack`.
 - `Brewfile.workstation`: daily GUI apps for this personal workstation setup (`zed`, `raycast`, `beeper`, `vesktop`, `opencode-desktop`, `QuickDrop`).
+
+## 1Password And Varlock
+- Stable env-style secrets live in the `ENV` vault in 1Password, not in tracked config or shell startup files.
+- The tracked schema lives at `.config/varlock/.env.schema` and currently resolves local secrets with `op read`, which keeps the setup simple while still using the 1Password desktop app integration.
+- The current baseline maps `CONTEXT7_API_KEY`, `ZAI_API_KEY`, `TF_TOKEN_app_terraform_io`, and `NPM_TOKEN` from `op://ENV/...` references.
+- Use `vopencode` for interactive OpenCode sessions and `vrun <command>` for other commands that need the same env set.
+- Local consumers should prefer env substitution like `{env:CONTEXT7_API_KEY}` or `${NPM_TOKEN}` over hardcoded values.
+
+```bash
+vopencode
+vrun terraform plan
+vrun npm whoami
+```
+
+- Reference docs: [`varlock llms.txt`](https://varlock.dev/llms.txt), [`AI tools`](https://varlock.dev/guides/ai-tools/), [`1Password plugin`](https://varlock.dev/plugins/1password/), [`CLI commands`](https://varlock.dev/reference/cli-commands/)
+
+## dotagents
+- `.agents/AGENTS.md` is the shared global rules file intended for `dotagents` distribution across Claude, Codex, OpenCode, Gemini, and other supported clients.
+- `.agents/skills/` is tracked here so the same skill catalog can be synced onto a fresh Mac without rebuilding local agent state by hand.
+- Re-run `npx @iannuttall/dotagents` or `bunx @iannuttall/dotagents` after changing `.agents/` so the tool repairs its symlinks into `~/.claude`, `~/.codex`, `~/.config/opencode`, and related client paths.
 
 ## Dia Backup And Restore
 Install Dia manually, launch it once, then use:
@@ -98,6 +119,7 @@ bash "$HOME/.dotfiles/scripts/test.sh"
 ## Troubleshooting
 - Ghostty config: `$HOME/.config/ghostty/config`
 - Mise config: `$HOME/.config/mise/config.toml`
+- Varlock schema: `$HOME/.dotfiles/.config/varlock/.env.schema`
 - Zsh config: `$HOME/.zshrc`
 - MCRN AI debug log: `/tmp/mcrn-ai-debug.log`
 
