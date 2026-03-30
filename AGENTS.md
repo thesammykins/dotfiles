@@ -30,6 +30,12 @@ This dotfiles repository is themed around **The Expanse / MCRN Tactical Display*
 - **Mise**: Global toolchain manager for developer runtimes (`node`, `python`, `go`, `java`, etc.). Configured in `~/.config/mise/config.toml`.
 - **Container Runtime**: Prefer OrbStack on macOS over Docker Desktop.
 
+### Secrets And Agent Sync
+- **Secret Source of Truth**: Stable env-style secrets belong in the 1Password `ENV` vault and are resolved via `varlock`, not stored in tracked configs or shell startup files.
+- **Varlock Schema**: The canonical machine-level schema lives at `.config/varlock/.env.schema` and should remain safe to commit.
+- **Interactive Tools**: Use `vopencode` or `varlock run --no-redact-stdout` for interactive CLIs that need TTY detection.
+- **Cross-Tool Agent Config**: `.agents/` is tracked here as the canonical source for `dotagents`-managed AGENTS/rules/skills sync.
+
 ---
 
 ## Component Rules
@@ -40,7 +46,7 @@ This dotfiles repository is themed around **The Expanse / MCRN Tactical Display*
 
 **Rules**:
 - `Brewfile` should stay lean: shell, terminal, auth, core CLI, and machine bootstrap essentials.
-- `Brewfile.dev` is for developer-machine tools such as `mise`, `opencode`, `copilot-cli`, validation tools, and local containers.
+- `Brewfile.dev` is for developer-machine tools such as `mise`, `opencode`, `copilot-cli`, `varlock`, validation tools, and local containers.
 - `Brewfile.workstation` is for daily-use personal GUI apps that should exist on every primary Mac.
 - Avoid turning the Brewfiles into a dump of every installed app on one machine.
 
@@ -56,7 +62,7 @@ background = #1a0b0c
 foreground = #ffd34e
 unfocused-split-opacity = 0.85
 shell-integration = detect
-shell-integration-features = cursor,sudo,title
+shell-integration-features = cursor,sudo,title,ssh-env
 font-family = "TX02 Nerd Font"
 ```
 
@@ -80,6 +86,19 @@ font-family = "TX02 Nerd Font"
 **Pathing Rules**:
 - `DOTFILES` export must point to the canonical repo root (`$HOME/.dotfiles`).
 - **NEVER** hardcode user paths (e.g., do not use `/Users/sammykins/`, use `$HOME/`).
+- Shared env-backed commands should flow through `vopencode`/`vrun`, which resolve secrets from `.config/varlock/.env.schema`.
+
+---
+
+### dotagents Content
+
+**Location**: `.agents/`
+
+**Rules**:
+- `.agents/AGENTS.md` is the machine-level shared instruction file for tools synced by `dotagents`.
+- `.agents/skills/` is intentionally tracked so fresh machines can restore the same skill catalog.
+- Keep `.agents/commands/` and `.agents/hooks/` available even if currently empty; `dotagents` expects the structure.
+- Do not store secrets in `.agents/`; any credential-like values must resolve through 1Password + varlock instead.
 
 ---
 
@@ -159,3 +178,4 @@ Use these after touching bootstrap scripts, Brewfiles, `mise`, or the MCRN AI pl
 - Prefer Ghostty tabs/splits over tmux on macOS; tmux is no longer part of the default repo experience.
 - Keep docs practical and migration-focused; avoid over-documenting obvious mechanics.
 - Prefer safe, dry-run-friendly installer changes and explicit migration pathways over clever automation.
+- OpenCode MCP credentials should use env substitution in `~/.config/opencode/opencode.json`; do not leave literal API keys in that file.

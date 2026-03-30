@@ -73,7 +73,7 @@ check_ghostty_policy() {
     'foreground = #ffd34e'
     'unfocused-split-opacity = 0.85'
     'shell-integration = detect'
-    'shell-integration-features = cursor,sudo,title'
+    'shell-integration-features = cursor,sudo,title,ssh-env'
     'font-family = "TX02 Nerd Font"'
     'cursor-style-blink = false'
     'scrollback-limit = 10000000'
