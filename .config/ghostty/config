@@ -11,33 +11,37 @@ background = #1a0b0c
 foreground = #ffd34e
 
 # MCRN/Rocinante Color Palette
-# 0: Carbon (dark grey), 1: Hull Breach (red), 2: Drive Plume (green)
-# 3: Warning (yellow), 4: Holomap (blue), 5: Sensor Ghost (orange)
-# 6: Ice (cyan), 7: Starlight (white)
+# 0: Carbon (dark grey), 1: Hull Breach (red), 2: Drive Plume (rust orange)
+# 3: Warning/PDC Amber (yellow), 4: Holomap (warm copper), 5: Sensor Ghost (burgundy-rust)
+# 6: Ice/PDC Amber (amber), 7: Starlight (white)
 palette = 0=#1a0b0c
 palette = 1=#ff2929
 palette = 2=#b04c2a
 palette = 3=#ffd34e
-palette = 4=#75331a
-palette = 5=#b04c2a
+palette = 4=#c47a40
+palette = 5=#994444
 palette = 6=#ffd34e
 palette = 7=#eaeaea
-palette = 8=#3c180f
+palette = 8=#6b3520
 palette = 9=#ff5a5a
 palette = 10=#c35a3a
 palette = 11=#ffe07a
-palette = 12=#8a3a20
-palette = 13=#c35a3a
+palette = 12=#d4884a
+palette = 13=#b35555
 palette = 14=#ffe07a
 palette = 15=#ffffff
 
 # ============================================================================
-# CURSOR - Target Red for aggressive visibility
+# CURSOR - PDC Amber for aggressive visibility
 # ============================================================================
 cursor-style = block
 cursor-color = #ffd34e
 cursor-text = #000000
 cursor-style-blink = false
+
+# Selection colors - MCRN themed
+selection-foreground = #1a0b0c
+selection-background = #ffd34e
 
 # ============================================================================
 # WINDOW & AESTHETICS
@@ -67,13 +71,15 @@ font-thicken = true
 # ============================================================================
 scrollback-limit = 10000000
 mouse-scroll-multiplier = 2
+mouse-hide-while-typing = true
+minimum-contrast = 1.1
 
 # ============================================================================
 # ADVANCED
 # ============================================================================
 # Shell integration
 shell-integration = detect
-shell-integration-features = cursor,sudo,title,ssh-env
+shell-integration-features = cursor,sudo,title,ssh-env,ssh-terminfo
 confirm-close-surface = true
 copy-on-select = clipboard
 selection-clear-on-copy = false
@@ -95,6 +101,21 @@ keybind = cmd+shift+enter=toggle_quick_terminal
 keybind = cmd+shift+w=close_surface
 keybind = cmd+t=new_tab
 keybind = cmd+shift+t=new_window
+
+# Split management
+keybind = cmd+d=new_split:right
+keybind = cmd+shift+d=new_split:down
+keybind = cmd+alt+left=goto_split:left
+keybind = cmd+alt+right=goto_split:right
+keybind = cmd+alt+up=goto_split:top
+keybind = cmd+alt+down=goto_split:bottom
+keybind = cmd+shift+equal=resize_split:up,10
+keybind = cmd+shift+minus=resize_split:down,10
+keybind = cmd+shift+0=equalize_splits
+
+# Prompt navigation (requires shell integration)
+keybind = cmd+up=jump_to_prompt:-1
+keybind = cmd+down=jump_to_prompt:1
 
 # ============================================================================
 # THEME IDENTITY

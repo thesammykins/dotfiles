@@ -36,9 +36,23 @@ cask "1password-cli"              # 1Password CLI integration
 cask "tailscale-app"              # Mesh VPN
 
 # ============================================================================
+# WARP-PARITY SHELL ENHANCEMENTS
+# ============================================================================
+brew "atuin"                      # Synced shell history TUI (replaces Ctrl+R)
+brew "fzf-tab"                    # fzf-powered completion dropdown
+brew "yazi"                       # Terminal file manager with image preview
+brew "zsh-autopair"               # IDE-like bracket/quote auto-pairing
+brew "zsh-you-should-use"         # Alias discovery reminders
+
+# ============================================================================
+# ADDITIONAL CLI TOOLS
+# ============================================================================
+brew "dust"                       # Better du (disk usage)
+brew "procs"                      # Modern ps replacement
+
+# ============================================================================
 # OPTIONAL UTILITIES
 # ============================================================================
-# brew "dust"                     # Better du (disk usage)
 # brew "hyperfine"                # Benchmarking tool
 # brew "lazygit"                  # Git TUI
 # brew "xh"                       # Fast HTTP client

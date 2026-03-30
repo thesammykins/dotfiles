@@ -11,5 +11,8 @@ brew "shellcheck"
 brew "shfmt"
 brew "varlock"
 
+# Universal completions
+brew "carapace"
+
 # Local containers
 cask "orbstack"

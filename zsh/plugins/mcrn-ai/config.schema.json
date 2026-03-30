@@ -64,6 +64,55 @@
         "maxFileBytes": 1000000,
         "toolTimeoutMs": 4000
       }
+    },
+    "context": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "recentHistoryCount": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 20,
+          "default": 5,
+          "description": "Number of recent shell commands to include in the AI context payload."
+        },
+        "includeGitSummary": {
+          "type": "boolean",
+          "default": true,
+          "description": "Include current git branch and dirty state in the context payload."
+        },
+        "includeLastFailure": {
+          "type": "boolean",
+          "default": true,
+          "description": "Include the last failed command and exit code in fix mode."
+        }
+      },
+      "default": {
+        "recentHistoryCount": 5,
+        "includeGitSummary": true,
+        "includeLastFailure": true
+      }
+    },
+    "ui": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "highlightAiBuffer": {
+          "type": "boolean",
+          "default": true,
+          "description": "Apply visual highlighting to AI-generated buffer text."
+        },
+        "highlightStyle": {
+          "type": "string",
+          "enum": ["underline", "bold", "standout", "none"],
+          "default": "underline",
+          "description": "ZSH region_highlight style for AI-generated text."
+        }
+      },
+      "default": {
+        "highlightAiBuffer": true,
+        "highlightStyle": "underline"
+      }
     }
   }
 }

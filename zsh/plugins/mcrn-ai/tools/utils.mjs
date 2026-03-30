@@ -1,4 +1,5 @@
 import { execFile } from "node:child_process";
+import fsSync from "node:fs";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
@@ -53,7 +54,18 @@ export const resolveScopedPath = (value, { cwd, home }) => {
   if (!isWithin(cwd, resolved) && !isWithin(home, resolved)) {
     throw new Error("PATH_OUTSIDE_SCOPE");
   }
-  return resolved;
+  // Resolve symlinks to prevent scope bypass (e.g., symlink -> /etc)
+  let real;
+  try {
+    real = fsSync.realpathSync(resolved);
+  } catch {
+    // Path doesn't exist yet — allow creation within scope
+    return resolved;
+  }
+  if (!isWithin(cwd, real) && !isWithin(home, real)) {
+    throw new Error("PATH_OUTSIDE_SCOPE");
+  }
+  return real;
 };
 
 const formatExecError = (error, command) => {

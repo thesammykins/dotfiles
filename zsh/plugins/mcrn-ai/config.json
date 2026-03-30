@@ -10,5 +10,14 @@
     "maxOutputBytes": 200000,
     "maxFileBytes": 1000000,
     "toolTimeoutMs": 4000
+  },
+  "context": {
+    "recentHistoryCount": 5,
+    "includeGitSummary": true,
+    "includeLastFailure": true
+  },
+  "ui": {
+    "highlightAiBuffer": true,
+    "highlightStyle": "underline"
   }
 }

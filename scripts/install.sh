@@ -233,6 +233,7 @@ backup_configs() {
         ".config/mise/config.toml"
         ".config/fastfetch/config.jsonc"
         ".config/fastfetch/mcrn_logo.txt"
+        ".config/atuin/config.toml"
         ".config/opencode"
         "Library/Application Support/Dia/User Data"
     )
@@ -353,6 +354,7 @@ link_dotfiles() {
     link_item "$DOTFILES_WORKTREE/.config/ghostty/config" "$HOME/.config/ghostty/config" ".config/ghostty/config"
     link_item "$DOTFILES_WORKTREE/.config/fastfetch/config.jsonc" "$HOME/.config/fastfetch/config.jsonc" ".config/fastfetch/config.jsonc"
     link_item "$DOTFILES_WORKTREE/.config/fastfetch/mcrn_logo.txt" "$HOME/.config/fastfetch/mcrn_logo.txt" ".config/fastfetch/mcrn_logo.txt"
+    link_item "$DOTFILES_WORKTREE/.config/atuin/config.toml" "$HOME/.config/atuin/config.toml" ".config/atuin/config.toml"
     link_item "$DOTFILES_WORKTREE/.config/ghostty/config" "$HOME/Library/Application Support/com.mitchellh.ghostty/config" "Library/Application Support/com.mitchellh.ghostty/config"
 }
 
@@ -663,8 +665,9 @@ print_post_install() {
     echo ""
     echo "7. Test your setup:"
     echo "   - Press Ctrl+G and type a command description"
-    echo "   - Press Ctrl+R for fuzzy history search"
+    echo "   - Press Ctrl+R for Atuin history search"
     echo "   - Type 'z <directory>' to jump around"
+    echo "   - Type 'y' to launch yazi file manager"
     echo "   - Type 'ls' to see eza in action"
     echo ""
     if dry_run_enabled; then

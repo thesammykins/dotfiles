@@ -50,13 +50,20 @@ setup() {
   [ "$status" -eq 0 ]
 }
 
-@test "Copilot helper rejects chained shell commands" {
-  run rg -n 'trimmed\.includes\("\\$\("\)|\[;&\|\]|trimmed\.includes\(">"\)|trimmed\.includes\("<"\)' "$DOTFILES_DIR/zsh/plugins/mcrn-ai/copilot-helper.mjs"
+@test "Copilot helper sanitizes dangerous patterns" {
+  run rg -n '\\beval\\b|backtick|\\u0000|\\`\[\\^' "$DOTFILES_DIR/zsh/plugins/mcrn-ai/copilot-helper.mjs"
   [ "$status" -eq 0 ]
 }
 
-@test "Copilot helper validates requested model against live model list" {
-  run rg -n 'listModels\\(\\)|copilot_model_rejected|available_models' "$DOTFILES_DIR/zsh/plugins/mcrn-ai/copilot-helper.mjs"
+@test "Copilot helper handles model errors via classifyError" {
+  # SAM-43: listModels() removed from hot path; model errors are caught
+  # lazily by classifyError when createSession/sendAndWait throws
+  run rg -n 'copilot_model_rejected|classifyError' "$DOTFILES_DIR/zsh/plugins/mcrn-ai/copilot-helper.mjs"
+  [ "$status" -eq 0 ]
+}
+
+@test "Copilot helper has structured input parsing (SAM-39)" {
+  run rg -n 'parseInput|buildContextBlock' "$DOTFILES_DIR/zsh/plugins/mcrn-ai/copilot-helper.mjs"
   [ "$status" -eq 0 ]
 }
 
@@ -72,5 +79,71 @@ setup() {
 
 @test "MCRN AI SDK patch script exists" {
   run stat "$DOTFILES_DIR/zsh/plugins/mcrn-ai/patch-copilot-sdk.mjs"
+  [ "$status" -eq 0 ]
+}
+
+@test "MCRN AI config has context and ui sections (SAM-44)" {
+  run jq -e '.context.recentHistoryCount and .context.includeGitSummary != null and .context.includeLastFailure != null and .ui.highlightAiBuffer != null and .ui.highlightStyle' \
+    "$DOTFILES_DIR/zsh/plugins/mcrn-ai/config.json"
+  [ "$status" -eq 0 ]
+}
+
+@test "MCRN AI config schema defines context and ui (SAM-44)" {
+  run jq -e '.properties.context.properties.recentHistoryCount and .properties.ui.properties.highlightStyle' \
+    "$DOTFILES_DIR/zsh/plugins/mcrn-ai/config.schema.json"
+  [ "$status" -eq 0 ]
+}
+
+@test "Policy file prefers graceful signals (SAM-46)" {
+  run rg -c 'graceful.*signal|SIGTERM' "$DOTFILES_DIR/zsh/plugins/mcrn-ai/policy.txt"
+  [ "$status" -eq 0 ]
+  [ "$output" -ge 1 ]
+}
+
+@test "System prompt has signal and safety rules (SAM-46/47)" {
+  # Rule 9: graceful signals; Rule 10: non-destructive defaults
+  run rg -c 'graceful signals|non-destructive' "$DOTFILES_DIR/zsh/plugins/mcrn-ai/copilot-helper.mjs"
+  [ "$status" -eq 0 ]
+  [ "$output" -ge 2 ]
+}
+
+@test "ZSH widget has async state variables (SAM-45)" {
+  run rg -c '_MCRN_AI_ASYNC_ACTIVE|_MCRN_AI_SPINNER_FD|_MCRN_AI_RESULT_FD' "$DOTFILES_DIR/zsh/plugins/mcrn-ai.zsh"
+  [ "$status" -eq 0 ]
+  [ "$output" -ge 3 ]
+}
+
+@test "ZSH widget has spinner and result handlers (SAM-45)" {
+  run rg -c '_mcrn_ai_spinner_handler|_mcrn_ai_result_handler|_mcrn_ai_cancel_async' "$DOTFILES_DIR/zsh/plugins/mcrn-ai.zsh"
+  [ "$status" -eq 0 ]
+  [ "$output" -ge 3 ]
+}
+
+@test "ZSH widget has mode detection for fix and refine (SAM-40/41)" {
+  run rg -c '_mcrn_ai_detect_mode|fix.*mode|refine.*mode' "$DOTFILES_DIR/zsh/plugins/mcrn-ai.zsh"
+  [ "$status" -eq 0 ]
+  [ "$output" -ge 2 ]
+}
+
+@test "ZSH widget builds structured payload (SAM-39)" {
+  run rg -c '_mcrn_ai_build_payload|jq -n -c' "$DOTFILES_DIR/zsh/plugins/mcrn-ai.zsh"
+  [ "$status" -eq 0 ]
+  [ "$output" -ge 2 ]
+}
+
+@test "ZSH widget reads config with jq (SAM-44)" {
+  run rg -c '_mcrn_ai_read_config' "$DOTFILES_DIR/zsh/plugins/mcrn-ai.zsh"
+  [ "$status" -eq 0 ]
+  [ "$output" -ge 3 ]
+}
+
+@test "Copilot helper has structured debug output (SAM-49)" {
+  run rg -c 'debugLog|MCRN DEBUG|LATENCY=|SANITIZE_ACTION' "$DOTFILES_DIR/zsh/plugins/mcrn-ai/copilot-helper.mjs"
+  [ "$status" -eq 0 ]
+  [ "$output" -ge 4 ]
+}
+
+@test "ZSH widget passes MCRN_AI_DEBUG to subprocess (SAM-49)" {
+  run rg -c 'MCRN_AI_DEBUG=.*node' "$DOTFILES_DIR/zsh/plugins/mcrn-ai.zsh"
   [ "$status" -eq 0 ]
 }
