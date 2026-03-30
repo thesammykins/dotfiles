@@ -143,6 +143,14 @@ alias ..='cd ..'
 alias ...='cd ../..'
 alias ....='cd ../../..'
 
+vrun() {
+    command varlock run --path "$DOTFILES/.config/varlock" -- "$@"
+}
+
+vopencode() {
+    command varlock run --no-redact-stdout --path "$DOTFILES/.config/varlock" -- opencode "$@"
+}
+
 # ============================================================================
 # PROMPT - Starship (MUST be last)
 # ============================================================================
