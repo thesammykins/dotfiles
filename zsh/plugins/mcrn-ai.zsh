@@ -369,7 +369,7 @@ _mcrn_ai_request_suggest() {
 
   local request="{\"id\":${RANDOM},\"type\":\"suggest\",\"format\":\"zle\",\"payload\":{\"lastCommand\":${escaped_cmd},\"exitCode\":${_MCRN_LAST_EXIT_CODE:-0},\"cwd\":\"${PWD}\",\"home\":\"${HOME}\",\"recentHistory\":${escaped_history}}}"
 
-  print -u "$tcp_fd" "$request"
+  print -r -u "$tcp_fd" -- "$request"
 
   _MCRN_AI_GHOST_FD=$tcp_fd
   _MCRN_AI_USING_DAEMON=1
@@ -499,7 +499,7 @@ _mcrn_ai_autofix_precmd() {
   local payload="{\"prompt\":\"fix the last command that failed\",\"mode\":\"fix\",\"recentHistory\":\"\",\"gitSummary\":\"\",\"lastFailure\":${escaped_cmd},\"lastStderr\":${escaped_stderr},\"priorAi\":{\"prompt\":\"\",\"command\":\"\"}}"
   local request="{\"id\":${RANDOM},\"type\":\"generate\",\"format\":\"zle\",\"payload\":${payload}}"
 
-  print -u "$tcp_fd" "$request"
+  print -r -u "$tcp_fd" -- "$request"
 
   _MCRN_AI_USING_DAEMON=1
   zle -F "$tcp_fd" _mcrn_ai_autofix_result_handler
@@ -820,7 +820,7 @@ _mcrn_ai_send_via_daemon() {
   _MCRN_AI_USING_DAEMON=1
 
   local request="{\"id\":${RANDOM},\"type\":\"generate\",\"format\":\"zle\",\"payload\":${payload}}"
-  print -u "$tcp_fd" "$request"
+  print -r -u "$tcp_fd" -- "$request"
 
   _mcrn_ai_debug_log "daemon request sent on fd=$tcp_fd"
 

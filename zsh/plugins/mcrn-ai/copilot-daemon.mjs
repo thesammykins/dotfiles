@@ -188,6 +188,20 @@ const startTcp = () => {
       crlfDelay: Infinity,
     });
 
+    // Prevent unhandled error from crashing the daemon
+    rl.on("error", () => {});
+
+    const safeWrite = (data) => {
+      try {
+        if (!socket.destroyed && socket.writable) {
+          socket.write(data);
+          socket.end();
+        }
+      } catch {
+        // Client disconnected before response — safe to ignore
+      }
+    };
+
     rl.on("line", async (line) => {
       let request;
       try {
@@ -205,22 +219,16 @@ const startTcp = () => {
             error_code: "copilot_error",
           },
         };
-        if (!socket.destroyed) {
-          socket.write(formatZle(errResp));
-          socket.end();
-        }
+        safeWrite(formatZle(errResp));
         return;
       }
 
       const result = await handleRequest(request);
 
-      if (!socket.destroyed) {
-        if (request.format === "zle") {
-          socket.write(formatZle(result));
-        } else {
-          socket.write(safeJson(result) + "\n");
-        }
-        socket.end();
+      if (request.format === "zle") {
+        safeWrite(formatZle(result));
+      } else {
+        safeWrite(safeJson(result) + "\n");
       }
     });
 
