@@ -19,5 +19,25 @@
   "ui": {
     "highlightAiBuffer": true,
     "highlightStyle": "underline"
+  },
+  "daemon": {
+    "enabled": true,
+    "idleTimeoutSec": 300
+  },
+  "suggest": {
+    "enabled": true,
+    "debounceMs": 500,
+    "rateLimitMs": 2000,
+    "skipCommands": ["cd", "ls", "clear", "pwd", "exit", "true", "false"],
+    "ghostStyle": "fg=240"
+  },
+  "nlDetection": {
+    "enabled": true,
+    "minWords": 3,
+    "indicator": "[MCRN NL]"
+  },
+  "autofix": {
+    "enabled": true,
+    "displayMode": "banner"
   }
 }
