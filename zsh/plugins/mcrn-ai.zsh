@@ -895,6 +895,19 @@ mcrn_ai_generate() {
   local effective_prompt=""
   case "$mode" in
     fix)
+      # If autofix already found a fix, apply it directly
+      if [[ -n "$_MCRN_LAST_AI_COMMAND" && "$_MCRN_LAST_AI_PROMPT" == "fix the last command that failed" ]]; then
+        BUFFER="$_MCRN_LAST_AI_COMMAND"
+        CURSOR=${#BUFFER}
+        _MCRN_AI_GENERATED_BUFFER="$BUFFER"
+        if [[ "$_MCRN_AI_CFG_HIGHLIGHT_ENABLED" == "true" && "$_MCRN_AI_CFG_HIGHLIGHT_STYLE" != "none" ]]; then
+          region_highlight=("0 ${#BUFFER} ${_MCRN_AI_CFG_HIGHLIGHT_STYLE}")
+        fi
+        zle -M "[MCRN UPLINK] FIX APPLIED. REVIEW BEFORE EXECUTION."
+        zle -R
+        _mcrn_ai_debug_log "fix shortcut: applied cached fix '$_MCRN_LAST_AI_COMMAND'"
+        return
+      fi
       effective_prompt="fix the last command that failed"
       zle -M "[MCRN UPLINK] FIX MODE: ANALYZING FAILED COMMAND..."
       ;;
