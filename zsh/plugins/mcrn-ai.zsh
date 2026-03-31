@@ -605,6 +605,10 @@ _mcrn_ai_build_payload() {
     in_git_repo="true"
   fi
 
+  # Gather key aliases (ls, cat, grep, find, du — the ones the model should prefer)
+  local alias_context=""
+  alias_context="$(alias ls cat grep find du 2>/dev/null | head -20 || echo "")"
+
   jq -n -c \
     --arg prompt "$prompt" \
     --arg mode "$mode" \
@@ -620,6 +624,7 @@ _mcrn_ai_build_payload() {
     --arg shell "${SHELL:-zsh}" \
     --arg term_program "${TERM_PROGRAM:-unknown}" \
     --arg in_git_repo "$in_git_repo" \
+    --arg alias_context "$alias_context" \
     '{
       prompt: $prompt,
       mode: $mode,
@@ -636,7 +641,8 @@ _mcrn_ai_build_payload() {
       dotfiles: $dotfiles,
       shell: $shell,
       termProgram: $term_program,
-      inGitRepo: $in_git_repo
+      inGitRepo: $in_git_repo,
+      aliasContextRaw: $alias_context
     }'
 }
 

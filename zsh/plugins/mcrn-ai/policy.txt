@@ -8,7 +8,11 @@ SAFETY POLICY:
 
 TEMPLATES (use when relevant, keep short):
 - Find by content: rg 'QUERY' -g '*.ext'
-- Large files: find ~/Downloads -type f -size +10M
+- Find files by name: fd 'PATTERN'
+- Large files: fd -t f -S +10m . ~/Downloads
+- List directory: eza -la
+- Directory sizes: dust -d 1
+- View file: bat FILE
 - Port user: lsof -ti:PORT
 - Top memory process (readable): ps -axo rss,command | sort -nr | head -n 1
 - Stop process on port (graceful): lsof -ti:PORT | xargs kill
