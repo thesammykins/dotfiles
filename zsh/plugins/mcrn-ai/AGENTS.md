@@ -98,6 +98,15 @@ RULES:
 - SET `MCRN_AI_DEBUG=1` TO LOG TO `/tmp/mcrn-ai-debug.log`.
 - RUN `node ./zsh/plugins/mcrn-ai/copilot-helper.test.mjs` FOR HELPER-LEVEL REGRESSION CHECKS.
 
+## WHAT THE MODEL SEES (vs. THIS FILE)
+THIS FILE IS DEVELOPER GUIDANCE FOR HUMANS AND AGENTS EDITING THE PLUGIN CODE. IT IS **NOT** LOADED INTO THE COPILOT MODEL'S CONTEXT.
+
+THE MODEL'S BEHAVIOR IS GOVERNED BY TWO FILES:
+1. **`copilot-service.mjs` → `systemPrompt()`**: THE HARDCODED SYSTEM PROMPT WITH ENVIRONMENT BLOCK, RULES, AND EXAMPLES. THIS IS WHERE TOOL PREFERENCES (fd OVER find, rg OVER grep, etc.) AND macOS-SPECIFIC GUIDANCE LIVE.
+2. **`policy.txt`**: SAFETY POLICY AND COMMAND TEMPLATES. APPENDED TO THE SYSTEM PROMPT.
+
+IF THE MODEL GENERATES BAD COMMANDS (WRONG OS FLAGS, IGNORING INSTALLED TOOLS, WRONG DIRECTORY), FIX THE SYSTEM PROMPT IN `copilot-service.mjs` AND/OR THE TEMPLATES IN `policy.txt` — NOT THIS FILE.
+
 ## KNOWN GOTCHAS
 - `@github/copilot-sdk` on Node 24/25 still needs the `vscode-jsonrpc/node` import patched to `node.js`.
 - Preserve the post-install patch flow in `patch-copilot-sdk.mjs`, `scripts/install.sh`, and `scripts/test.sh` unless upstream fully resolves it.

@@ -146,25 +146,31 @@ ENVIRONMENT:
 RULES:
 1. NEVER explain. NEVER use markdown. NEVER use backticks.
 2. Output exactly one command and nothing else.
-3. Prefer standard macOS paths (e.g., ~/Downloads, ~/Desktop) unless a local path is explicitly implied.
-4. Use modern macOS/zsh idiomatic commands (e.g., find, rg, awk, lsof, ipconfig, pbcopy).
-5. If the prompt implies your current location, use the PWD provided.
-6. Prefer readable output and avoid truncated fields when better alternatives exist.
-7. When using ps, prefer full command/args output (command/args) over comm when clarity matters.
+3. THINK about the environment before answering. Use macOS flags, not Linux (e.g., stat -f%z not stat -c%s, pbcopy not xclip).
+4. Prefer modern Rust CLI tools when available: fd over find, rg over grep, eza over ls, bat over cat, dust over du. These are standard on this system.
+5. If the prompt implies "here" or "this directory", use the PWD provided — do not default to $HOME.
+6. Prefer standard macOS paths (e.g., ~/Downloads, ~/Desktop) when the user mentions them by name.
+7. Prefer readable output and avoid truncated fields when better alternatives exist.
 8. Avoid unnecessary pipes if a single command/flag can do the job.
-9. If common utilities are aliased, prefer command <utility> to bypass alias side-effects.
+9. If common utilities are aliased, prefer command <utility> to bypass alias side-effects when clarity matters.
 10. In inspect mode, prefer read-only commands.
 11. If user intent is delete/destructive, still output one command, but it must be for manual execution only and never assume auto-run.
 
 EXAMPLES:
 User: list files larger than 10MB in downloads
-Command: find ~/Downloads -type f -size +10M
+Command: fd -t f -S +10m . ~/Downloads
 
 User: kill process listening on port 8080
-Command: lsof -ti:8080 | xargs kill -9
+Command: lsof -ti:8080 | xargs kill
 
 User: find text 'TODO' in python files here
 Command: rg 'TODO' -g '*.py'
+
+User: list all folders with sizes
+Command: dust -d 1
+
+User: show running docker containers
+Command: docker ps
 ${policy ? `\n\n${policy}` : ""}${contextBlock || ""}`;
 
 const makeErrorPayload = ({ model, ...errorPayload }) => ({
