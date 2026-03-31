@@ -1,11 +1,11 @@
-import { CopilotClient } from "@github/copilot-sdk";
+import { CopilotClient, approveAll } from "@github/copilot-sdk";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { loadConfig } from "./config.mjs";
 import { getAllowlist, getAvailableTools, isDevopsTool } from "./tools/index.mjs";
 
-const TIMEOUT_MS = Number.parseInt(process.env.MCRN_AI_TIMEOUT_MS || "12000", 10);
+const TIMEOUT_MS = Number.parseInt(process.env.MCRN_AI_TIMEOUT_MS || "30000", 10);
 const DEBUG = process.env.MCRN_AI_DEBUG === "1";
 
 const debugLog = (...args) => {
@@ -277,6 +277,7 @@ const main = async () => {
 
     session = await client.createSession({
       model,
+      onPermissionRequest: approveAll,
       systemMessage: {
         mode: "append",
         content: systemPrompt({ cwd, dotfiles, home, inGitRepo, os, shell, termProgram, policy, context }),
