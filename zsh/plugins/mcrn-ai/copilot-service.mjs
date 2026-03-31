@@ -7,6 +7,8 @@ import {
   parseAliasContext,
   rankCommandCandidates,
 } from "./logic.mjs";
+import { queryRelevant, queryFollowUps, buildFewShotBlock, recordGeneration } from "./flight-log.mjs";
+import { sniffProjectContext, buildProjectBlock } from "./project-context.mjs";
 
 const TOOL_BLOCK_MESSAGE = "Tool use is disabled. Return only the command.";
 const TOOL_DEVOPS_MESSAGE = "Dev/Ops tools require opt-in.";
@@ -61,6 +63,25 @@ const loadPolicy = () => {
   } catch {
     return "";
   }
+};
+
+const loadUserTemplates = () => {
+  const candidates = [
+    process.env.MCRN_AI_TEMPLATES_FILE,
+    path.join(process.env.HOME || "", ".config", "mcrn-ai", "templates.txt"),
+  ].filter(Boolean);
+
+  for (const filePath of candidates) {
+    try {
+      if (fs.existsSync(filePath)) {
+        const content = fs.readFileSync(filePath, "utf8").trim();
+        if (content.length > 0) return content;
+      }
+    } catch {
+      continue;
+    }
+  }
+  return "";
 };
 
 const getModelId = (model) => {
@@ -126,6 +147,7 @@ const systemPrompt = ({
   shell,
   termProgram,
   policy,
+  userTemplates,
   intentMode,
   aliasContext,
   contextBlock,
@@ -171,7 +193,7 @@ Command: dust -d 1
 
 User: show running docker containers
 Command: docker ps
-${policy ? `\n\n${policy}` : ""}${contextBlock || ""}`;
+${policy ? `\n\n${policy}` : ""}${userTemplates ? `\n\nUSER TEMPLATES:\n${userTemplates}` : ""}${contextBlock || ""}`;
 
 const makeErrorPayload = ({ model, ...errorPayload }) => ({
   command: "",
@@ -282,13 +304,40 @@ export class CopilotService {
     const resolvedCwd = cwd || process.env.PWD || process.cwd();
     const resolvedHome = home || process.env.HOME || "";
 
+    // Enrich with project context
+    let projectHint = "";
+    const config = loadConfig();
+    if (config.context.includeProjectInfo !== false) {
+      try {
+        const projectCtx = sniffProjectContext(resolvedCwd);
+        if (projectCtx) {
+          projectHint = buildProjectBlock(projectCtx);
+        }
+      } catch {
+        // Best effort
+      }
+    }
+
+    // Enrich with flight log follow-ups
+    let followUpHint = "";
+    if (config.flightLog.enabled && lastCommand) {
+      try {
+        const followUps = queryFollowUps({ command: lastCommand, limit: 3 });
+        if (followUps.length > 0) {
+          followUpHint = `\nFREQUENT FOLLOW-UPS after "${lastCommand}":\n${followUps.map((f) => `- ${f.command} (${f.count}x)`).join("\n")}`;
+        }
+      } catch {
+        // Best effort
+      }
+    }
+
     const suggestPrompt = `You are a shell command predictor. Based on the user's recent command history and current directory, predict the single most likely next command they will run. Output ONLY the raw command, nothing else. No explanation, no markdown, no backticks.
 
 CONTEXT:
 - PWD: ${resolvedCwd}
 - Home: ${resolvedHome}
 - Last command: ${lastCommand || "none"} (exit ${exitCode ?? 0})
-${recentHistory ? `- Recent history:\n${recentHistory}` : ""}
+${recentHistory ? `- Recent history:\n${recentHistory}` : ""}${projectHint}${followUpHint}
 
 Predict the next command:`;
 
@@ -393,11 +442,39 @@ Predict the next command:`;
     const intentMode = detectIntentMode(prompt);
 
     const policy = loadPolicy();
+    const userTemplates = loadUserTemplates();
     const config = loadConfig();
     const allowlist = this.getAllowlist();
     const tools = this.getAvailableTools();
     const devopsEnabled = config.tools.devopsEnabled;
     const skipTools = allowlist.size === 0;
+
+    // Flight log: inject few-shot examples from past successes
+    let fewShotBlock = "";
+    if (config.flightLog.enabled && config.flightLog.fewShotCount > 0) {
+      try {
+        const relevant = queryRelevant({
+          prompt,
+          cwd: resolvedCwd,
+          mode: intentMode,
+          limit: config.flightLog.fewShotCount,
+        });
+        fewShotBlock = buildFewShotBlock(relevant);
+      } catch {
+        // Best effort — don't block generation
+      }
+    }
+
+    // Project context: detect project type, scripts, targets
+    let projectBlock = "";
+    if (config.context.includeProjectInfo !== false) {
+      try {
+        const projectCtx = sniffProjectContext(resolvedCwd);
+        projectBlock = buildProjectBlock(projectCtx);
+      } catch {
+        // Best effort
+      }
+    }
 
     let session;
     try {
@@ -415,9 +492,10 @@ Predict the next command:`;
             shell: resolvedShell,
             termProgram: resolvedTermProgram,
             policy,
+            userTemplates,
             intentMode,
             aliasContext,
-            contextBlock: contextBlock || "",
+            contextBlock: (contextBlock || "") + projectBlock + fewShotBlock,
           }),
         },
         availableTools: skipTools ? undefined : Array.from(allowlist),
@@ -468,6 +546,108 @@ Predict the next command:`;
         model: requestModel,
         ...classifyError(error),
       });
+    } finally {
+      // Record to flight log after session cleanup
+      if (typeof session?.destroy === "function") {
+        await session.destroy().catch(() => undefined);
+      }
+    }
+  }
+
+  recordResult({ command, prompt, mode, cwd, durationMs }) {
+    try {
+      const config = loadConfig();
+      if (!config.flightLog.enabled) return;
+      recordGeneration({
+        prompt,
+        command,
+        mode,
+        cwd,
+        durationMs,
+        maxEntries: config.flightLog.maxEntries,
+      });
+    } catch {
+      // Best effort
+    }
+  }
+
+  async explain({ command, model, cwd, home }) {
+    const requestModel =
+      typeof model === "string" && model.trim().length > 0
+        ? model.trim()
+        : this.model;
+
+    if (!command || typeof command !== "string" || command.trim().length === 0) {
+      return { explanation: "", error: "empty_command" };
+    }
+
+    if (!this.started) {
+      try {
+        await this.start();
+      } catch (error) {
+        return { explanation: "", ...classifyError(error) };
+      }
+    }
+
+    if (!this.supportedModelIds.has(requestModel)) {
+      return {
+        explanation: "",
+        error: `Unsupported model: ${requestModel}`,
+        error_code: "copilot_model_rejected",
+      };
+    }
+
+    const resolvedCwd = cwd || process.env.PWD || process.cwd();
+    const resolvedHome = home || process.env.HOME || "";
+
+    const explainPrompt = `You explain shell commands. Given a command, output a single terse line explaining what it does. MCRN tactical voice: uppercase labels, no emoji, direct.
+
+RULES:
+1. Output exactly ONE line of explanation. No markdown, no backticks.
+2. Start with the verb (LISTS, FINDS, KILLS, SHOWS, etc.).
+3. Mention key flags and their effect.
+4. Be brief — max 80 characters if possible.
+5. If the command is destructive, note it: "[DESTRUCTIVE]" prefix.
+
+EXAMPLES:
+Command: fd -t f -S +10m . ~/Downloads
+Explanation: FINDS FILES OVER 10MB IN ~/Downloads
+
+Command: lsof -ti:8080 | xargs kill
+Explanation: KILLS PROCESSES LISTENING ON PORT 8080
+
+Command: rm -rf /tmp/build
+Explanation: [DESTRUCTIVE] REMOVES /tmp/build RECURSIVELY WITHOUT CONFIRMATION
+
+Explain this command:
+${command.trim()}`;
+
+    let session;
+    try {
+      session = await this.client.createSession({
+        model: requestModel,
+        onPermissionRequest: this.approveAll,
+        systemMessage: {
+          mode: "append",
+          content: explainPrompt,
+        },
+      });
+
+      const response = await session.sendAndWait(
+        { prompt: `Explain: ${command.trim()}` },
+        10000
+      );
+      const content = (response?.data?.content ?? "").trim();
+      // Strip markdown/backticks if model misbehaves
+      const cleaned = content
+        .replace(/^```[\s\S]*?```$/gm, "")
+        .replace(/`/g, "")
+        .split("\n")[0]
+        .trim();
+
+      return { explanation: cleaned || "NO EXPLANATION AVAILABLE" };
+    } catch (error) {
+      return { explanation: "", ...classifyError(error) };
     } finally {
       if (typeof session?.destroy === "function") {
         await session.destroy().catch(() => undefined);

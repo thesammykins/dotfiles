@@ -4,6 +4,7 @@ import readline from "node:readline";
 import { CopilotService, classifyError } from "./copilot-service.mjs";
 import { parseInput, buildContextBlock } from "./copilot-helper.mjs";
 import { loadConfig } from "./config.mjs";
+import { markExecuted } from "./flight-log.mjs";
 
 const config = loadConfig();
 const DEFAULT_MODEL = process.env.MCRN_COPILOT_MODEL || config.model.default || "gpt-5-mini";
@@ -86,7 +87,7 @@ const handleRequest = async (request) => {
     }
   }
 
-  if (type !== "generate" && type !== "suggest") {
+  if (type !== "generate" && type !== "suggest" && type !== "mark_executed" && type !== "explain") {
     return {
       id,
       type: "error",
@@ -106,6 +107,35 @@ const handleRequest = async (request) => {
     typeof payload.model === "string" && payload.model.length > 0
       ? payload.model
       : DEFAULT_MODEL;
+
+  // Handle mark_executed requests (flight log feedback)
+  if (type === "mark_executed") {
+    try {
+      markExecuted(payload.command, payload.exitCode);
+    } catch {
+      // Best effort
+    }
+    return { id, type: "mark_executed", payload: { ok: true } };
+  }
+
+  // Handle explain requests
+  if (type === "explain") {
+    try {
+      const response = await service.explain({
+        command: payload.command,
+        model: requestModel,
+        cwd: payload.cwd,
+        home: payload.home,
+      });
+      return { id, type: "explain", payload: response };
+    } catch (error) {
+      return {
+        id,
+        type: "explain",
+        payload: { explanation: "", ...classifyError(error) },
+      };
+    }
+  }
 
   // Handle suggest requests (lighter path for next-command predictions)
   if (type === "suggest") {
@@ -139,6 +169,7 @@ const handleRequest = async (request) => {
     const contextBlock =
       typeof payload.mode === "string" ? buildWidgetContext(payload) : "";
 
+    const t0 = Date.now();
     const response = await service.request({
       prompt: payload.prompt,
       timeoutMs: Number.isFinite(payload.timeoutMs)
@@ -154,6 +185,17 @@ const handleRequest = async (request) => {
       aliasContextRaw: payload.aliasContextRaw,
       contextBlock,
     });
+
+    // Record to flight log
+    if (response.command) {
+      service.recordResult({
+        command: response.command,
+        prompt: payload.prompt,
+        mode: payload.mode || "generate",
+        cwd: payload.cwd || "",
+        durationMs: Date.now() - t0,
+      });
+    }
 
     return { id, type: "generate", payload: response };
   } catch (error) {
@@ -174,6 +216,9 @@ const handleRequest = async (request) => {
 // Format response for ZLE consumption (structured lines)
 const formatZle = (result) => {
   const p = result?.payload || {};
+  if (result?.type === "explain") {
+    return `\n\n${p.explanation || p.error || ""}`;
+  }
   const ec = p.error_code || "";
   const err = p.error || "";
   const cmd = p.command || "";

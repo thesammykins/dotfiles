@@ -262,6 +262,34 @@ assert.equal(sanitizeCommand("first\rsecond"), "");
   assert.ok(!ctx.includes("PRIOR AI COMMAND:"));
 }
 
+// Chain mode
+{
+  const ctx = buildContextBlock({
+    mode: "chain",
+    recentHistory: "",
+    gitSummary: "",
+    lastFailure: "",
+    lastStderr: "",
+    priorAi: { prompt: "list ts files", command: "fd -e ts" },
+  });
+  assert.ok(ctx.includes("PRIOR AI COMMAND: fd -e ts"));
+  assert.ok(ctx.includes("PRIOR PROMPT: list ts files"));
+  assert.ok(ctx.includes("MODE: CHAIN"));
+}
+
+// Chain mode without prior command — should not emit CHAIN label
+{
+  const ctx = buildContextBlock({
+    mode: "chain",
+    recentHistory: "",
+    gitSummary: "",
+    lastFailure: "",
+    lastStderr: "",
+    priorAi: { prompt: "", command: "" },
+  });
+  assert.ok(!ctx.includes("MODE: CHAIN"));
+}
+
 // Generate mode with only history, no git
 {
   const ctx = buildContextBlock({

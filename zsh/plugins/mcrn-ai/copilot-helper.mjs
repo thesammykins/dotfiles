@@ -93,6 +93,12 @@ export const buildContextBlock = ({ mode, recentHistory, gitSummary, lastFailure
       parts.push(`PRIOR PROMPT: ${priorAi.prompt}`);
     }
     parts.push("MODE: REFINE. Modify the prior command based on the new instruction. Keep unrelated parts unchanged.");
+  } else if (mode === "chain" && priorAi?.command) {
+    parts.push(`PRIOR AI COMMAND: ${priorAi.command}`);
+    if (priorAi.prompt) {
+      parts.push(`PRIOR PROMPT: ${priorAi.prompt}`);
+    }
+    parts.push("MODE: CHAIN. Extend the prior command based on the new instruction. Append a pipe, redirect, or logical operator to build on it. Output the FULL command including the prior part and the new extension. Do NOT replace — extend.");
   }
 
   if (parts.length === 0) return "";
