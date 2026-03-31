@@ -21,6 +21,7 @@ const DEFAULT_CONFIG = {
     recentHistoryCount: 5,
     includeGitSummary: true,
     includeLastFailure: true,
+    includeProjectInfo: true,
   },
   ui: {
     highlightAiBuffer: true,
@@ -45,6 +46,11 @@ const DEFAULT_CONFIG = {
   autofix: {
     enabled: false,
     displayMode: "banner",
+  },
+  flightLog: {
+    enabled: true,
+    maxEntries: 1000,
+    fewShotCount: 3,
   },
 };
 
@@ -101,6 +107,8 @@ const buildConfig = (input) => {
     safe.nlDetection && typeof safe.nlDetection === "object" ? safe.nlDetection : {};
   const autofixInput =
     safe.autofix && typeof safe.autofix === "object" ? safe.autofix : {};
+  const flightLogInput =
+    safe.flightLog && typeof safe.flightLog === "object" ? safe.flightLog : {};
 
   const validHighlightStyles = new Set(["underline", "bold", "standout", "none"]);
 
@@ -121,6 +129,7 @@ const buildConfig = (input) => {
       recentHistoryCount: clampNumber(contextInput.recentHistoryCount, DEFAULT_CONFIG.context.recentHistoryCount, 0),
       includeGitSummary: pickBoolean(contextInput.includeGitSummary, DEFAULT_CONFIG.context.includeGitSummary),
       includeLastFailure: pickBoolean(contextInput.includeLastFailure, DEFAULT_CONFIG.context.includeLastFailure),
+      includeProjectInfo: pickBoolean(contextInput.includeProjectInfo, DEFAULT_CONFIG.context.includeProjectInfo),
     },
     ui: {
       highlightAiBuffer: pickBoolean(uiInput.highlightAiBuffer, DEFAULT_CONFIG.ui.highlightAiBuffer),
@@ -151,6 +160,11 @@ const buildConfig = (input) => {
       displayMode: ["banner", "ghost"].includes(autofixInput.displayMode)
         ? autofixInput.displayMode
         : DEFAULT_CONFIG.autofix.displayMode,
+    },
+    flightLog: {
+      enabled: pickBoolean(flightLogInput.enabled, DEFAULT_CONFIG.flightLog.enabled),
+      maxEntries: clampNumber(flightLogInput.maxEntries, DEFAULT_CONFIG.flightLog.maxEntries, 100),
+      fewShotCount: clampNumber(flightLogInput.fewShotCount, DEFAULT_CONFIG.flightLog.fewShotCount, 0),
     },
   };
 };

@@ -39,5 +39,10 @@
   "autofix": {
     "enabled": true,
     "displayMode": "banner"
+  },
+  "flightLog": {
+    "enabled": true,
+    "maxEntries": 1000,
+    "fewShotCount": 3
   }
 }

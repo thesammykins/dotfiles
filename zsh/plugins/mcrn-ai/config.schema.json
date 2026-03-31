@@ -85,12 +85,18 @@
           "type": "boolean",
           "default": true,
           "description": "Include the last failed command and exit code in fix mode."
+        },
+        "includeProjectInfo": {
+          "type": "boolean",
+          "default": true,
+          "description": "Detect and include project context (npm scripts, Makefile targets, language) in AI prompts."
         }
       },
       "default": {
         "recentHistoryCount": 5,
         "includeGitSummary": true,
-        "includeLastFailure": true
+        "includeLastFailure": true,
+        "includeProjectInfo": true
       }
     },
     "ui": {
@@ -226,6 +232,36 @@
       "default": {
         "enabled": false,
         "displayMode": "banner"
+      }
+    },
+    "flightLog": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Record AI generations and execution outcomes for pattern learning."
+        },
+        "maxEntries": {
+          "type": "integer",
+          "minimum": 100,
+          "maximum": 10000,
+          "default": 1000,
+          "description": "Maximum entries in the flight log before rotation."
+        },
+        "fewShotCount": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 10,
+          "default": 3,
+          "description": "Number of relevant past successes to inject as few-shot examples."
+        }
+      },
+      "default": {
+        "enabled": true,
+        "maxEntries": 1000,
+        "fewShotCount": 3
       }
     }
   }
