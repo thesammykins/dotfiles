@@ -56,9 +56,11 @@ RULES:
 - GENERATE: Default. Translate natural language into a shell command.
 - FIX: Auto-triggered when buffer is empty and last command exited non-zero. Sends failed command + exit code + stderr for correction.
 - REFINE: Triggered when buffer starts with refinement phrases and prior AI command exists. Sends prior command as context for iteration.
-- SUGGEST: Passive next-command ghost-text prediction after command completion. Opt-in via config.
+- CHAIN: Triggered when buffer starts with "pipe", "then", "now pipe", etc. Extends the prior command with a pipe or step instead of replacing it.
+- SUGGEST: Passive next-command ghost-text prediction after command completion. Opt-in via config. Enriched with project context and flight log follow-ups.
 - NL DETECT: Auto-detect natural language input and route to AI. Opt-in via config.
 - AUTOFIX: Proactive fix suggestions after command failures. Opt-in via config.
+- EXPLAIN: `CTRL+E` with a command in the buffer. Returns a one-line explanation via status bar. Buffer untouched.
 
 ## ANTI-PATTERNS
 - ENABLING TOOLS WITHOUT A SCOPED ALLOWLIST.
@@ -94,6 +96,38 @@ RULES:
 - `ALT+]` / `ALT+[` CYCLE THROUGH AI COMMAND CANDIDATES.
 - SHOWS `[N/M]` INDICATOR IN STATUS LINE.
 
+## FLIGHT RECORDER
+- RECORDS EVERY AI GENERATION TO `~/.local/share/mcrn-ai/flight-log.jsonl`.
+- TRACKS: PROMPT, COMMAND, MODE, CWD, EXECUTION STATUS, EXIT CODE.
+- `preexec`/`precmd` HOOKS DETECT WHEN AI COMMANDS ARE ACTUALLY EXECUTED.
+- RELEVANT PAST SUCCESSES INJECTED AS FEW-SHOT EXAMPLES IN SYSTEM PROMPT.
+- CAPPED AT 1000 ENTRIES (CONFIGURABLE). ROTATES OLDEST.
+- CONFIG: `flightLog.enabled`, `flightLog.maxEntries`, `flightLog.fewShotCount`.
+
+## PROJECT CONTEXT
+- AUTO-DETECTS PROJECT TYPE FROM CWD: `package.json` SCRIPTS, `Makefile`/`Justfile` TARGETS, `Cargo.toml`, `pyproject.toml`, `go.mod`, DOCKER, TOOLCHAIN (mise/direnv/nvm).
+- APPENDS A `PROJECT` BLOCK TO THE SYSTEM PROMPT.
+- CACHED PER-CWD PER SESSION (ZERO REPEAT I/O).
+- CONFIG: `context.includeProjectInfo`.
+
+## USER TEMPLATES
+- OPTIONAL FILE: `~/.config/mcrn-ai/templates.txt`.
+- FORMAT: SAME AS `policy.txt` — DESCRIPTION→COMMAND PAIRS.
+- APPENDED TO SYSTEM PROMPT AFTER POLICY, SO USER PATTERNS TAKE PRECEDENCE.
+- ENV OVERRIDE: `MCRN_AI_TEMPLATES_FILE`.
+
+## EXPLAIN MODE
+- `CTRL+E` WITH A COMMAND IN THE BUFFER.
+- SENDS TO MODEL WITH EXPLAIN-ONLY SYSTEM PROMPT.
+- RESULT SHOWN VIA `zle -M` STATUS BAR. BUFFER UNTOUCHED.
+- REQUIRES DAEMON. MCRN TACTICAL VOICE.
+
+## DRY VALIDATION
+- AFTER AI GENERATES A COMMAND, CHECKS IF THE PRIMARY BINARY EXISTS.
+- IF NOT FOUND: `[WARN: 'binary' NOT FOUND]` APPENDED TO STATUS MESSAGE.
+- ADVISORY ONLY — COMMAND STILL PLACED IN BUFFER.
+- HANDLES `command <util>` PREFIX AND ENV ASSIGNMENTS.
+
 ## DEBUGGING
 - SET `MCRN_AI_DEBUG=1` TO LOG TO `/tmp/mcrn-ai-debug.log`.
 - RUN `node ./zsh/plugins/mcrn-ai/copilot-helper.test.mjs` FOR HELPER-LEVEL REGRESSION CHECKS.
@@ -121,3 +155,6 @@ IF THE MODEL GENERATES BAD COMMANDS (WRONG OS FLAGS, IGNORING INSTALLED TOOLS, W
 - TOOLS: `/zsh/plugins/mcrn-ai/tools/index.mjs`
 - CONFIG: `/zsh/plugins/mcrn-ai/config.json`
 - SCHEMA: `/zsh/plugins/mcrn-ai/config.schema.json`
+- FLIGHT LOG: `/zsh/plugins/mcrn-ai/flight-log.mjs`
+- PROJECT CONTEXT: `/zsh/plugins/mcrn-ai/project-context.mjs`
+- USER TEMPLATES: `~/.config/mcrn-ai/templates.txt`
