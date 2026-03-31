@@ -26,6 +26,26 @@ const DEFAULT_CONFIG = {
     highlightAiBuffer: true,
     highlightStyle: "underline",
   },
+  daemon: {
+    enabled: true,
+    idleTimeoutSec: 300,
+  },
+  suggest: {
+    enabled: false,
+    debounceMs: 500,
+    rateLimitMs: 2000,
+    skipCommands: ["cd", "ls", "clear", "pwd", "exit", "true", "false"],
+    ghostStyle: "fg=240",
+  },
+  nlDetection: {
+    enabled: false,
+    minWords: 3,
+    indicator: "[MCRN NL]",
+  },
+  autofix: {
+    enabled: false,
+    displayMode: "banner",
+  },
 };
 
 const normalizeAllowlist = (value) => {
@@ -73,6 +93,14 @@ const buildConfig = (input) => {
     safe.context && typeof safe.context === "object" ? safe.context : {};
   const uiInput =
     safe.ui && typeof safe.ui === "object" ? safe.ui : {};
+  const daemonInput =
+    safe.daemon && typeof safe.daemon === "object" ? safe.daemon : {};
+  const suggestInput =
+    safe.suggest && typeof safe.suggest === "object" ? safe.suggest : {};
+  const nlInput =
+    safe.nlDetection && typeof safe.nlDetection === "object" ? safe.nlDetection : {};
+  const autofixInput =
+    safe.autofix && typeof safe.autofix === "object" ? safe.autofix : {};
 
   const validHighlightStyles = new Set(["underline", "bold", "standout", "none"]);
 
@@ -99,6 +127,30 @@ const buildConfig = (input) => {
       highlightStyle: validHighlightStyles.has(uiInput.highlightStyle)
         ? uiInput.highlightStyle
         : DEFAULT_CONFIG.ui.highlightStyle,
+    },
+    daemon: {
+      enabled: pickBoolean(daemonInput.enabled, DEFAULT_CONFIG.daemon.enabled),
+      idleTimeoutSec: clampNumber(daemonInput.idleTimeoutSec, DEFAULT_CONFIG.daemon.idleTimeoutSec, 30),
+    },
+    suggest: {
+      enabled: pickBoolean(suggestInput.enabled, DEFAULT_CONFIG.suggest.enabled),
+      debounceMs: clampNumber(suggestInput.debounceMs, DEFAULT_CONFIG.suggest.debounceMs, 100),
+      rateLimitMs: clampNumber(suggestInput.rateLimitMs, DEFAULT_CONFIG.suggest.rateLimitMs, 500),
+      skipCommands: Array.isArray(suggestInput.skipCommands)
+        ? suggestInput.skipCommands.filter((s) => typeof s === "string" && s.length > 0)
+        : DEFAULT_CONFIG.suggest.skipCommands,
+      ghostStyle: pickString(suggestInput.ghostStyle, DEFAULT_CONFIG.suggest.ghostStyle),
+    },
+    nlDetection: {
+      enabled: pickBoolean(nlInput.enabled, DEFAULT_CONFIG.nlDetection.enabled),
+      minWords: clampNumber(nlInput.minWords, DEFAULT_CONFIG.nlDetection.minWords, 2),
+      indicator: pickString(nlInput.indicator, DEFAULT_CONFIG.nlDetection.indicator),
+    },
+    autofix: {
+      enabled: pickBoolean(autofixInput.enabled, DEFAULT_CONFIG.autofix.enabled),
+      displayMode: ["banner", "ghost"].includes(autofixInput.displayMode)
+        ? autofixInput.displayMode
+        : DEFAULT_CONFIG.autofix.displayMode,
     },
   };
 };
