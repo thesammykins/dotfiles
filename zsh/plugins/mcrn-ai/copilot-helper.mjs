@@ -39,7 +39,7 @@ const loadPolicy = () => {
 // Accepts JSON payload from the ZLE widget or raw text for backwards compat.
 // Returns a normalized input object.
 export const parseInput = (raw) => {
-  const empty = { prompt: "", mode: "generate", recentHistory: "", gitSummary: "", lastFailure: "", priorAi: { prompt: "", command: "" } };
+  const empty = { prompt: "", mode: "generate", recentHistory: "", gitSummary: "", lastFailure: "", lastStderr: "", priorAi: { prompt: "", command: "" } };
   if (!raw || typeof raw !== "string" || raw.trim().length === 0) return empty;
 
   const trimmed = raw.trim();
@@ -53,6 +53,7 @@ export const parseInput = (raw) => {
         recentHistory: typeof parsed.recentHistory === "string" ? parsed.recentHistory : "",
         gitSummary: typeof parsed.gitSummary === "string" ? parsed.gitSummary : "",
         lastFailure: typeof parsed.lastFailure === "string" ? parsed.lastFailure : "",
+        lastStderr: typeof parsed.lastStderr === "string" ? parsed.lastStderr : "",
         priorAi: {
           prompt: typeof parsed.priorAi?.prompt === "string" ? parsed.priorAi.prompt : "",
           command: typeof parsed.priorAi?.command === "string" ? parsed.priorAi.command : "",
@@ -69,7 +70,7 @@ export const parseInput = (raw) => {
 
 // ── Context Block Builder (SAM-39) ──────────────────────────────────
 // Builds the context section appended to the system prompt.
-export const buildContextBlock = ({ mode, recentHistory, gitSummary, lastFailure, priorAi }) => {
+export const buildContextBlock = ({ mode, recentHistory, gitSummary, lastFailure, lastStderr, priorAi }) => {
   const parts = [];
 
   if (gitSummary) {
@@ -82,6 +83,9 @@ export const buildContextBlock = ({ mode, recentHistory, gitSummary, lastFailure
 
   if (mode === "fix" && lastFailure) {
     parts.push(`FAILED COMMAND: ${lastFailure}`);
+    if (lastStderr) {
+      parts.push(`STDERR OUTPUT:\n${lastStderr}`);
+    }
     parts.push("MODE: FIX. Analyze the failed command and output a corrected version. Consider common failure causes: typos, wrong flags, missing paths, permission issues.");
   } else if (mode === "refine" && priorAi?.command) {
     parts.push(`PRIOR AI COMMAND: ${priorAi.command}`);

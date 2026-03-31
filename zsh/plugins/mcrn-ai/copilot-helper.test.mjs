@@ -47,6 +47,7 @@ assert.equal(sanitizeCommand("first\nsecond"), "");
     recentHistory: "ls\npwd",
     gitSummary: "main [dirty]",
     lastFailure: "",
+    lastStderr: "",
     priorAi: { prompt: "", command: "" },
   }));
   assert.equal(input.prompt, "list files");
@@ -54,6 +55,7 @@ assert.equal(sanitizeCommand("first\nsecond"), "");
   assert.equal(input.recentHistory, "ls\npwd");
   assert.equal(input.gitSummary, "main [dirty]");
   assert.equal(input.lastFailure, "");
+  assert.equal(input.lastStderr, "");
   assert.equal(input.priorAi.prompt, "");
   assert.equal(input.priorAi.command, "");
 }
@@ -66,10 +68,12 @@ assert.equal(sanitizeCommand("first\nsecond"), "");
     recentHistory: "git psh",
     gitSummary: "feature-branch",
     lastFailure: "git psh (exit 1)",
+    lastStderr: "git: 'psh' is not a git command",
     priorAi: { prompt: "", command: "" },
   }));
   assert.equal(input.mode, "fix");
   assert.equal(input.lastFailure, "git psh (exit 1)");
+  assert.equal(input.lastStderr, "git: 'psh' is not a git command");
 }
 
 // Refine mode payload
@@ -120,6 +124,7 @@ assert.equal(sanitizeCommand("first\nsecond"), "");
     recentHistory: "ls\npwd",
     gitSummary: "main [dirty]",
     lastFailure: "",
+    lastStderr: "",
     priorAi: { prompt: "", command: "" },
   });
   assert.ok(ctx.includes("GIT: main [dirty]"));
@@ -135,10 +140,25 @@ assert.equal(sanitizeCommand("first\nsecond"), "");
     recentHistory: "",
     gitSummary: "",
     lastFailure: "git psh (exit 1)",
+    lastStderr: "",
     priorAi: { prompt: "", command: "" },
   });
   assert.ok(ctx.includes("FAILED COMMAND: git psh (exit 1)"));
   assert.ok(ctx.includes("MODE: FIX"));
+}
+
+// Fix mode with stderr
+{
+  const ctx = buildContextBlock({
+    mode: "fix",
+    recentHistory: "",
+    gitSummary: "",
+    lastFailure: "git psh (exit 1)",
+    lastStderr: "git: 'psh' is not a git command",
+    priorAi: { prompt: "", command: "" },
+  });
+  assert.ok(ctx.includes("STDERR OUTPUT:"));
+  assert.ok(ctx.includes("git: 'psh' is not a git command"));
 }
 
 // Refine mode
@@ -148,6 +168,7 @@ assert.equal(sanitizeCommand("first\nsecond"), "");
     recentHistory: "",
     gitSummary: "",
     lastFailure: "",
+    lastStderr: "",
     priorAi: { prompt: "list files", command: "ls" },
   });
   assert.ok(ctx.includes("PRIOR AI COMMAND: ls"));
@@ -162,6 +183,7 @@ assert.equal(sanitizeCommand("first\nsecond"), "");
     recentHistory: "",
     gitSummary: "",
     lastFailure: "",
+    lastStderr: "",
     priorAi: { prompt: "", command: "" },
   });
   assert.equal(ctx, "");
@@ -200,11 +222,13 @@ assert.equal(sanitizeCommand("first\rsecond"), "");
     recentHistory: "ls\npwd\ngit status",
     gitSummary: "feature-branch [dirty]",
     lastFailure: "npm test (exit 1)",
+    lastStderr: "Error: test failed",
     priorAi: { prompt: "run tests", command: "npm test" },
   });
   assert.ok(ctx.includes("GIT: feature-branch [dirty]"));
   assert.ok(ctx.includes("RECENT COMMANDS:"));
   assert.ok(ctx.includes("FAILED COMMAND: npm test (exit 1)"));
+  assert.ok(ctx.includes("STDERR OUTPUT:"));
   assert.ok(ctx.includes("MODE: FIX"));
   // In fix mode, prior AI context should NOT appear
   assert.ok(!ctx.includes("PRIOR AI COMMAND:"));
@@ -217,6 +241,7 @@ assert.equal(sanitizeCommand("first\rsecond"), "");
     recentHistory: "",
     gitSummary: "",
     lastFailure: "",
+    lastStderr: "",
     priorAi: { prompt: "", command: "" },
   });
   assert.ok(!ctx.includes("MODE: FIX"));
@@ -230,6 +255,7 @@ assert.equal(sanitizeCommand("first\rsecond"), "");
     recentHistory: "",
     gitSummary: "",
     lastFailure: "",
+    lastStderr: "",
     priorAi: { prompt: "old prompt", command: "" },
   });
   assert.ok(!ctx.includes("MODE: REFINE"));
@@ -243,6 +269,7 @@ assert.equal(sanitizeCommand("first\rsecond"), "");
     recentHistory: "cd /tmp\nls",
     gitSummary: "",
     lastFailure: "",
+    lastStderr: "",
     priorAi: { prompt: "", command: "" },
   });
   assert.ok(ctx.includes("RECENT COMMANDS:"));
@@ -273,6 +300,7 @@ assert.equal(sanitizeCommand("first\rsecond"), "");
     recentHistory: false,
     gitSummary: [],
     lastFailure: {},
+    lastStderr: 123,
     priorAi: "not-an-object",
   }));
   assert.equal(input.prompt, "");
@@ -280,6 +308,7 @@ assert.equal(sanitizeCommand("first\rsecond"), "");
   assert.equal(input.recentHistory, "");
   assert.equal(input.gitSummary, "");
   assert.equal(input.lastFailure, "");
+  assert.equal(input.lastStderr, "");
   assert.equal(input.priorAi.prompt, "");
   assert.equal(input.priorAi.command, "");
 }
