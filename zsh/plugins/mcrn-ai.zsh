@@ -5,7 +5,7 @@
 # Model: gpt-5-mini
 
 # ── Configuration ────────────────────────────────────────────────────
-export MCRN_AI_TIMEOUT_MS="${MCRN_AI_TIMEOUT_MS:-12000}"
+export MCRN_AI_TIMEOUT_MS="${MCRN_AI_TIMEOUT_MS:-30000}"
 export MCRN_COPILOT_MODEL="${MCRN_COPILOT_MODEL:-gpt-5-mini}"
 export MCRN_AI_PLUGIN_PATH="${MCRN_AI_PLUGIN_PATH:-${(%):-%x}}"
 export MCRN_AI_DEBUG_LOG="${MCRN_AI_DEBUG_LOG:-/tmp/mcrn-ai-debug.log}"
@@ -19,10 +19,16 @@ typeset -g  _MCRN_LAST_EXIT_CODE="0"
 typeset -g  _MCRN_AI_GENERATED_BUFFER=""
 # Async state (SAM-45)
 typeset -gi _MCRN_AI_ASYNC_ACTIVE=0
-typeset -g  _MCRN_AI_ASYNC_RESULT_FILE=""
 typeset -g  _MCRN_AI_ASYNC_MODE=""
 typeset -g  _MCRN_AI_RESULT_FD=""
 typeset -g  _MCRN_AI_SPINNER_FD=""
+# Pending result (written by zle -F handler, consumed by apply widget)
+typeset -g  _MCRN_AI_PENDING_CMD=""
+typeset -g  _MCRN_AI_PENDING_EC=""
+typeset -g  _MCRN_AI_PENDING_ERR=""
+# Cached UI config (read once at load, avoids forking jq inside zle -F handlers)
+typeset -g  _MCRN_AI_CFG_HIGHLIGHT_ENABLED=""
+typeset -g  _MCRN_AI_CFG_HIGHLIGHT_STYLE=""
 typeset -gi _MCRN_AI_SPINNER_IDX=0
 typeset -ga _MCRN_AI_SPINNER_FRAMES=(
   "TARGETING."
@@ -99,6 +105,10 @@ _mcrn_ai_debug_log() {
     printf '%s\n' "$1" >> "$MCRN_AI_DEBUG_LOG"
   fi
 }
+
+# Cache UI config at load time (safe to fork jq here, outside ZLE context)
+_MCRN_AI_CFG_HIGHLIGHT_ENABLED="$(_mcrn_ai_read_config '.ui.highlightAiBuffer' 'true')"
+_MCRN_AI_CFG_HIGHLIGHT_STYLE="$(_mcrn_ai_read_config '.ui.highlightStyle' 'underline')"
 
 # ── Mode Detection (SAM-39/40/41) ───────────────────────────────────
 _mcrn_ai_detect_mode() {
@@ -215,77 +225,66 @@ _mcrn_ai_spinner_handler() {
   if ! read -r -u "$fd" line 2>/dev/null; then
     # Spinner process ended (SIGPIPE from fd close or natural exit)
     zle -F "$fd" 2>/dev/null
-    exec {fd}<&- 2>/dev/null
+    builtin exec {fd}<&- 2>/dev/null
     _MCRN_AI_SPINNER_FD=""
     return
   fi
   if (( _MCRN_AI_ASYNC_ACTIVE )); then
     _MCRN_AI_SPINNER_IDX=$(( (_MCRN_AI_SPINNER_IDX % ${#_MCRN_AI_SPINNER_FRAMES[@]}) + 1 ))
     zle -M "[MCRN UPLINK] ${_MCRN_AI_SPINNER_FRAMES[$_MCRN_AI_SPINNER_IDX]}"
-    zle redisplay
+    zle -R
   fi
 }
 
 # ── Async Result Handler (SAM-45) ───────────────────────────────────
+# Pattern from zsh-autosuggestions: zle -F handlers CANNOT modify BUFFER
+# directly — changes are discarded when the handler returns. Instead, store
+# the result in globals and invoke a proper ZLE widget with `zle <name>`.
 _mcrn_ai_result_handler() {
-  local fd="$1"
-  # Unregister and close the result fd
+  emulate -L zsh
+  local fd=$1
+
+  # Stop spinner
+  _MCRN_AI_ASYNC_ACTIVE=0
+  if [[ -n "$_MCRN_AI_SPINNER_FD" ]]; then
+    zle -F "$_MCRN_AI_SPINNER_FD" 2>/dev/null
+    builtin exec {_MCRN_AI_SPINNER_FD}<&- 2>/dev/null
+    _MCRN_AI_SPINNER_FD=""
+  fi
+
+  if [[ -z "$2" || "$2" == "hup" ]]; then
+    # Read pre-extracted fields directly from the pipe (builtins only).
+    # Format: line 1 = error_code, line 2 = error, rest = command.
+    read -r -u $fd _MCRN_AI_PENDING_EC 2>/dev/null
+    read -r -u $fd _MCRN_AI_PENDING_ERR 2>/dev/null
+    IFS='' read -rd '' -u $fd _MCRN_AI_PENDING_CMD 2>/dev/null
+
+    _mcrn_ai_debug_log "pipe read: cmd='${_MCRN_AI_PENDING_CMD}' ec='${_MCRN_AI_PENDING_EC}' err='${_MCRN_AI_PENDING_ERR}'"
+
+    # Apply result via proper ZLE widget — only way BUFFER changes persist
+    zle _mcrn_ai_apply_result
+  fi
+
+  # Clean up fd (after widget call so pipe stays open during read)
+  builtin exec {fd}<&- 2>/dev/null
   zle -F "$fd" 2>/dev/null
-  exec {fd}<&- 2>/dev/null
   _MCRN_AI_RESULT_FD=""
-
-  # Stop spinner (closing fd sends SIGPIPE to the spinner subprocess)
-  _MCRN_AI_ASYNC_ACTIVE=0
-  if [[ -n "$_MCRN_AI_SPINNER_FD" ]]; then
-    zle -F "$_MCRN_AI_SPINNER_FD" 2>/dev/null
-    exec {_MCRN_AI_SPINNER_FD}<&- 2>/dev/null
-    _MCRN_AI_SPINNER_FD=""
-  fi
-
-  # Read result from temp file
-  local result=""
-  if [[ -f "$_MCRN_AI_ASYNC_RESULT_FILE" ]]; then
-    result="$(<"$_MCRN_AI_ASYNC_RESULT_FILE")"
-    rm -f "$_MCRN_AI_ASYNC_RESULT_FILE"
-  fi
-  _MCRN_AI_ASYNC_RESULT_FILE=""
-
-  _mcrn_ai_debug_log "raw result: $result"
-  _mcrn_ai_process_result "$result" "$_MCRN_AI_ASYNC_MODE"
 }
 
-# ── Cancel In-Flight Request ────────────────────────────────────────
-_mcrn_ai_cancel_async() {
-  if (( ! _MCRN_AI_ASYNC_ACTIVE )); then
-    return
-  fi
-  _MCRN_AI_ASYNC_ACTIVE=0
-  if [[ -n "$_MCRN_AI_RESULT_FD" ]]; then
-    zle -F "$_MCRN_AI_RESULT_FD" 2>/dev/null
-    exec {_MCRN_AI_RESULT_FD}<&- 2>/dev/null
-    _MCRN_AI_RESULT_FD=""
-  fi
-  if [[ -n "$_MCRN_AI_SPINNER_FD" ]]; then
-    zle -F "$_MCRN_AI_SPINNER_FD" 2>/dev/null
-    exec {_MCRN_AI_SPINNER_FD}<&- 2>/dev/null
-    _MCRN_AI_SPINNER_FD=""
-  fi
-  if [[ -n "$_MCRN_AI_ASYNC_RESULT_FILE" ]]; then
-    rm -f "$_MCRN_AI_ASYNC_RESULT_FILE"
-    _MCRN_AI_ASYNC_RESULT_FILE=""
-  fi
-  zle -M "[MCRN UPLINK] REQUEST CANCELLED."
-  zle redisplay
-}
+# ── Apply Result Widget ─────────────────────────────────────────────
+# Registered as a ZLE widget so BUFFER modifications persist (the correct
+# async pattern, matching zsh-autosuggestions).
+_mcrn_ai_apply_result() {
+  local command="$_MCRN_AI_PENDING_CMD"
+  local error="$_MCRN_AI_PENDING_ERR"
+  local error_code="$_MCRN_AI_PENDING_EC"
+  local mode="$_MCRN_AI_ASYNC_MODE"
 
-# ── Result Processing (extracted for async, SAM-45) ──────────────────
-_mcrn_ai_process_result() {
-  local result="$1" mode="$2"
+  _MCRN_AI_PENDING_CMD=""
+  _MCRN_AI_PENDING_ERR=""
+  _MCRN_AI_PENDING_EC=""
 
-  local command error error_code
-  command="$(printf '%s' "$result" | jq -r '.command // empty' 2>/dev/null)"
-  error="$(printf '%s' "$result" | jq -r '.error // empty' 2>/dev/null)"
-  error_code="$(printf '%s' "$result" | jq -r '.error_code // empty' 2>/dev/null)"
+  _mcrn_ai_debug_log "apply_result widget: cmd_len=${#command} ec='$error_code' mode=$mode"
 
   if [[ -z "$command" ]]; then
     case "$error_code" in
@@ -315,7 +314,7 @@ _mcrn_ai_process_result() {
         fi
         ;;
     esac
-    zle redisplay
+    zle -R
     return
   fi
 
@@ -327,16 +326,12 @@ _mcrn_ai_process_result() {
   BUFFER="$command"
   CURSOR=${#BUFFER}
 
-  # Apply visual highlight (SAM-42/44)
-  local hl_enabled
-  hl_enabled="$(_mcrn_ai_read_config '.ui.highlightAiBuffer' 'true')"
-  if [[ "$hl_enabled" == "true" ]]; then
-    local hl_style
-    hl_style="$(_mcrn_ai_read_config '.ui.highlightStyle' 'underline')"
-    if [[ "$hl_style" != "none" ]]; then
-      _MCRN_AI_GENERATED_BUFFER="$BUFFER"
-      region_highlight=("0 ${#BUFFER} ${hl_style}")
-    fi
+  _mcrn_ai_debug_log "BUFFER set: len=${#BUFFER}"
+
+  # Apply visual highlight using cached config (SAM-42/44)
+  if [[ "$_MCRN_AI_CFG_HIGHLIGHT_ENABLED" == "true" && "$_MCRN_AI_CFG_HIGHLIGHT_STYLE" != "none" ]]; then
+    _MCRN_AI_GENERATED_BUFFER="$BUFFER"
+    region_highlight=("0 ${#BUFFER} ${_MCRN_AI_CFG_HIGHLIGHT_STYLE}")
   fi
 
   case "$mode" in
@@ -350,7 +345,28 @@ _mcrn_ai_process_result() {
       zle -M "[MCRN UPLINK] COMMAND RECEIVED. REVIEW BEFORE EXECUTION."
       ;;
   esac
-  zle redisplay
+  zle -R
+}
+zle -N _mcrn_ai_apply_result
+
+# ── Cancel In-Flight Request ────────────────────────────────────────
+_mcrn_ai_cancel_async() {
+  if (( ! _MCRN_AI_ASYNC_ACTIVE )); then
+    return
+  fi
+  _MCRN_AI_ASYNC_ACTIVE=0
+  if [[ -n "$_MCRN_AI_RESULT_FD" ]]; then
+    zle -F "$_MCRN_AI_RESULT_FD" 2>/dev/null
+    builtin exec {_MCRN_AI_RESULT_FD}<&- 2>/dev/null
+    _MCRN_AI_RESULT_FD=""
+  fi
+  if [[ -n "$_MCRN_AI_SPINNER_FD" ]]; then
+    zle -F "$_MCRN_AI_SPINNER_FD" 2>/dev/null
+    builtin exec {_MCRN_AI_SPINNER_FD}<&- 2>/dev/null
+    _MCRN_AI_SPINNER_FD=""
+  fi
+  zle -M "[MCRN UPLINK] REQUEST CANCELLED."
+  zle -R
 }
 
 # ── Main ZLE Widget ─────────────────────────────────────────────────
@@ -365,6 +381,8 @@ mcrn_ai_generate() {
 
   local user_input="${BUFFER}"
 
+  _mcrn_ai_debug_log "widget fired: BUFFER='$user_input'"
+
   if [[ ! -x "$(command -v jq)" ]]; then
     zle -M "[MCRN ERROR] JQ NOT FOUND."
     return
@@ -373,9 +391,13 @@ mcrn_ai_generate() {
   # Preflight checks
   _mcrn_ai_preflight || return
 
+  _mcrn_ai_debug_log "preflight passed"
+
   # Detect mode (SAM-39/40/41)
   local mode
   mode="$(_mcrn_ai_detect_mode "$user_input")"
+
+  _mcrn_ai_debug_log "mode=$mode"
 
   # Determine the effective prompt
   local effective_prompt=""
@@ -400,6 +422,7 @@ mcrn_ai_generate() {
       else
         effective_prompt="$user_input"
         _MCRN_LAST_AI_QUERY="$user_input"
+        zle -M "[MCRN UPLINK] TARGETING..."
       fi
       ;;
   esac
@@ -412,6 +435,11 @@ mcrn_ai_generate() {
   payload="$(_mcrn_ai_build_payload "$effective_prompt" "$mode")"
   _mcrn_ai_debug_log "payload: $payload"
 
+  if [[ -z "$payload" ]]; then
+    zle -M "[MCRN ERROR] PAYLOAD BUILD FAILED."
+    return
+  fi
+
   # Launch async (SAM-45)
   local helpers_dir
   helpers_dir="$(_mcrn_ai_helpers_dir)"
@@ -419,10 +447,11 @@ mcrn_ai_generate() {
   _MCRN_AI_ASYNC_MODE="$mode"
   _MCRN_AI_ASYNC_ACTIVE=1
   _MCRN_AI_SPINNER_IDX=0
-  _MCRN_AI_ASYNC_RESULT_FILE="$(mktemp /tmp/mcrn-ai-result.XXXXXX)"
+
+  _mcrn_ai_debug_log "async setup: helper=$helper"
 
   # Spinner subprocess: writes a line every 300ms for zle -F to pick up
-  exec {_MCRN_AI_SPINNER_FD}< <(
+  builtin exec {_MCRN_AI_SPINNER_FD}< <(
     while true; do
       sleep 0.3
       printf 'tick\n'
@@ -430,18 +459,33 @@ mcrn_ai_generate() {
   )
   zle -F "$_MCRN_AI_SPINNER_FD" _mcrn_ai_spinner_handler
 
-  # Copilot subprocess: writes result to temp file, signals "done" on stdout
+  _mcrn_ai_debug_log "spinner fd=$_MCRN_AI_SPINNER_FD"
+
+  # Copilot subprocess: pipe pre-extracted fields directly to stdout.
+  # Format: line 1 = error_code, line 2 = error, remaining = command.
+  # The zle -F handler reads these with builtins and delegates to the
+  # _mcrn_ai_apply_result widget (the only way BUFFER changes persist).
   local stderr_target="/dev/null"
   if [[ -n "${MCRN_AI_DEBUG:-}" ]]; then
     stderr_target="$MCRN_AI_DEBUG_LOG"
   fi
-  exec {_MCRN_AI_RESULT_FD}< <(
-    printf '%s' "$payload" | MCRN_AI_DEBUG="${MCRN_AI_DEBUG:-}" NODE_NO_WARNINGS=1 node "$helper" > "$_MCRN_AI_ASYNC_RESULT_FILE" 2>>"$stderr_target"
-    echo "done"
+  builtin exec {_MCRN_AI_RESULT_FD}< <(
+    local raw
+    raw="$(printf '%s' "$payload" | MCRN_AI_DEBUG="${MCRN_AI_DEBUG:-}" NODE_NO_WARNINGS=1 node "$helper" 2>>"$stderr_target")"
+    local ec err cmd
+    ec="$(printf '%s' "$raw" | jq -r '.error_code // empty' 2>/dev/null)"
+    err="$(printf '%s' "$raw" | jq -r '.error // empty' 2>/dev/null)"
+    cmd="$(printf '%s' "$raw" | jq -r '.command // empty' 2>/dev/null)"
+    # Write structured output: one field per protocol line
+    printf '%s\n' "$ec"
+    printf '%s\n' "$err"
+    printf '%s' "$cmd"
   )
   zle -F "$_MCRN_AI_RESULT_FD" _mcrn_ai_result_handler
 
-  zle redisplay
+  _mcrn_ai_debug_log "result fd=$_MCRN_AI_RESULT_FD launched"
+
+  zle -R
 }
 
 # ── Key Bindings ─────────────────────────────────────────────────────
