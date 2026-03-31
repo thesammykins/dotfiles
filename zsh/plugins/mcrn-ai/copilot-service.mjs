@@ -128,6 +128,7 @@ const systemPrompt = ({
   policy,
   intentMode,
   aliasContext,
+  contextBlock,
 }) => `You are a strict CLI command generator for macOS zsh.
 Your ONLY job is to translate natural language into a single, valid, raw shell command.
 
@@ -164,7 +165,7 @@ Command: lsof -ti:8080 | xargs kill -9
 
 User: find text 'TODO' in python files here
 Command: rg 'TODO' -g '*.py'
-${policy ? `\n\n${policy}` : ""}`;
+${policy ? `\n\n${policy}` : ""}${contextBlock || ""}`;
 
 const makeErrorPayload = ({ model, ...errorPayload }) => ({
   command: "",
@@ -185,38 +186,48 @@ export class CopilotService {
     this.isDevopsTool = null;
     this.supportedModelIds = new Set();
     this.started = false;
+    this._starting = null;
   }
 
   async start() {
     if (this.started) return;
+    if (this._starting) return this._starting;
+    this._starting = this._doStart();
+    return this._starting;
+  }
 
-    ensureSdkCompatibilityPatch();
-
+  async _doStart() {
     try {
-      const sdk = await import("@github/copilot-sdk");
-      this.CopilotClient = sdk.CopilotClient;
-      this.approveAll = sdk.approveAll;
-    } catch (error) {
-      throw new Error(classifyError(error).error);
+      ensureSdkCompatibilityPatch();
+
+      try {
+        const sdk = await import("@github/copilot-sdk");
+        this.CopilotClient = sdk.CopilotClient;
+        this.approveAll = sdk.approveAll;
+      } catch (error) {
+        throw new Error(classifyError(error).error);
+      }
+
+      try {
+        const toolsModule = await import("./tools/index.mjs");
+        this.getAllowlist = toolsModule.getAllowlist;
+        this.getAvailableTools = toolsModule.getAvailableTools;
+        this.isDevopsTool = toolsModule.isDevopsTool;
+      } catch (error) {
+        throw new Error(classifyError(error).error);
+      }
+
+      this.client = new this.CopilotClient();
+      await this.client.start();
+
+      const availableModels = await this.client.listModels();
+      this.supportedModelIds = new Set(
+        availableModels.map(getModelId).filter(Boolean)
+      );
+      this.started = true;
+    } finally {
+      this._starting = null;
     }
-
-    try {
-      const toolsModule = await import("./tools/index.mjs");
-      this.getAllowlist = toolsModule.getAllowlist;
-      this.getAvailableTools = toolsModule.getAvailableTools;
-      this.isDevopsTool = toolsModule.isDevopsTool;
-    } catch (error) {
-      throw new Error(classifyError(error).error);
-    }
-
-    this.client = new this.CopilotClient();
-    await this.client.start();
-
-    const availableModels = await this.client.listModels();
-    this.supportedModelIds = new Set(
-      availableModels.map(getModelId).filter(Boolean)
-    );
-    this.started = true;
   }
 
   async stop() {
@@ -230,6 +241,88 @@ export class CopilotService {
     this.started = false;
   }
 
+  async suggest({
+    lastCommand,
+    exitCode,
+    cwd,
+    home,
+    recentHistory,
+    model,
+  }) {
+    const requestModel =
+      typeof model === "string" && model.trim().length > 0
+        ? model.trim()
+        : this.model;
+
+    if (!this.started) {
+      try {
+        await this.start();
+      } catch (error) {
+        return makeErrorPayload({
+          model: requestModel,
+          ...classifyError(error),
+        });
+      }
+    }
+
+    if (!this.supportedModelIds.has(requestModel)) {
+      return makeErrorPayload({
+        model: requestModel,
+        error: `Unsupported model: ${requestModel}`,
+        error_code: "copilot_model_rejected",
+      });
+    }
+
+    const resolvedCwd = cwd || process.env.PWD || process.cwd();
+    const resolvedHome = home || process.env.HOME || "";
+
+    const suggestPrompt = `You are a shell command predictor. Based on the user's recent command history and current directory, predict the single most likely next command they will run. Output ONLY the raw command, nothing else. No explanation, no markdown, no backticks.
+
+CONTEXT:
+- PWD: ${resolvedCwd}
+- Home: ${resolvedHome}
+- Last command: ${lastCommand || "none"} (exit ${exitCode ?? 0})
+${recentHistory ? `- Recent history:\n${recentHistory}` : ""}
+
+Predict the next command:`;
+
+    let session;
+    try {
+      session = await this.client.createSession({
+        model: requestModel,
+        onPermissionRequest: this.approveAll,
+        systemMessage: {
+          mode: "append",
+          content: suggestPrompt,
+        },
+      });
+
+      const response = await session.sendAndWait(
+        { prompt: "What command will the user run next?" },
+        10000
+      );
+      const content = response?.data?.content ?? "";
+      const { sanitizeCommand } = await import("./copilot-helper.mjs");
+      const command = sanitizeCommand(content);
+
+      return {
+        command,
+        confidence: command ? 0.7 : 0,
+        provider: "copilot",
+        model: requestModel,
+      };
+    } catch (error) {
+      return makeErrorPayload({
+        model: requestModel,
+        ...classifyError(error),
+      });
+    } finally {
+      if (typeof session?.destroy === "function") {
+        await session.destroy().catch(() => undefined);
+      }
+    }
+  }
+
   async request({
     prompt,
     timeoutMs,
@@ -241,6 +334,7 @@ export class CopilotService {
     termProgram,
     inGitRepo,
     aliasContextRaw,
+    contextBlock,
   }) {
     const requestModel =
       typeof model === "string" && model.trim().length > 0
@@ -316,6 +410,7 @@ export class CopilotService {
             policy,
             intentMode,
             aliasContext,
+            contextBlock: contextBlock || "",
           }),
         },
         availableTools: skipTools ? undefined : Array.from(allowlist),
