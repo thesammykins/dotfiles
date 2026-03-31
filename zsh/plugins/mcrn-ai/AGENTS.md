@@ -34,8 +34,11 @@ This plugin turns natural language into a single, raw zsh command line. It is NO
 
 ## MODES
 - GENERATE: Default. Translate natural language into a shell command.
-- FIX: Auto-triggered when buffer is empty and last command exited non-zero. Sends failed command + exit code for correction.
+- FIX: Auto-triggered when buffer is empty and last command exited non-zero. Sends failed command + exit code + stderr for correction.
 - REFINE: Triggered when buffer starts with refinement phrases and prior AI command exists. Sends prior command as context for iteration.
+- SUGGEST: Passive next-command ghost-text prediction after command completion. Opt-in via config.
+- NL DETECT: Auto-detect natural language input and route to AI. Opt-in via config.
+- AUTOFIX: Proactive fix suggestions after command failures. Opt-in via config.
 
 ## ANTI-PATTERNS
 - ENABLING TOOLS WITHOUT A SCOPED ALLOWLIST.
@@ -44,6 +47,29 @@ This plugin turns natural language into a single, raw zsh command line. It is NO
 - RETURNING TEXT, MARKDOWN, MULTI-LINE OUTPUT, OR MULTIPLE COMMANDS ON SEPARATE LINES.
 - ADDING EMOJI OR NON-MCRN STYLING.
 - USING KILL -9 / SIGKILL IN EXAMPLES WITHOUT EXPLICIT USER REQUEST.
+- REDIRECTING STDERR GLOBALLY IN INTERACTIVE SHELLS (USE TEMPFILE APPROACH INSTEAD).
+
+## DAEMON
+- TCP DAEMON (`copilot-daemon.mjs --tcp`) ELIMINATES COLD-START LATENCY.
+- STATE FILE: `/tmp/mcrn-ai-daemon-${UID}.json` (PORT + PID).
+- IDLE TIMEOUT: CONFIGURABLE, DEFAULT 5 MINUTES. DAEMON AUTO-EXITS.
+- WIDGET TRIES DAEMON FIRST, FALLS BACK TO SUBPROCESS.
+- SUPPORTS `format: "zle"` FOR STRUCTURED-LINE RESPONSE FORMAT.
+
+## GHOST-TEXT SUGGESTIONS
+- PASSIVE NEXT-COMMAND PREDICTIONS VIA `POSTDISPLAY`.
+- ACCEPT FULL: `→` OR `CTRL+F`. ACCEPT WORD: `CTRL+→`.
+- RATE-LIMITED, DEBOUNCED, SKIP TRIVIAL COMMANDS.
+- REQUIRES DAEMON. DEFAULT OFF (`suggest.enabled: false`).
+
+## NL AUTO-DETECTION
+- PURE-ZSH HEURISTIC: `$commands`/`$aliases`/`$functions` LOOKUP + WORD COUNT.
+- INTERCEPTS `accept-line`. `ESC+ENTER` BYPASSES TO FORCE SHELL EXECUTION.
+- DEFAULT OFF (`nlDetection.enabled: false`).
+
+## CANDIDATE CYCLING
+- `ALT+]` / `ALT+[` CYCLE THROUGH AI COMMAND CANDIDATES.
+- SHOWS `[N/M]` INDICATOR IN STATUS LINE.
 
 ## DEBUGGING
 - SET `MCRN_AI_DEBUG=1` TO LOG TO `/tmp/mcrn-ai-debug.log`.
