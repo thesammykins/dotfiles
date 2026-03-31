@@ -62,12 +62,20 @@ typeset -g  _MCRN_AI_STDERR_FILE="/tmp/mcrn-ai-stderr-$$.log"
 # Candidate cycling state
 typeset -ga _MCRN_AI_CANDIDATES=()
 typeset -gi _MCRN_AI_CANDIDATE_IDX=0
+# Flight log tracking
+typeset -g  _MCRN_AI_TRACKING_EXECUTION=""
 
 # ── Hooks: track last command, exit code, and stderr (SAM-40) ────────
 autoload -Uz add-zsh-hook
 
 _mcrn_ai_preexec() {
   _MCRN_LAST_EXECUTED_COMMAND="$1"
+  # Track if this was an AI-generated command (for flight log feedback)
+  if [[ -n "$_MCRN_LAST_AI_COMMAND" && "$1" == "$_MCRN_LAST_AI_COMMAND" ]]; then
+    typeset -g _MCRN_AI_TRACKING_EXECUTION="$1"
+  else
+    typeset -g _MCRN_AI_TRACKING_EXECUTION=""
+  fi
   # Reset stderr capture file for next command
   if [[ -n "$_MCRN_AI_STDERR_FILE" ]]; then
     : > "$_MCRN_AI_STDERR_FILE" 2>/dev/null
@@ -76,6 +84,11 @@ _mcrn_ai_preexec() {
 
 _mcrn_ai_precmd() {
   _MCRN_LAST_EXIT_CODE="$?"
+  # Flight log: mark AI command as executed with exit code
+  if [[ -n "$_MCRN_AI_TRACKING_EXECUTION" ]]; then
+    _mcrn_ai_mark_executed "$_MCRN_AI_TRACKING_EXECUTION" "$_MCRN_LAST_EXIT_CODE" &!
+    _MCRN_AI_TRACKING_EXECUTION=""
+  fi
   # Read captured stderr (populated by wrapper, if enabled)
   if [[ -s "$_MCRN_AI_STDERR_FILE" ]]; then
     _MCRN_AI_LAST_STDERR="$(tail -50 "$_MCRN_AI_STDERR_FILE" 2>/dev/null)"
@@ -148,6 +161,37 @@ _MCRN_AI_CFG_NL_MIN_WORDS="$(_mcrn_ai_read_config '.nlDetection.minWords' '3')"
 _MCRN_AI_CFG_NL_INDICATOR="$(_mcrn_ai_read_config '.nlDetection.indicator' '[MCRN NL]')"
 _MCRN_AI_CFG_AUTOFIX_ENABLED="$(_mcrn_ai_read_config '.autofix.enabled' 'false')"
 _MCRN_AI_CFG_AUTOFIX_MODE="$(_mcrn_ai_read_config '.autofix.displayMode' 'banner')"
+
+# ── Flight Log Execution Tracking ────────────────────────────────────
+_mcrn_ai_mark_executed() {
+  local command="$1" exit_code="$2"
+  [[ -n "$command" ]] || return
+
+  # Prefer daemon path (fire-and-forget)
+  if _mcrn_ai_daemon_is_running 2>/dev/null; then
+    zmodload -e zsh/net/tcp || zmodload zsh/net/tcp 2>/dev/null || return
+    if (( _MCRN_AI_DAEMON_PORT == 0 )); then
+      _mcrn_ai_daemon_read_state
+    fi
+    local escaped_cmd
+    escaped_cmd="$(printf '%s' "$command" | jq -Rs '.' 2>/dev/null || echo '""')"
+    local request="{\"type\":\"mark_executed\",\"payload\":{\"command\":${escaped_cmd},\"exitCode\":${exit_code:-0}}}"
+    {
+      ztcp 127.0.0.1 "$_MCRN_AI_DAEMON_PORT" 2>/dev/null && {
+        print -r -u "$REPLY" -- "$request"
+        ztcp -c "$REPLY" 2>/dev/null
+      }
+    } 2>/dev/null
+  else
+    # Fallback: call Node directly (lightweight, fire-and-forget)
+    local helpers_dir
+    helpers_dir="$(_mcrn_ai_helpers_dir)"
+    NODE_NO_WARNINGS=1 node -e "
+      import { markExecuted } from '${helpers_dir}/flight-log.mjs';
+      markExecuted(process.argv[1], parseInt(process.argv[2], 10));
+    " "$command" "$exit_code" 2>/dev/null
+  fi
+}
 
 # ── Daemon Lifecycle ─────────────────────────────────────────────────
 _mcrn_ai_daemon_state_file() {
@@ -542,6 +586,13 @@ _mcrn_ai_detect_mode() {
   fi
   if [[ -n "$buffer" && -n "$_MCRN_LAST_AI_COMMAND" ]]; then
     local lower="${(L)buffer}"
+    # Chain mode: extend prior command with a pipe or step
+    case "$lower" in
+      pipe*|then*|"now pipe"*|"and pipe"*|"now sort"*|"now filter"*|"now count"*|"pipe that"*)
+        echo "chain"
+        return
+        ;;
+    esac
     case "$lower" in
       but*|also*|instead*|actually*|change*|make\ it*|add*|remove*|use*|with*|without*|try*|now*|and\ also*)
         echo "refine"
@@ -594,7 +645,7 @@ _mcrn_ai_build_payload() {
   fi
 
   local prior_prompt="" prior_command=""
-  if [[ "$mode" == "refine" ]]; then
+  if [[ "$mode" == "refine" || "$mode" == "chain" ]]; then
     prior_prompt="$_MCRN_LAST_AI_PROMPT"
     prior_command="$_MCRN_LAST_AI_COMMAND"
   fi
@@ -780,6 +831,27 @@ _mcrn_ai_apply_result() {
   _MCRN_LAST_AI_PROMPT="$_MCRN_AI_ASYNC_EFFECTIVE_PROMPT"
   _MCRN_LAST_AI_COMMAND="$command"
 
+  # Dry validation: check if the primary binary exists
+  local _mcrn_dry_warn=""
+  local _mcrn_first_token="${command%% *}"
+  # Strip leading env assignments (VAR=val cmd)
+  if [[ "$_mcrn_first_token" == *=* ]]; then
+    local _mcrn_rest="${command#*= }"
+    _mcrn_first_token="${_mcrn_rest%% *}"
+  fi
+  # Strip "command " prefix
+  if [[ "$_mcrn_first_token" == "command" ]]; then
+    local _mcrn_rest="${command#command }"
+    _mcrn_first_token="${_mcrn_rest%% *}"
+  fi
+  if [[ -n "$_mcrn_first_token" ]] && \
+     ! (( $+commands[$_mcrn_first_token] )) && \
+     ! (( $+aliases[$_mcrn_first_token] )) && \
+     ! (( $+functions[$_mcrn_first_token] )) && \
+     ! whence -w "$_mcrn_first_token" >/dev/null 2>&1; then
+    _mcrn_dry_warn=" [WARN: '$_mcrn_first_token' NOT FOUND]"
+  fi
+
   # Set buffer and cursor
   BUFFER="$command"
   CURSOR=${#BUFFER}
@@ -798,13 +870,16 @@ _mcrn_ai_apply_result() {
 
   case "$mode" in
     fix)
-      zle -M "[MCRN UPLINK] FIX APPLIED. REVIEW BEFORE EXECUTION."
+      zle -M "[MCRN UPLINK] FIX APPLIED. REVIEW BEFORE EXECUTION.${_mcrn_dry_warn}"
       ;;
     refine)
-      zle -M "[MCRN UPLINK] COMMAND REFINED. REVIEW BEFORE EXECUTION."
+      zle -M "[MCRN UPLINK] COMMAND REFINED. REVIEW BEFORE EXECUTION.${_mcrn_dry_warn}"
+      ;;
+    chain)
+      zle -M "[MCRN UPLINK] PIPELINE EXTENDED. REVIEW BEFORE EXECUTION.${_mcrn_dry_warn}"
       ;;
     *)
-      zle -M "[MCRN UPLINK] COMMAND RECEIVED. REVIEW BEFORE EXECUTION."
+      zle -M "[MCRN UPLINK] COMMAND RECEIVED. REVIEW BEFORE EXECUTION.${_mcrn_dry_warn}"
       ;;
   esac
   zle -R
@@ -939,6 +1014,10 @@ mcrn_ai_generate() {
       effective_prompt="$user_input"
       zle -M "[MCRN UPLINK] REFINE MODE: ADJUSTING PRIOR COMMAND..."
       ;;
+    chain)
+      effective_prompt="$user_input"
+      zle -M "[MCRN UPLINK] CHAIN MODE: EXTENDING PIPELINE..."
+      ;;
     generate)
       if [[ -z "$user_input" ]]; then
         if [[ -n "$_MCRN_LAST_AI_QUERY" ]]; then
@@ -996,11 +1075,75 @@ mcrn_ai_generate() {
   zle -R
 }
 
+# ── Explain Mode Widget ──────────────────────────────────────────────
+_mcrn_ai_explain_result_handler() {
+  local fd=$1
+  if [[ -z "$2" || "$2" == "hup" ]]; then
+    local skip1="" skip2="" explanation=""
+    read -r -u $fd skip1 2>/dev/null
+    read -r -u $fd skip2 2>/dev/null
+    IFS='' read -rd '' -u $fd explanation 2>/dev/null
+
+    if [[ -n "$explanation" ]]; then
+      zle -M "[MCRN INTEL] $explanation"
+    else
+      zle -M "[MCRN INTEL] NO EXPLANATION AVAILABLE."
+    fi
+    zle -R
+  fi
+
+  if (( _MCRN_AI_USING_DAEMON )); then
+    ztcp -c "$fd" 2>/dev/null
+  else
+    builtin exec {fd}<&- 2>/dev/null
+  fi
+  zle -F "$fd" 2>/dev/null
+}
+zle -N _mcrn_ai_explain_result_handler
+
+mcrn_ai_explain() {
+  local command="$BUFFER"
+  if [[ -z "$command" ]]; then
+    zle -M "[MCRN INTEL] EMPTY BUFFER. TYPE A COMMAND FIRST."
+    return
+  fi
+
+  zle -M "[MCRN INTEL] ANALYZING..."
+  zle -R
+
+  # Need daemon for explain
+  if ! _mcrn_ai_daemon_ensure 2>/dev/null; then
+    zle -M "[MCRN INTEL] DAEMON UNAVAILABLE."
+    return
+  fi
+
+  zmodload -e zsh/net/tcp || zmodload zsh/net/tcp 2>/dev/null || return
+
+  ztcp 127.0.0.1 "$_MCRN_AI_DAEMON_PORT" 2>/dev/null || {
+    zle -M "[MCRN INTEL] DAEMON CONNECTION FAILED."
+    return
+  }
+  local tcp_fd=$REPLY
+
+  local escaped_cmd
+  escaped_cmd="$(printf '%s' "$command" | jq -Rs '.' 2>/dev/null || echo '""')"
+
+  local request="{\"id\":${RANDOM},\"type\":\"explain\",\"format\":\"zle\",\"payload\":{\"command\":${escaped_cmd},\"cwd\":\"${PWD}\",\"home\":\"${HOME}\"}}"
+  print -r -u "$tcp_fd" -- "$request"
+
+  _MCRN_AI_USING_DAEMON=1
+  zle -F "$tcp_fd" _mcrn_ai_explain_result_handler
+}
+
 # ── Key Bindings ─────────────────────────────────────────────────────
 zle -N mcrn_ai_generate
+zle -N mcrn_ai_explain
 bindkey '^g' mcrn_ai_generate
+bindkey '^e' mcrn_ai_explain
 bindkey -M viins '^g' mcrn_ai_generate 2>/dev/null || true
 bindkey -M vicmd '^g' mcrn_ai_generate 2>/dev/null || true
+bindkey -M viins '^e' mcrn_ai_explain 2>/dev/null || true
+bindkey -M vicmd '^e' mcrn_ai_explain 2>/dev/null || true
 # Ghost-text: right-arrow or Ctrl+F to accept full suggestion
 bindkey '^[OC' _mcrn_ai_ghost_accept_full 2>/dev/null || true  # Right arrow
 bindkey '^[[C' _mcrn_ai_ghost_accept_full 2>/dev/null || true  # Right arrow (alt)
