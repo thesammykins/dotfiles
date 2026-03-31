@@ -599,6 +599,12 @@ _mcrn_ai_build_payload() {
     prior_command="$_MCRN_LAST_AI_COMMAND"
   fi
 
+  # Environment context — critical for daemon which has stale process.env
+  local in_git_repo="false"
+  if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    in_git_repo="true"
+  fi
+
   jq -n -c \
     --arg prompt "$prompt" \
     --arg mode "$mode" \
@@ -608,6 +614,12 @@ _mcrn_ai_build_payload() {
     --arg last_stderr "$last_stderr" \
     --arg prior_prompt "$prior_prompt" \
     --arg prior_command "$prior_command" \
+    --arg cwd "$PWD" \
+    --arg home "$HOME" \
+    --arg dotfiles "${DOTFILES:-$HOME/.dotfiles}" \
+    --arg shell "${SHELL:-zsh}" \
+    --arg term_program "${TERM_PROGRAM:-unknown}" \
+    --arg in_git_repo "$in_git_repo" \
     '{
       prompt: $prompt,
       mode: $mode,
@@ -618,7 +630,13 @@ _mcrn_ai_build_payload() {
       priorAi: {
         prompt: $prior_prompt,
         command: $prior_command
-      }
+      },
+      cwd: $cwd,
+      home: $home,
+      dotfiles: $dotfiles,
+      shell: $shell,
+      termProgram: $term_program,
+      inGitRepo: $in_git_repo
     }'
 }
 

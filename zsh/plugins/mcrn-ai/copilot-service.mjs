@@ -379,6 +379,7 @@ Predict the next command:`;
     const resolvedTermProgram = termProgram || process.env.TERM_PROGRAM || "unknown";
     const resolvedInGitRepo =
       inGitRepo === true ||
+      inGitRepo === "true" ||
       inGitRepo === "1" ||
       fs.existsSync(path.join(resolvedCwd, ".git"));
     const resolvedOs = `${process.platform} (${process.arch})`;
