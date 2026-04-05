@@ -4,11 +4,14 @@
 # ============================================================================
 # ROCI-OPS THEME - Color Palette
 # ============================================================================
-# Void Black background with PDC Amber foreground
-# Mimics the utilitarian displays from the Rocinante bridge
+# Quick color tuning: change these first when you want a new base text/background pair.
+# If you want the ANSI palette to follow, update palette 0, 3, and 6 below too.
 
 background = #1a0b0c
 foreground = #ffd34e
+cursor-color = #ffd34e
+selection-foreground = #1a0b0c
+selection-background = #ffd34e
 
 # MCRN/Rocinante Color Palette
 # 0: Carbon (dark grey), 1: Hull Breach (red), 2: Drive Plume (rust orange)
@@ -35,13 +38,8 @@ palette = 15=#ffffff
 # CURSOR - PDC Amber for aggressive visibility
 # ============================================================================
 cursor-style = block
-cursor-color = #ffd34e
 cursor-text = #000000
 cursor-style-blink = false
-
-# Selection colors - MCRN themed
-selection-foreground = #1a0b0c
-selection-background = #ffd34e
 
 # ============================================================================
 # WINDOW & AESTHETICS
@@ -53,6 +51,7 @@ background-opacity = 0.94
 background-blur-radius = 20
 unfocused-split-opacity = 0.85
 window-inherit-working-directory = true
+window-save-state = always
 
 # ============================================================================
 # TYPOGRAPHY
