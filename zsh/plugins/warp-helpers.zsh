@@ -3,6 +3,8 @@
 # Provides: yy, cdj, ts, mark/jump/marks/unmark, warp-help
 # Requires: fzf, zoxide, yazi, tmux
 
+typeset -g _WARP_HELPERS_AI_PRECMD_REGISTERED="${_WARP_HELPERS_AI_PRECMD_REGISTERED:-}"
+
 # ============================================================================
 # FZF MCRN THEME
 # ============================================================================
@@ -87,6 +89,44 @@ export FZF_CTRL_R_OPTS="\
   --prompt='History › ' \
   --header='Ctrl+R: search history | Enter: execute | Tab: paste to buffer' \
   --preview='echo {}' --preview-window=up:3:wrap"
+
+# ============================================================================
+# 4b. AI SESSION HUD — shell-wide telemetry from ghostline/mcrn-ai
+# ============================================================================
+function warp-ai-status() {
+    printf '%s\n' "${GHOSTLINE_STATUS:-AI IDLE}"
+}
+
+function _warp_helpers_precmd_ai_marker() {
+    local exit_code=$?
+    if [[ -n "${GHOSTLINE_MODE:-}" ]]; then
+        local risk="${GHOSTLINE_RISK:-SAFE}"
+        local latency="${GHOSTLINE_LATENCY:-}"
+        local prefix="\033[38;2;196;137;92m[GHOSTLINE]\033[0m"
+        local mode_color="\033[38;2;255;211;78m"
+        local risk_color="\033[38;2;255;41;41m"
+        local latency_color="\033[38;2;153;68;68m"
+        if [[ $exit_code -eq 0 ]]; then
+            printf '%b %b%s%b' "$prefix" "$mode_color" "$GHOSTLINE_MODE" "\033[0m"
+        else
+            printf '%b %b%s%b' "$prefix" "$risk_color" "$GHOSTLINE_MODE" "\033[0m"
+        fi
+        if [[ -n "$risk" && "$risk" != "safe" && "$risk" != "SAFE" ]]; then
+            printf ' %b%s%b' "$risk_color" "$risk" "\033[0m"
+        fi
+        if [[ -n "$latency" ]]; then
+            printf ' %b%s%b' "$latency_color" "$latency" "\033[0m"
+        fi
+        printf '\n'
+    fi
+    return $exit_code
+}
+
+if [[ -z "$_WARP_HELPERS_AI_PRECMD_REGISTERED" ]]; then
+    autoload -Uz add-zsh-hook 2>/dev/null || true
+    add-zsh-hook precmd _warp_helpers_precmd_ai_marker 2>/dev/null || true
+    typeset -g _WARP_HELPERS_AI_PRECMD_REGISTERED=1
+fi
 
 # ============================================================================
 # 5. DIRECTORY BOOKMARKS — mark, jump, marks, unmark
@@ -189,6 +229,10 @@ function warp-help() {
   HISTORY
     Ctrl+R             Fuzzy search command history (fzf-enhanced).
                        Enter = run command, Tab = paste to edit first.
+
+  AI HUD
+    warp-ai-status     Show the current ghostline AI mode/risk telemetry.
+    Ctrl+X O           Open the current larger AI task in opencode.
 
   BOOKMARKS
     mark <name>        Bookmark current directory as <name>.

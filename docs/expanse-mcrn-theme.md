@@ -35,16 +35,20 @@ It is the single source of truth for the palette, typography, and prompt style.
 
 ## Starship Prompt
 
-Prompt style uses tactical glyphs with a two-line strip.
+Prompt style uses sharp powerline blocks with a two-line tactical layout.
 
 Example layout:
-`⬡ ~/ops Δ ↑ ↓ T+ 1s 󰌠 󰎙` on line 1
-`›` on line 2
+` ⬡ ~/Dev/copilot-zle   main ● ◦  ⬢ ` on line 1
+`◷ 1s ❯` on line 2
+
+Right prompt:
+`◌ idle` when idle, or `◔ gen 142ms` / `✦ fix 142ms` in a right-aligned telemetry block.
 
 Key rules:
 - Use Nerd Font glyphs, not emoji
-- Keep the right prompt empty
+- Keep the right prompt minimal: AI/risk/duration telemetry only
 - No emoji
+- Keep the directory and git area expressive, with backgrounds doing most of the contrast work
 - Use amber for primary, rust for labels, red for alerts
 
 ## Fastfetch / MOTD
