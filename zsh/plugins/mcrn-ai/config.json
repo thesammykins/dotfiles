@@ -22,27 +22,48 @@
   },
   "daemon": {
     "enabled": true,
-    "idleTimeoutSec": 300
+    "idleTimeoutSec": 1800
   },
   "suggest": {
     "enabled": true,
     "debounceMs": 500,
     "rateLimitMs": 2000,
-    "skipCommands": ["cd", "ls", "clear", "pwd", "exit", "true", "false"],
+    "skipCommands": [
+      "cd",
+      "ls",
+      "clear",
+      "pwd",
+      "exit",
+      "true",
+      "false"
+    ],
     "ghostStyle": "fg=240"
   },
   "nlDetection": {
     "enabled": true,
     "minWords": 3,
-    "indicator": "[MCRN NL]"
+    "indicator": "[NL]"
   },
   "autofix": {
-    "enabled": true,
+    "enabled": false,
     "displayMode": "banner"
   },
   "flightLog": {
     "enabled": true,
     "maxEntries": 1000,
-    "fewShotCount": 3
+    "fewShotCount": 2
+  },
+  "patterns": {
+    "enabled": true,
+    "source": "file",
+    "entries": []
+  },
+  "branding": {
+    "productName": "ghostline-zle",
+    "statusPrefix": "[GHOSTLINE]",
+    "errorPrefix": "[GHOSTLINE ERROR]",
+    "fixPrefix": "[GHOSTLINE FIX]",
+    "explainPrefix": "[GHOSTLINE HELP]",
+    "thinkingLabel": "WHISPERING"
   }
 }

@@ -3,8 +3,8 @@ import path from "node:path";
 import os from "node:os";
 
 const DATA_DIR =
-  process.env.MCRN_AI_DATA_DIR ||
-  path.join(os.homedir(), ".local", "share", "mcrn-ai");
+  process.env.COPILOT_ZLE_DATA_DIR ||
+  path.join(os.homedir(), ".local", "share", "copilot-zle");
 const LOG_FILE = path.join(DATA_DIR, "flight-log.jsonl");
 
 const DEFAULT_MAX_ENTRIES = 1000;
@@ -180,6 +180,39 @@ export const queryFollowUps = ({ command = "", limit = 3 }) => {
     .sort((a, b) => b[1] - a[1])
     .slice(0, limit)
     .map(([cmd, count]) => ({ command: cmd, count }));
+};
+
+export const getTopFollowUp = ({ command = "", cwd = "" } = {}) => {
+  if (!command || !fs.existsSync(LOG_FILE)) return null;
+
+  const lines = safeReadLines(LOG_FILE);
+  const entries = lines.map(parseEntry).filter(Boolean);
+  let best = null;
+
+  for (let i = 0; i < entries.length - 1; i++) {
+    const current = entries[i];
+    const next = entries[i + 1];
+    if (
+      current.command !== command ||
+      !current.executed ||
+      current.exit_code !== 0 ||
+      !next.command ||
+      next.command === command
+    ) {
+      continue;
+    }
+
+    let score = 1;
+    if (cwd && next.cwd === cwd) score += 3;
+    else if (cwd && next.cwd && cwd.startsWith(next.cwd)) score += 1;
+    score += 0.001 * (next.ts || 0);
+
+    if (!best || score > best.score) {
+      best = { command: next.command, score };
+    }
+  }
+
+  return best ? best.command : null;
 };
 
 export const buildFewShotBlock = (entries) => {

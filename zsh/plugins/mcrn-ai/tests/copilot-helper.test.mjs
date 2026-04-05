@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
-import { resolveModel, sanitizeCommand, parseInput, buildContextBlock } from "./copilot-helper.mjs";
-import { loadConfig } from "./config.mjs";
+import { resolveModel, sanitizeCommand, parseInput, buildContextBlock } from "../lib/copilot-helper.mjs";
+import { loadConfig } from "../lib/config.mjs";
 
 const baseConfig = {
   model: { default: "gpt-5-mini" },
@@ -11,7 +11,7 @@ const baseConfig = {
 // ── resolveModel ────────────────────────────────────────────────────
 assert.equal(resolveModel(baseConfig, {}), "gpt-5-mini");
 assert.equal(
-  resolveModel(baseConfig, { MCRN_COPILOT_MODEL: "gpt-5.4-mini" }),
+  resolveModel(baseConfig, { COPILOT_ZLE_MODEL: "gpt-5.4-mini" }),
   "gpt-5.4-mini"
 );
 assert.equal(
@@ -44,18 +44,34 @@ assert.equal(sanitizeCommand("first\nsecond"), "");
   const input = parseInput(JSON.stringify({
     prompt: "list files",
     mode: "generate",
+    model: "claude-sonnet-4.6",
     recentHistory: "ls\npwd",
     gitSummary: "main [dirty]",
     lastFailure: "",
     lastStderr: "",
+    cwd: "/tmp/project",
+    home: "/Users/test",
+    dotfiles: "/Users/test/.dotfiles",
+    shell: "/bin/zsh",
+    termProgram: "Ghostty",
+    inGitRepo: "true",
+    aliasContextRaw: "alias ls='eza'",
     priorAi: { prompt: "", command: "" },
   }));
   assert.equal(input.prompt, "list files");
   assert.equal(input.mode, "generate");
+  assert.equal(input.model, "claude-sonnet-4.6");
   assert.equal(input.recentHistory, "ls\npwd");
   assert.equal(input.gitSummary, "main [dirty]");
   assert.equal(input.lastFailure, "");
   assert.equal(input.lastStderr, "");
+  assert.equal(input.cwd, "/tmp/project");
+  assert.equal(input.home, "/Users/test");
+  assert.equal(input.dotfiles, "/Users/test/.dotfiles");
+  assert.equal(input.shell, "/bin/zsh");
+  assert.equal(input.termProgram, "Ghostty");
+  assert.equal(input.inGitRepo, "true");
+  assert.equal(input.aliasContextRaw, "alias ls='eza'");
   assert.equal(input.priorAi.prompt, "");
   assert.equal(input.priorAi.command, "");
 }
@@ -97,6 +113,8 @@ assert.equal(sanitizeCommand("first\nsecond"), "");
   assert.equal(input.prompt, "list all docker containers");
   assert.equal(input.mode, "generate");
   assert.equal(input.recentHistory, "");
+  assert.equal(input.model, "");
+  assert.equal(input.cwd, "");
 }
 
 // Malformed JSON falls back to raw text
@@ -104,6 +122,7 @@ assert.equal(sanitizeCommand("first\nsecond"), "");
   const input = parseInput("{broken json");
   assert.equal(input.prompt, "{broken json");
   assert.equal(input.mode, "generate");
+  assert.equal(input.model, "");
 }
 
 // Empty / null / undefined
@@ -337,20 +356,22 @@ assert.equal(sanitizeCommand("first\rsecond"), "");
   assert.equal(input.gitSummary, "");
   assert.equal(input.lastFailure, "");
   assert.equal(input.lastStderr, "");
+  assert.equal(input.cwd, "");
+  assert.equal(input.aliasContextRaw, "");
   assert.equal(input.priorAi.prompt, "");
   assert.equal(input.priorAi.command, "");
 }
 
 // ── loadConfig with context and ui (SAM-44) ─────────────────────────
 const originalEnv = {
-  MCRN_AI_CONFIG_FILE: process.env.MCRN_AI_CONFIG_FILE,
-  MCRN_COPILOT_MODEL: process.env.MCRN_COPILOT_MODEL,
-  MCRN_AI_TOOL_TIMEOUT_MS: process.env.MCRN_AI_TOOL_TIMEOUT_MS,
+  COPILOT_ZLE_CONFIG_FILE: process.env.COPILOT_ZLE_CONFIG_FILE,
+  COPILOT_ZLE_MODEL: process.env.COPILOT_ZLE_MODEL,
+  COPILOT_ZLE_TOOL_TIMEOUT_MS: process.env.COPILOT_ZLE_TOOL_TIMEOUT_MS,
 };
 
-process.env.MCRN_AI_CONFIG_FILE = new URL("./config.json", import.meta.url).pathname;
-process.env.MCRN_COPILOT_MODEL = "";
-process.env.MCRN_AI_TOOL_TIMEOUT_MS = "100";
+process.env.COPILOT_ZLE_CONFIG_FILE = new URL("../config.json", import.meta.url).pathname;
+process.env.COPILOT_ZLE_MODEL = "";
+process.env.COPILOT_ZLE_TOOL_TIMEOUT_MS = "100";
 
 const config = loadConfig();
 assert.equal(config.model.default, "gpt-5-mini");
@@ -361,38 +382,42 @@ assert.equal(config.context.includeGitSummary, true);
 assert.equal(config.context.includeLastFailure, true);
 assert.equal(config.ui.highlightAiBuffer, true);
 assert.equal(config.ui.highlightStyle, "underline");
+assert.equal(config.branding.productName, "ghostline-zle");
+assert.equal(config.branding.statusPrefix, "[GHOSTLINE]");
+assert.equal(config.branding.thinkingLabel, "WHISPERING");
 
-if (typeof originalEnv.MCRN_AI_CONFIG_FILE === "string") {
-  process.env.MCRN_AI_CONFIG_FILE = originalEnv.MCRN_AI_CONFIG_FILE;
+if (typeof originalEnv.COPILOT_ZLE_CONFIG_FILE === "string") {
+  process.env.COPILOT_ZLE_CONFIG_FILE = originalEnv.COPILOT_ZLE_CONFIG_FILE;
 } else {
-  delete process.env.MCRN_AI_CONFIG_FILE;
+  delete process.env.COPILOT_ZLE_CONFIG_FILE;
 }
 
-if (typeof originalEnv.MCRN_COPILOT_MODEL === "string") {
-  process.env.MCRN_COPILOT_MODEL = originalEnv.MCRN_COPILOT_MODEL;
+if (typeof originalEnv.COPILOT_ZLE_MODEL === "string") {
+  process.env.COPILOT_ZLE_MODEL = originalEnv.COPILOT_ZLE_MODEL;
 } else {
-  delete process.env.MCRN_COPILOT_MODEL;
+  delete process.env.COPILOT_ZLE_MODEL;
 }
 
-if (typeof originalEnv.MCRN_AI_TOOL_TIMEOUT_MS === "string") {
-  process.env.MCRN_AI_TOOL_TIMEOUT_MS = originalEnv.MCRN_AI_TOOL_TIMEOUT_MS;
+if (typeof originalEnv.COPILOT_ZLE_TOOL_TIMEOUT_MS === "string") {
+  process.env.COPILOT_ZLE_TOOL_TIMEOUT_MS = originalEnv.COPILOT_ZLE_TOOL_TIMEOUT_MS;
 } else {
-  delete process.env.MCRN_AI_TOOL_TIMEOUT_MS;
+  delete process.env.COPILOT_ZLE_TOOL_TIMEOUT_MS;
 }
 
 // ── loadConfig: invalid/missing config file falls back to defaults ───
 {
-  const savedConfigFile = process.env.MCRN_AI_CONFIG_FILE;
-  process.env.MCRN_AI_CONFIG_FILE = "/nonexistent/path/config.json";
+  const savedConfigFile = process.env.COPILOT_ZLE_CONFIG_FILE;
+  process.env.COPILOT_ZLE_CONFIG_FILE = "/nonexistent/path/config.json";
   const fallbackConfig = loadConfig();
   assert.equal(fallbackConfig.model.default, "gpt-5-mini");
   assert.equal(fallbackConfig.context.recentHistoryCount, 5);
   assert.equal(fallbackConfig.ui.highlightStyle, "underline");
+  assert.equal(fallbackConfig.branding.productName, "ghostline-zle");
   if (typeof savedConfigFile === "string") {
-    process.env.MCRN_AI_CONFIG_FILE = savedConfigFile;
+    process.env.COPILOT_ZLE_CONFIG_FILE = savedConfigFile;
   } else {
-    delete process.env.MCRN_AI_CONFIG_FILE;
+    delete process.env.COPILOT_ZLE_CONFIG_FILE;
   }
 }
 
-console.log("mcrn-ai helper tests passed");
+console.log("copilot-zle helper tests passed");
