@@ -3,57 +3,27 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { loadConfig } from "./config.mjs";
 import {
+  buildSessionTooling,
+  classifyError,
+  disconnectSession,
+  ensureSdkCompatibilityPatch,
+  getModelId,
+  waitForSessionIdle,
+} from "./copilot-runtime.mjs";
+import {
   detectIntentMode,
   parseAliasContext,
   rankCommandCandidates,
+  sanitizeCommand,
 } from "./logic.mjs";
-import { queryRelevant, queryFollowUps, buildFewShotBlock, recordGeneration } from "./flight-log.mjs";
+import { resolvePatternCommand } from "./patterns.mjs";
+import { queryRelevant, queryFollowUps, buildFewShotBlock, recordGeneration, getTopFollowUp } from "./flight-log.mjs";
 import { sniffProjectContext, buildProjectBlock } from "./project-context.mjs";
 
-const TOOL_BLOCK_MESSAGE = "Tool use is disabled. Return only the command.";
-const TOOL_DEVOPS_MESSAGE = "Dev/Ops tools require opt-in.";
-
 const helperDir = path.dirname(fileURLToPath(import.meta.url));
+const repoDir = path.dirname(helperDir);
 const policyPath =
-  process.env.MCRN_AI_POLICY_FILE || path.join(helperDir, "policy.txt");
-const sdkSessionPath = path.join(
-  helperDir,
-  "node_modules",
-  "@github",
-  "copilot-sdk",
-  "dist",
-  "session.js"
-);
-
-const ensureSdkCompatibilityPatch = () => {
-  try {
-    const sdkPkgPath = path.join(
-      helperDir,
-      "node_modules",
-      "@github",
-      "copilot-sdk",
-      "package.json"
-    );
-    if (!fs.existsSync(sdkPkgPath)) return;
-    const sdkPkg = JSON.parse(fs.readFileSync(sdkPkgPath, "utf8"));
-    const version = sdkPkg.version || "";
-    // Only patch known-affected versions (0.1.x series)
-    if (!version.startsWith("0.1.")) return;
-    if (!fs.existsSync(sdkSessionPath)) return;
-    const content = fs.readFileSync(sdkSessionPath, "utf8");
-    const brokenImport = 'from "vscode-jsonrpc/node";';
-    if (!content.includes(brokenImport)) return;
-    const patched = content.replace(
-      brokenImport,
-      'from "vscode-jsonrpc/node.js";'
-    );
-    if (patched !== content) {
-      fs.writeFileSync(sdkSessionPath, patched, "utf8");
-    }
-  } catch {
-    // Best effort patching only.
-  }
-};
+  process.env.COPILOT_ZLE_POLICY_FILE || path.join(repoDir, "policy.txt");
 
 const loadPolicy = () => {
   try {
@@ -67,8 +37,8 @@ const loadPolicy = () => {
 
 const loadUserTemplates = () => {
   const candidates = [
-    process.env.MCRN_AI_TEMPLATES_FILE,
-    path.join(process.env.HOME || "", ".config", "mcrn-ai", "templates.txt"),
+    process.env.COPILOT_ZLE_TEMPLATES_FILE,
+    path.join(process.env.HOME || "", ".config", "copilot-zle", "templates.txt"),
   ].filter(Boolean);
 
   for (const filePath of candidates) {
@@ -84,59 +54,6 @@ const loadUserTemplates = () => {
   return "";
 };
 
-const getModelId = (model) => {
-  if (!model || typeof model !== "object") return "";
-  if (typeof model.id === "string" && model.id.length > 0) return model.id;
-  if (typeof model.name === "string" && model.name.length > 0) return model.name;
-  return "";
-};
-
-export const classifyError = (error) => {
-  const message = error instanceof Error ? error.message : String(error || "copilot_error");
-  const normalized = message.toLowerCase();
-
-  if (
-    normalized.includes("vscode-jsonrpc/node") ||
-    normalized.includes("err_module_not_found")
-  ) {
-    return { error: message, error_code: "copilot_sdk_runtime_incompatible" };
-  }
-
-  if (normalized.includes("timeout") || normalized.includes("timed out")) {
-    return { error: message, error_code: "copilot_timeout" };
-  }
-  if (
-    normalized.includes("model") &&
-    (normalized.includes("not found") ||
-      normalized.includes("unsupported") ||
-      normalized.includes("invalid") ||
-      normalized.includes("rejected"))
-  ) {
-    return { error: message, error_code: "copilot_model_rejected" };
-  }
-  if (
-    normalized.includes("enoent") ||
-    normalized.includes("not found") ||
-    normalized.includes("command not found") ||
-    normalized.includes("executable")
-  ) {
-    return { error: message, error_code: "copilot_cli_missing" };
-  }
-  if (
-    normalized.includes("login") ||
-    normalized.includes("auth") ||
-    normalized.includes("sign in") ||
-    normalized.includes("unauthorized") ||
-    normalized.includes("forbidden")
-  ) {
-    return { error: message, error_code: "copilot_auth_required" };
-  }
-  if (normalized.includes("copilot")) {
-    return { error: message, error_code: "copilot_error" };
-  }
-
-  return { error: message, error_code: "copilot_error" };
-};
 
 const systemPrompt = ({
   cwd,
@@ -237,7 +154,7 @@ export class CopilotService {
       }
 
       try {
-        const toolsModule = await import("./tools/index.mjs");
+        const toolsModule = await import("../tools/index.mjs");
         this.getAllowlist = toolsModule.getAllowlist;
         this.getAvailableTools = toolsModule.getAvailableTools;
         this.isDevopsTool = toolsModule.isDevopsTool;
@@ -248,10 +165,12 @@ export class CopilotService {
       this.client = new this.CopilotClient();
       await this.client.start();
 
-      const availableModels = await this.client.listModels();
-      this.supportedModelIds = new Set(
-        availableModels.map(getModelId).filter(Boolean)
-      );
+      try {
+        const models = await this.client.listModels();
+        this.supportedModelIds = new Set(models.map(getModelId).filter(Boolean));
+      } catch {
+        this.supportedModelIds = new Set();
+      }
       this.started = true;
     } finally {
       this._starting = null;
@@ -261,7 +180,10 @@ export class CopilotService {
   async stop() {
     if (!this.client) return;
     try {
-      await this.client.stop();
+      const cleanupErrors = await this.client.stop();
+      if (Array.isArray(cleanupErrors) && cleanupErrors.length > 0) {
+        throw cleanupErrors[0];
+      }
     } catch {
       await this.client.forceStop().catch(() => undefined);
     }
@@ -293,20 +215,28 @@ export class CopilotService {
       }
     }
 
-    if (!this.supportedModelIds.has(requestModel)) {
-      return makeErrorPayload({
-        model: requestModel,
-        error: `Unsupported model: ${requestModel}`,
-        error_code: "copilot_model_rejected",
-      });
-    }
-
     const resolvedCwd = cwd || process.env.PWD || process.cwd();
     const resolvedHome = home || process.env.HOME || "";
+    const config = loadConfig();
+
+    if (config.flightLog.enabled && lastCommand) {
+      try {
+        const localFollowUp = getTopFollowUp({ command: lastCommand, cwd: resolvedCwd });
+        if (localFollowUp) {
+          return {
+            command: localFollowUp,
+            confidence: 0.86,
+            provider: "copilot",
+            model: requestModel,
+          };
+        }
+      } catch {
+        // Best effort
+      }
+    }
 
     // Enrich with project context
     let projectHint = "";
-    const config = loadConfig();
     if (config.context.includeProjectInfo !== false) {
       try {
         const projectCtx = sniffProjectContext(resolvedCwd);
@@ -346,6 +276,7 @@ Predict the next command:`;
       session = await this.client.createSession({
         model: requestModel,
         onPermissionRequest: this.approveAll,
+        workingDirectory: resolvedCwd,
         systemMessage: {
           mode: "append",
           content: suggestPrompt,
@@ -357,7 +288,6 @@ Predict the next command:`;
         10000
       );
       const content = response?.data?.content ?? "";
-      const { sanitizeCommand } = await import("./copilot-helper.mjs");
       const command = sanitizeCommand(content);
 
       return {
@@ -372,14 +302,13 @@ Predict the next command:`;
         ...classifyError(error),
       });
     } finally {
-      if (typeof session?.destroy === "function") {
-        await session.destroy().catch(() => undefined);
-      }
+      await disconnectSession(session);
     }
   }
 
   async request({
     prompt,
+    mode,
     timeoutMs,
     model,
     cwd,
@@ -403,29 +332,6 @@ Predict the next command:`;
       return makeErrorPayload({ model: requestModel, error: "empty_prompt" });
     }
 
-    if (!this.started) {
-      try {
-        await this.start();
-      } catch (error) {
-        return makeErrorPayload({
-          model: requestModel,
-          ...classifyError(error),
-        });
-      }
-    }
-
-    if (!this.supportedModelIds.has(requestModel)) {
-      return {
-        command: "",
-        confidence: 0,
-        provider: "copilot",
-        model: requestModel,
-        error: `Unsupported Copilot model: ${requestModel}`,
-        error_code: "copilot_model_rejected",
-        available_models: Array.from(this.supportedModelIds).sort(),
-      };
-    }
-
     const resolvedCwd = cwd || process.env.PWD || process.cwd();
     const resolvedHome = home || process.env.HOME || "";
     const resolvedDotfiles =
@@ -440,6 +346,49 @@ Predict the next command:`;
     const resolvedOs = `${process.platform} (${process.arch})`;
     const aliasContext = parseAliasContext(aliasContextRaw || "");
     const intentMode = detectIntentMode(prompt);
+    const isSimpleGenerate = !contextBlock && intentMode === "inspect";
+    const requestMode = typeof mode === "string" && mode.length > 0 ? mode : "generate";
+    const fastPathCommand = resolvePatternCommand({
+      prompt,
+      mode: requestMode,
+      cwd: resolvedCwd,
+      home: resolvedHome,
+      dotfiles: resolvedDotfiles,
+    });
+
+    if (fastPathCommand) {
+      return {
+        command: fastPathCommand,
+        confidence: 1,
+        provider: "copilot",
+        model: requestModel,
+        intent_mode: intentMode,
+        candidates: [fastPathCommand],
+      };
+    }
+
+    if (!this.started) {
+      try {
+        await this.start();
+      } catch (error) {
+        return makeErrorPayload({
+          model: requestModel,
+          ...classifyError(error),
+        });
+      }
+    }
+
+    if (this.supportedModelIds.size > 0 && !this.supportedModelIds.has(requestModel)) {
+      return {
+        command: "",
+        confidence: 0,
+        provider: "copilot",
+        model: requestModel,
+        error: `Unsupported Copilot model: ${requestModel}`,
+        error_code: "copilot_model_rejected",
+        available_models: Array.from(this.supportedModelIds).sort(),
+      };
+    }
 
     const policy = loadPolicy();
     const userTemplates = loadUserTemplates();
@@ -447,11 +396,16 @@ Predict the next command:`;
     const allowlist = this.getAllowlist();
     const tools = this.getAvailableTools();
     const devopsEnabled = config.tools.devopsEnabled;
-    const skipTools = allowlist.size === 0;
+    const tooling = buildSessionTooling({
+      allowlist,
+      tools,
+      devopsEnabled,
+      isDevopsTool: this.isDevopsTool,
+    });
 
     // Flight log: inject few-shot examples from past successes
     let fewShotBlock = "";
-    if (config.flightLog.enabled && config.flightLog.fewShotCount > 0) {
+    if (!isSimpleGenerate && config.flightLog.enabled && config.flightLog.fewShotCount > 0) {
       try {
         const relevant = queryRelevant({
           prompt,
@@ -467,7 +421,7 @@ Predict the next command:`;
 
     // Project context: detect project type, scripts, targets
     let projectBlock = "";
-    if (config.context.includeProjectInfo !== false) {
+    if (!isSimpleGenerate && config.context.includeProjectInfo !== false) {
       try {
         const projectCtx = sniffProjectContext(resolvedCwd);
         projectBlock = buildProjectBlock(projectCtx);
@@ -481,6 +435,7 @@ Predict the next command:`;
       session = await this.client.createSession({
         model: requestModel,
         onPermissionRequest: this.approveAll,
+        workingDirectory: resolvedCwd,
         systemMessage: {
           mode: "append",
           content: systemPrompt({
@@ -498,33 +453,15 @@ Predict the next command:`;
             contextBlock: (contextBlock || "") + projectBlock + fewShotBlock,
           }),
         },
-        availableTools: skipTools ? undefined : Array.from(allowlist),
-        tools: skipTools ? [] : tools,
-        hooks: {
-          onPreToolUse: async ({ toolName }) => {
-            if (!allowlist.has(toolName)) {
-              return {
-                permissionDecision: "deny",
-                additionalContext: TOOL_BLOCK_MESSAGE,
-              };
-            }
-            if (this.isDevopsTool(toolName) && !devopsEnabled) {
-              return {
-                permissionDecision: "deny",
-                additionalContext: TOOL_DEVOPS_MESSAGE,
-              };
-            }
-            return {
-              permissionDecision: "allow",
-            };
-          },
-        },
+        availableTools: tooling.availableTools,
+        tools: tooling.tools,
+        hooks: tooling.hooks,
       });
 
-      const response = await session.sendAndWait(
-        { prompt },
-        effectiveTimeout
-      );
+      // Main command generation should wait for an actual Copilot result or
+      // session error; slow model responses are expected and shouldn't surface
+      // as user-facing timeouts.
+      const response = await waitForSessionIdle(session, { prompt });
       const content = response?.data?.content ?? "";
       const ranked = rankCommandCandidates({
         rawCommand: content,
@@ -547,10 +484,7 @@ Predict the next command:`;
         ...classifyError(error),
       });
     } finally {
-      // Record to flight log after session cleanup
-      if (typeof session?.destroy === "function") {
-        await session.destroy().catch(() => undefined);
-      }
+      await disconnectSession(session);
     }
   }
 
@@ -589,7 +523,7 @@ Predict the next command:`;
       }
     }
 
-    if (!this.supportedModelIds.has(requestModel)) {
+    if (this.supportedModelIds.size > 0 && !this.supportedModelIds.has(requestModel)) {
       return {
         explanation: "",
         error: `Unsupported model: ${requestModel}`,
@@ -600,7 +534,7 @@ Predict the next command:`;
     const resolvedCwd = cwd || process.env.PWD || process.cwd();
     const resolvedHome = home || process.env.HOME || "";
 
-    const explainPrompt = `You explain shell commands. Given a command, output a single terse line explaining what it does. MCRN tactical voice: uppercase labels, no emoji, direct.
+    const explainPrompt = `You explain shell commands. Given a command, output a single terse line explaining what it does. Terse technical voice: direct, no emoji.
 
 RULES:
 1. Output exactly ONE line of explanation. No markdown, no backticks.
@@ -627,6 +561,7 @@ ${command.trim()}`;
       session = await this.client.createSession({
         model: requestModel,
         onPermissionRequest: this.approveAll,
+        workingDirectory: resolvedCwd,
         systemMessage: {
           mode: "append",
           content: explainPrompt,
@@ -649,9 +584,7 @@ ${command.trim()}`;
     } catch (error) {
       return { explanation: "", ...classifyError(error) };
     } finally {
-      if (typeof session?.destroy === "function") {
-        await session.destroy().catch(() => undefined);
-      }
+      await disconnectSession(session);
     }
   }
 }

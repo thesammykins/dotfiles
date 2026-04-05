@@ -29,8 +29,7 @@ setup() {
   run rg -n 'gpt-5-mini|Copilot SDK|copilot' \
     "$DOTFILES_DIR/README.md" \
     "$DOTFILES_DIR/AGENTS.md" \
-    "$DOTFILES_DIR/zsh/plugins/mcrn-ai/AGENTS.md" \
-    "$DOTFILES_DIR/zsh/plugins/mcrn-ai/SKILL.md"
+    "$DOTFILES_DIR/zsh/plugins/mcrn-ai/AGENTS.md"
   [ "$status" -eq 0 ]
 }
 

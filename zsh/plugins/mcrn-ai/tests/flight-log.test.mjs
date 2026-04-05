@@ -4,10 +4,10 @@ import path from "node:path";
 import os from "node:os";
 
 // Use a temp directory for tests
-const testDir = path.join(os.tmpdir(), `mcrn-ai-flight-test-${process.pid}`);
-process.env.MCRN_AI_DATA_DIR = testDir;
+const testDir = path.join(os.tmpdir(), `copilot-zle-flight-test-${process.pid}`);
+process.env.COPILOT_ZLE_DATA_DIR = testDir;
 
-const { recordGeneration, markExecuted, queryRelevant, queryFollowUps, buildFewShotBlock, getLogPath } = await import("./flight-log.mjs");
+const { recordGeneration, markExecuted, queryRelevant, queryFollowUps, buildFewShotBlock, getLogPath } = await import("../lib/flight-log.mjs");
 
 const cleanup = () => {
   try { fs.rmSync(testDir, { recursive: true, force: true }); } catch {}

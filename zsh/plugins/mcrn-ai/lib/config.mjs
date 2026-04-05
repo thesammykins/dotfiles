@@ -3,6 +3,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const helperDir = path.dirname(fileURLToPath(import.meta.url));
+const repoDir = path.dirname(helperDir);
 
 const DEFAULT_CONFIG = {
   model: {
@@ -29,7 +30,7 @@ const DEFAULT_CONFIG = {
   },
   daemon: {
     enabled: true,
-    idleTimeoutSec: 300,
+    idleTimeoutSec: 1800,
   },
   suggest: {
     enabled: false,
@@ -41,7 +42,7 @@ const DEFAULT_CONFIG = {
   nlDetection: {
     enabled: false,
     minWords: 3,
-    indicator: "[MCRN NL]",
+    indicator: "[NL]",
   },
   autofix: {
     enabled: false,
@@ -50,7 +51,20 @@ const DEFAULT_CONFIG = {
   flightLog: {
     enabled: true,
     maxEntries: 1000,
-    fewShotCount: 3,
+    fewShotCount: 2,
+  },
+  patterns: {
+    enabled: true,
+    source: "file",
+    entries: [],
+  },
+  branding: {
+    productName: "ghostline-zle",
+    statusPrefix: "[GHOSTLINE]",
+    errorPrefix: "[GHOSTLINE ERROR]",
+    fixPrefix: "[GHOSTLINE FIX]",
+    explainPrefix: "[GHOSTLINE HELP]",
+    thinkingLabel: "WHISPERING",
   },
 };
 
@@ -109,6 +123,10 @@ const buildConfig = (input) => {
     safe.autofix && typeof safe.autofix === "object" ? safe.autofix : {};
   const flightLogInput =
     safe.flightLog && typeof safe.flightLog === "object" ? safe.flightLog : {};
+  const patternsInput =
+    safe.patterns && typeof safe.patterns === "object" ? safe.patterns : {};
+  const brandingInput =
+    safe.branding && typeof safe.branding === "object" ? safe.branding : {};
 
   const validHighlightStyles = new Set(["underline", "bold", "standout", "none"]);
 
@@ -166,12 +184,27 @@ const buildConfig = (input) => {
       maxEntries: clampNumber(flightLogInput.maxEntries, DEFAULT_CONFIG.flightLog.maxEntries, 100),
       fewShotCount: clampNumber(flightLogInput.fewShotCount, DEFAULT_CONFIG.flightLog.fewShotCount, 0),
     },
+    patterns: {
+      enabled: pickBoolean(patternsInput.enabled, DEFAULT_CONFIG.patterns.enabled),
+      source: ["file", "config"].includes(patternsInput.source)
+        ? patternsInput.source
+        : DEFAULT_CONFIG.patterns.source,
+      entries: Array.isArray(patternsInput.entries) ? patternsInput.entries : DEFAULT_CONFIG.patterns.entries,
+    },
+    branding: {
+      productName: pickString(brandingInput.productName, DEFAULT_CONFIG.branding.productName),
+      statusPrefix: pickString(brandingInput.statusPrefix, DEFAULT_CONFIG.branding.statusPrefix),
+      errorPrefix: pickString(brandingInput.errorPrefix, DEFAULT_CONFIG.branding.errorPrefix),
+      fixPrefix: pickString(brandingInput.fixPrefix, DEFAULT_CONFIG.branding.fixPrefix),
+      explainPrefix: pickString(brandingInput.explainPrefix, DEFAULT_CONFIG.branding.explainPrefix),
+      thinkingLabel: pickString(brandingInput.thinkingLabel, DEFAULT_CONFIG.branding.thinkingLabel),
+    },
   };
 };
 
 export const loadConfig = () => {
   const configPath =
-    process.env.MCRN_AI_CONFIG_FILE || path.join(helperDir, "config.json");
+    process.env.COPILOT_ZLE_CONFIG_FILE || path.join(repoDir, "config.json");
   let fileConfig = null;
   try {
     fileConfig = readJsonFile(configPath);
@@ -181,17 +214,17 @@ export const loadConfig = () => {
 
   const merged = buildConfig(fileConfig || {});
 
-  const modelEnv = process.env.MCRN_COPILOT_MODEL;
+  const modelEnv = process.env.COPILOT_ZLE_MODEL;
   if (typeof modelEnv === "string" && modelEnv.trim().length > 0) {
     merged.model.default = modelEnv.trim();
   }
 
-  const allowlistEnv = process.env.MCRN_AI_TOOLS_ALLOWLIST;
+  const allowlistEnv = process.env.COPILOT_ZLE_TOOLS_ALLOWLIST;
   if (typeof allowlistEnv === "string" && allowlistEnv.trim().length > 0) {
     merged.tools.allowlist = normalizeAllowlist(allowlistEnv);
   }
 
-  const devopsEnv = process.env.MCRN_AI_TOOLS_DEVOPS;
+  const devopsEnv = process.env.COPILOT_ZLE_TOOLS_DEVOPS;
   if (typeof devopsEnv === "string" && devopsEnv.trim().length > 0) {
     merged.tools.devopsEnabled = ["1", "true", "yes"].includes(
       devopsEnv.toLowerCase()
@@ -199,7 +232,7 @@ export const loadConfig = () => {
   }
 
   const maxOutputEnv = Number.parseInt(
-    process.env.MCRN_AI_TOOL_MAX_OUTPUT_BYTES || "",
+    process.env.COPILOT_ZLE_TOOL_MAX_OUTPUT_BYTES || "",
     10
   );
   if (Number.isFinite(maxOutputEnv)) {
@@ -211,7 +244,7 @@ export const loadConfig = () => {
   }
 
   const maxFileEnv = Number.parseInt(
-    process.env.MCRN_AI_TOOL_MAX_FILE_BYTES || "",
+    process.env.COPILOT_ZLE_TOOL_MAX_FILE_BYTES || "",
     10
   );
   if (Number.isFinite(maxFileEnv)) {
@@ -223,7 +256,7 @@ export const loadConfig = () => {
   }
 
   const timeoutEnv = Number.parseInt(
-    process.env.MCRN_AI_TOOL_TIMEOUT_MS || "",
+    process.env.COPILOT_ZLE_TOOL_TIMEOUT_MS || "",
     10
   );
   if (Number.isFinite(timeoutEnv)) {
@@ -238,4 +271,4 @@ export const loadConfig = () => {
 };
 
 export const getConfigPath = () =>
-  process.env.MCRN_AI_CONFIG_FILE || path.join(helperDir, "config.json");
+  process.env.COPILOT_ZLE_CONFIG_FILE || path.join(repoDir, "config.json");

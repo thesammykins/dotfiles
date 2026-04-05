@@ -1,160 +1,176 @@
-# AGENTS.md - MCRN AI PLUGIN
+# AGENTS.md - Copilot ZLE Plugin
 
-## ROLE
-This plugin turns natural language into a single, raw zsh command line. It is NOT a chat agent.
+## Role
 
-## NON-NEGOTIABLES
-- OUTPUT MUST BE EXACTLY ONE SHELL LINE. PIPES, REDIRECTS, AND LOGICAL OPERATORS (&&, ||, ;) ARE ALLOWED WITHIN THAT LINE. MULTI-LINE OUTPUT (BACKSLASH CONTINUATIONS, HEREDOCS) IS FORBIDDEN. NO MARKDOWN. NO EXPLANATIONS.
-- TOOLS ARE DISABLED BY DEFAULT. ONLY ENABLE WITH AN EXPLICIT ALLOWLIST.
-- SAFETY POLICY IN `policy.txt` IS REQUIRED INPUT TO SYSTEM PROMPT.
-- MODEL DEFAULT: COPILOT SHOULD DEFAULT TO `gpt-5-mini`.
-- DO NOT ADD DESTRUCTIVE COMMANDS UNLESS USER EXPLICITLY REQUESTS THEM.
-- PREFER GRACEFUL SIGNALS (SIGTERM) OVER FORCEFUL ONES (SIGKILL) BY DEFAULT.
+This plugin turns natural language into a single, raw zsh command line. It is not a chat agent.
 
-## ENVIRONMENT-AWARE COMMAND GENERATION
-THE MODEL MUST REASON ABOUT THE USER'S ACTUAL ENVIRONMENT BEFORE GENERATING A COMMAND. THE SYSTEM PROMPT INCLUDES LIVE CONTEXT:
+## Non-negotiables
+
+- Output must be exactly one shell line. Pipes, redirects, and logical operators (`&&`, `||`, `;`) are allowed within that line. Multi-line output (backslash continuations, heredocs) is forbidden. No markdown. No explanations.
+- Tools are disabled by default. Only enable with an explicit allowlist.
+- Safety policy in `policy.txt` is required input to the system prompt.
+- Model default: `gpt-5-mini`.
+- Do not add destructive commands unless the user explicitly requests them.
+- Prefer graceful signals (SIGTERM) over forceful ones (SIGKILL) by default.
+
+## Environment-aware command generation
+
+The model must reason about the user's actual environment before generating a command. The system prompt includes live context:
+
 - **PWD**: Current working directory (changes per request, not daemon startup dir).
-- **OS + ARCH**: `darwin (arm64)` etc. — DO NOT EMIT LINUX-ONLY FLAGS ON MACOS.
-- **SHELL**: Always `zsh`. USE ZSH IDIOMS, NOT BASH-ONLY SYNTAX.
+- **OS + Arch**: `darwin (arm64)` etc. — do not emit Linux-only flags on macOS.
+- **Shell**: Always `zsh`. Use zsh idioms, not bash-only syntax.
 - **TERM_PROGRAM**: The terminal emulator (e.g., `Ghostty`).
-- **HOME / DOTFILES**: Canonical paths. NEVER HARDCODE `/Users/<name>`.
-- **IN GIT REPO**: Whether PWD is inside a git worktree.
-- **GIT SUMMARY**: Branch + dirty state. USE FOR CONTEXT, NOT ASSUMPTIONS.
-- **RECENT HISTORY**: Last N commands. INFER WORKFLOW CONTEXT FROM THESE.
-- **ALIASES**: Active shell aliases. PREFER `command <util>` TO BYPASS ALIAS SIDE-EFFECTS WHEN CLARITY MATTERS.
-- **STDERR + LAST FAILURE**: In fix mode, the failed command and its stderr output.
+- **HOME / DOTFILES**: Canonical paths. Never hardcode `/Users/<name>`.
+- **In git repo**: Whether PWD is inside a git worktree.
+- **Git summary**: Branch + dirty state. Use for context, not assumptions.
+- **Recent history**: Last N commands. Infer workflow context from these.
+- **Aliases**: Active shell aliases. Prefer `command <util>` to bypass alias side-effects when clarity matters.
+- **Stderr + last failure**: In fix mode, the failed command and its stderr output.
 
-RULES:
-1. READ THE ENVIRONMENT BLOCK FIRST. DO NOT GUESS THE OS OR SHELL.
-2. PREFER TOOLS THE USER ALREADY HAS (e.g., `eza` over `ls` if aliased, `rg` over `grep` if in `$commands`).
-3. USE MACOS-IDIOMATIC FLAGS (e.g., `stat -f%z` NOT `stat -c%s`, `pbcopy` NOT `xclip`).
-4. WHEN THE USER SAYS "HERE" OR "THIS DIRECTORY", USE THE PROVIDED PWD — DO NOT DEFAULT TO `$HOME`.
-5. IN FIX MODE, READ THE STDERR CAREFULLY — FIX THE ACTUAL ERROR, NOT A GUESS.
+Rules:
 
-## REQUIRED STYLE
-- MCRN TACTICAL VOICE: UPPERCASE LABELS, NO EMOJI, SHORT DIRECT SENTENCES.
-- FAST PATHS: NO EXTRA LATENCY, NO UNNECESSARY PIPELINES.
-- READ-ONLY DEFAULTS: PREFER LIST/INSPECT OVER MUTATE.
+1. Read the environment block first. Do not guess the OS or shell.
+2. Prefer tools the user already has (e.g., `eza` over `ls` if aliased, `rg` over `grep` if in `$commands`).
+3. Use macOS-idiomatic flags (e.g., `stat -f%z` not `stat -c%s`, `pbcopy` not `xclip`).
+4. When the user says "here" or "this directory", use the provided PWD — do not default to `$HOME`.
+5. In fix mode, read the stderr carefully — fix the actual error, not a guess.
 
-## TOOL WIRING
-- TOOL DEFINITIONS LIVE IN `/zsh/plugins/mcrn-ai/tools/`.
-- PRIMARY CONFIG: `/zsh/plugins/mcrn-ai/config.json`.
-- MODEL QUICK CONFIG: `config.json` -> `model.default`, or override with `MCRN_COPILOT_MODEL`.
-- ENV OVERRIDES: `MCRN_AI_TOOLS_ALLOWLIST`, `MCRN_AI_TOOLS_DEVOPS`.
-- OPTIONAL OVERRIDE PATH: `MCRN_AI_CONFIG_FILE`.
-- SDK PATCH HOOK: `/zsh/plugins/mcrn-ai/patch-copilot-sdk.mjs`.
+## Tool wiring
 
-## TOOLING RULES
-- USE `defineTool` + `createSession({ tools: [...] })` ALLOWLIST.
-- KEEP `hooks.onPreToolUse` DENY-BY-DEFAULT FOR NON-ALLOWLISTED TOOLS.
-- KEEP `systemMessage` IN APPEND MODE UNLESS YOU RE-IMPLEMENT ALL GUARDRAILS.
-- ENFORCE SINGLE-LINE OUTPUT CLIENT-SIDE (REJECT NEWLINES, BACKTICKS, PROSE).
-- KEEP THE HELPER SAFE TO IMPORT IN TESTS; DO NOT AUTO-RUN ON MODULE IMPORT.
-- TOOL CONFIG LIVES IN `/zsh/plugins/mcrn-ai/config.json`; TOOL DEFINITIONS LIVE IN `/zsh/plugins/mcrn-ai/tools/`.
+- Tool definitions live in `./tools/`.
+- Primary config: `./config.json`.
+- Model quick config: `config.json` → `model.default`, or override with `COPILOT_ZLE_MODEL`.
+- Env overrides: `COPILOT_ZLE_TOOLS_ALLOWLIST`, `COPILOT_ZLE_TOOLS_DEVOPS`.
+- Optional override path: `COPILOT_ZLE_CONFIG_FILE`.
+- SDK patch hook: `./scripts/patch-copilot-sdk.mjs`.
 
-## MODES
-- GENERATE: Default. Translate natural language into a shell command.
-- FIX: Auto-triggered when buffer is empty and last command exited non-zero. Sends failed command + exit code + stderr for correction.
-- REFINE: Triggered when buffer starts with refinement phrases and prior AI command exists. Sends prior command as context for iteration.
-- CHAIN: Triggered when buffer starts with "pipe", "then", "now pipe", etc. Extends the prior command with a pipe or step instead of replacing it.
-- SUGGEST: Passive next-command ghost-text prediction after command completion. Opt-in via config. Enriched with project context and flight log follow-ups.
-- NL DETECT: Auto-detect natural language input and route to AI. Opt-in via config.
-- AUTOFIX: Proactive fix suggestions after command failures. Opt-in via config.
-- EXPLAIN: `CTRL+E` with a command in the buffer. Returns a one-line explanation via status bar. Buffer untouched.
+## Tooling rules
 
-## ANTI-PATTERNS
-- ENABLING TOOLS WITHOUT A SCOPED ALLOWLIST.
-- EXPANDING PATH SCOPE BEYOND `CWD` + `$HOME` WITHOUT EXPLICIT DOCS AND TESTS.
-- REPLACING SYSTEM PROMPT WITHOUT INCLUDING `policy.txt` AND OUTPUT RULES.
-- RETURNING TEXT, MARKDOWN, MULTI-LINE OUTPUT, OR MULTIPLE COMMANDS ON SEPARATE LINES.
-- ADDING EMOJI OR NON-MCRN STYLING.
-- USING KILL -9 / SIGKILL IN EXAMPLES WITHOUT EXPLICIT USER REQUEST.
-- REDIRECTING STDERR GLOBALLY IN INTERACTIVE SHELLS (USE TEMPFILE APPROACH INSTEAD).
-- USING DAEMON `process.env` AS ENVIRONMENT SOURCE — ALWAYS READ `cwd`, `home`, `shell`, `termProgram`, `inGitRepo` FROM THE REQUEST PAYLOAD. THE DAEMON'S OWN ENVIRONMENT IS STALE.
-- EMITTING LINUX-ONLY FLAGS ON MACOS (e.g., `stat -c`, `xclip`, `--color=always` ON BSD TOOLS).
-- IGNORING RECENT HISTORY — THE USER'S LAST COMMANDS PROVIDE CRITICAL WORKFLOW CONTEXT.
+- Use `defineTool` + `createSession({ tools: [...] })` allowlist.
+- Keep `hooks.onPreToolUse` deny-by-default for non-allowlisted tools.
+- Keep `systemMessage` in append mode unless you re-implement all guardrails.
+- Enforce single-line output client-side (reject newlines, backticks, prose).
+- Keep the helper safe to import in tests; do not auto-run on module import.
+- Tool config lives in `./config.json`; tool definitions live in `./tools/`.
 
-## DAEMON
-- TCP DAEMON (`copilot-daemon.mjs --tcp`) ELIMINATES COLD-START LATENCY.
-- STATE FILE: `/tmp/mcrn-ai-daemon-${UID}.json` (PORT + PID).
-- IDLE TIMEOUT: CONFIGURABLE, DEFAULT 5 MINUTES. DAEMON AUTO-EXITS.
-- WIDGET TRIES DAEMON FIRST, FALLS BACK TO SUBPROCESS.
-- SUPPORTS `format: "zle"` FOR STRUCTURED-LINE RESPONSE FORMAT.
+## Modes
 
-## GHOST-TEXT SUGGESTIONS
-- PASSIVE NEXT-COMMAND PREDICTIONS VIA `POSTDISPLAY`.
-- ACCEPT FULL: `→` OR `CTRL+F`. ACCEPT WORD: `CTRL+→`.
-- RATE-LIMITED, DEBOUNCED, SKIP TRIVIAL COMMANDS.
-- REQUIRES DAEMON. DEFAULT OFF (`suggest.enabled: false`).
+- **Generate**: Default. Translate natural language into a shell command.
+- **Fix**: Auto-triggered when buffer is empty and last command exited non-zero. Sends failed command + exit code + stderr for correction.
+- **Refine**: Triggered when buffer starts with refinement phrases and prior AI command exists. Sends prior command as context for iteration.
+- **Chain**: Triggered when buffer starts with "pipe", "then", "now pipe", etc. Extends the prior command with a pipe or step instead of replacing it.
+- **Suggest**: Passive next-command ghost-text prediction after command completion. Opt-in via config. Enriched with project context and flight log follow-ups.
+- **NL Detect**: Auto-detect natural language input and route to AI. Opt-in via config.
+- **Autofix**: Proactive fix suggestions after command failures. Opt-in via config.
+- **Explain**: `Ctrl+E` with a command in the buffer. Returns a one-line explanation via status bar. Buffer untouched.
 
-## NL AUTO-DETECTION
-- PURE-ZSH HEURISTIC: `$commands`/`$aliases`/`$functions` LOOKUP + WORD COUNT.
-- INTERCEPTS `accept-line`. `ESC+ENTER` BYPASSES TO FORCE SHELL EXECUTION.
-- DEFAULT OFF (`nlDetection.enabled: false`).
+## Anti-patterns
 
-## CANDIDATE CYCLING
-- `ALT+]` / `ALT+[` CYCLE THROUGH AI COMMAND CANDIDATES.
-- SHOWS `[N/M]` INDICATOR IN STATUS LINE.
+- Enabling tools without a scoped allowlist.
+- Expanding path scope beyond `CWD` + `$HOME` without explicit docs and tests.
+- Replacing system prompt without including `policy.txt` and output rules.
+- Returning text, markdown, multi-line output, or multiple commands on separate lines.
+- Using `kill -9` / SIGKILL in examples without explicit user request.
+- Redirecting stderr globally in interactive shells (use tempfile approach instead).
+- Using daemon `process.env` as environment source — always read `cwd`, `home`, `shell`, `termProgram`, `inGitRepo` from the request payload. The daemon's own environment is stale.
+- Emitting Linux-only flags on macOS (e.g., `stat -c`, `xclip`, `--color=always` on BSD tools).
+- Ignoring recent history — the user's last commands provide critical workflow context.
 
-## FLIGHT RECORDER
-- RECORDS EVERY AI GENERATION TO `~/.local/share/mcrn-ai/flight-log.jsonl`.
-- TRACKS: PROMPT, COMMAND, MODE, CWD, EXECUTION STATUS, EXIT CODE.
-- `preexec`/`precmd` HOOKS DETECT WHEN AI COMMANDS ARE ACTUALLY EXECUTED.
-- RELEVANT PAST SUCCESSES INJECTED AS FEW-SHOT EXAMPLES IN SYSTEM PROMPT.
-- CAPPED AT 1000 ENTRIES (CONFIGURABLE). ROTATES OLDEST.
-- CONFIG: `flightLog.enabled`, `flightLog.maxEntries`, `flightLog.fewShotCount`.
+## Daemon
 
-## PROJECT CONTEXT
-- AUTO-DETECTS PROJECT TYPE FROM CWD: `package.json` SCRIPTS, `Makefile`/`Justfile` TARGETS, `Cargo.toml`, `pyproject.toml`, `go.mod`, DOCKER, TOOLCHAIN (mise/direnv/nvm).
-- APPENDS A `PROJECT` BLOCK TO THE SYSTEM PROMPT.
-- CACHED PER-CWD PER SESSION (ZERO REPEAT I/O).
-- CONFIG: `context.includeProjectInfo`.
+- TCP daemon (`lib/copilot-daemon.mjs --tcp`) eliminates cold-start latency.
+- State file: `/tmp/copilot-zle-daemon-${UID}.json` (port + PID).
+- Idle timeout: configurable, default 5 minutes. Daemon auto-exits.
+- Widget tries daemon first, falls back to subprocess.
+- Supports `format: "zle"` for structured-line response format.
 
-## USER TEMPLATES
-- OPTIONAL FILE: `~/.config/mcrn-ai/templates.txt`.
-- FORMAT: SAME AS `policy.txt` — DESCRIPTION→COMMAND PAIRS.
-- APPENDED TO SYSTEM PROMPT AFTER POLICY, SO USER PATTERNS TAKE PRECEDENCE.
-- ENV OVERRIDE: `MCRN_AI_TEMPLATES_FILE`.
+## Ghost-text suggestions
 
-## EXPLAIN MODE
-- `CTRL+E` WITH A COMMAND IN THE BUFFER.
-- SENDS TO MODEL WITH EXPLAIN-ONLY SYSTEM PROMPT.
-- RESULT SHOWN VIA `zle -M` STATUS BAR. BUFFER UNTOUCHED.
-- REQUIRES DAEMON. MCRN TACTICAL VOICE.
+- Passive next-command predictions via `POSTDISPLAY`.
+- Accept full: `→` or `Ctrl+F`. Accept word: `Ctrl+→`.
+- Rate-limited, debounced, skip trivial commands.
+- Requires daemon. Default off (`suggest.enabled: false`).
 
-## DRY VALIDATION
-- AFTER AI GENERATES A COMMAND, CHECKS IF THE PRIMARY BINARY EXISTS.
-- IF NOT FOUND: `[WARN: 'binary' NOT FOUND]` APPENDED TO STATUS MESSAGE.
-- ADVISORY ONLY — COMMAND STILL PLACED IN BUFFER.
-- HANDLES `command <util>` PREFIX AND ENV ASSIGNMENTS.
+## NL auto-detection
 
-## DEBUGGING
-- SET `MCRN_AI_DEBUG=1` TO LOG TO `/tmp/mcrn-ai-debug.log`.
-- RUN `node ./zsh/plugins/mcrn-ai/copilot-helper.test.mjs` FOR HELPER-LEVEL REGRESSION CHECKS.
+- Pure-ZSH heuristic: `$commands`/`$aliases`/`$functions` lookup + word count.
+- Leading env assignments are treated as shell commands so valid input such as `MOTD_FORCE=1 bash "scripts/motd.sh"` is not routed into AI generation.
+- Intercepts `accept-line`. `Esc+Enter` bypasses to force shell execution.
+- Default off (`nlDetection.enabled: false`).
 
-## WHAT THE MODEL SEES (vs. THIS FILE)
-THIS FILE IS DEVELOPER GUIDANCE FOR HUMANS AND AGENTS EDITING THE PLUGIN CODE. IT IS **NOT** LOADED INTO THE COPILOT MODEL'S CONTEXT.
+## Candidate cycling
 
-THE MODEL'S BEHAVIOR IS GOVERNED BY TWO FILES:
-1. **`copilot-service.mjs` → `systemPrompt()`**: THE HARDCODED SYSTEM PROMPT WITH ENVIRONMENT BLOCK, RULES, AND EXAMPLES. THIS IS WHERE TOOL PREFERENCES (fd OVER find, rg OVER grep, etc.) AND macOS-SPECIFIC GUIDANCE LIVE.
-2. **`policy.txt`**: SAFETY POLICY AND COMMAND TEMPLATES. APPENDED TO THE SYSTEM PROMPT.
+- `Alt+]` / `Alt+[` cycle through AI command candidates.
+- Shows `[N/M]` indicator in status line.
 
-IF THE MODEL GENERATES BAD COMMANDS (WRONG OS FLAGS, IGNORING INSTALLED TOOLS, WRONG DIRECTORY), FIX THE SYSTEM PROMPT IN `copilot-service.mjs` AND/OR THE TEMPLATES IN `policy.txt` — NOT THIS FILE.
+## Flight recorder
 
-## KNOWN GOTCHAS
+- Records every AI generation to `~/.local/share/copilot-zle/flight-log.jsonl`.
+- Tracks: prompt, command, mode, cwd, execution status, exit code.
+- `preexec`/`precmd` hooks detect when AI commands are actually executed.
+- Relevant past successes injected as few-shot examples in system prompt.
+- Capped at 1000 entries (configurable). Rotates oldest.
+- Config: `flightLog.enabled`, `flightLog.maxEntries`, `flightLog.fewShotCount`.
+
+## Project context
+
+- Auto-detects project type from CWD: `package.json` scripts, `Makefile`/`Justfile` targets, `Cargo.toml`, `pyproject.toml`, `go.mod`, Docker, toolchain (mise/direnv/nvm).
+- Appends a `PROJECT` block to the system prompt.
+- Cached per-CWD per session (zero repeat I/O).
+- Config: `context.includeProjectInfo`.
+
+## User templates
+
+- Optional file: `~/.config/copilot-zle/templates.txt`.
+- Format: same as `policy.txt` — description→command pairs.
+- Appended to system prompt after policy, so user patterns take precedence.
+- Env override: `COPILOT_ZLE_TEMPLATES_FILE`.
+
+## Explain mode
+
+- `Ctrl+E` with a command in the buffer.
+- Sends to model with explain-only system prompt.
+- Result shown via `zle -M` status bar. Buffer untouched.
+- Requires daemon.
+
+## Dry validation
+
+- After AI generates a command, checks if the primary binary exists.
+- If not found: `[WARN: 'binary' NOT FOUND]` appended to status message.
+- Advisory only — command still placed in buffer.
+- Handles `command <util>` prefix and env assignments.
+
+## Debugging
+
+- Set `COPILOT_ZLE_DEBUG=1` to log to `/tmp/copilot-zle-debug.log`.
+- Run `node ./tests/copilot-helper.test.mjs` for helper-level regression checks.
+
+## What the model sees (vs. this file)
+
+This file is developer guidance for humans and agents editing the plugin code. It is **not** loaded into the Copilot model's context.
+
+The model's behavior is governed by two files:
+
+1. **`lib/copilot-service.mjs` → `systemPrompt()`**: The hardcoded system prompt with environment block, rules, and examples. This is where tool preferences (fd over find, rg over grep, etc.) and macOS-specific guidance live.
+2. **`policy.txt`**: Safety policy and command templates. Appended to the system prompt.
+
+If the model generates bad commands (wrong OS flags, ignoring installed tools, wrong directory), fix the system prompt in `lib/copilot-service.mjs` and/or the templates in `policy.txt` — not this file.
+
+## Known gotchas
+
 - `@github/copilot-sdk` on Node 24/25 still needs the `vscode-jsonrpc/node` import patched to `node.js`.
-- Preserve the post-install patch flow in `patch-copilot-sdk.mjs`, `scripts/install.sh`, and `scripts/test.sh` unless upstream fully resolves it.
-- `copilot-cli` should come from `Brewfile.dev`; avoid inventing alternate install paths in repo docs unless the bootstrap model changes.
+- Preserve the post-install patch flow in `scripts/patch-copilot-sdk.mjs` unless upstream fully resolves it.
 
-## REFERENCES
-- POLICY: `/zsh/plugins/mcrn-ai/policy.txt`
-- COPILOT HELPER: `/zsh/plugins/mcrn-ai/copilot-helper.mjs`
-- HELPER TESTS: `/zsh/plugins/mcrn-ai/copilot-helper.test.mjs`
-- SDK PATCH: `/zsh/plugins/mcrn-ai/patch-copilot-sdk.mjs`
-- COPILOT CLI: INSTALLED VIA `Brewfile.dev`
-- TOOLS: `/zsh/plugins/mcrn-ai/tools/index.mjs`
-- CONFIG: `/zsh/plugins/mcrn-ai/config.json`
-- SCHEMA: `/zsh/plugins/mcrn-ai/config.schema.json`
-- FLIGHT LOG: `/zsh/plugins/mcrn-ai/flight-log.mjs`
-- PROJECT CONTEXT: `/zsh/plugins/mcrn-ai/project-context.mjs`
-- USER TEMPLATES: `~/.config/mcrn-ai/templates.txt`
+## References
+
+- Policy: `./policy.txt`
+- Copilot helper: `./lib/copilot-helper.mjs`
+- Helper tests: `./tests/copilot-helper.test.mjs`
+- SDK patch: `./scripts/patch-copilot-sdk.mjs`
+- Tools: `./tools/index.mjs`
+- Config: `./config.json`
+- Schema: `./config.schema.json`
+- Flight log: `./lib/flight-log.mjs`
+- Project context: `./lib/project-context.mjs`
+- User templates: `~/.config/copilot-zle/templates.txt`

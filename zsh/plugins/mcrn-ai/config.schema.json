@@ -1,6 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "MCRN AI Tooling Config",
+  "title": "ZLE Command Generator Config",
   "type": "object",
   "additionalProperties": false,
   "properties": {
@@ -133,13 +133,13 @@
           "type": "integer",
           "minimum": 30,
           "maximum": 3600,
-          "default": 300,
+          "default": 1800,
           "description": "Seconds of inactivity before the daemon auto-exits."
         }
       },
       "default": {
         "enabled": true,
-        "idleTimeoutSec": 300
+        "idleTimeoutSec": 1800
       }
     },
     "suggest": {
@@ -203,14 +203,14 @@
         },
         "indicator": {
           "type": "string",
-          "default": "[MCRN NL]",
+          "default": "[NL]",
           "description": "Visual indicator shown when natural language is detected."
         }
       },
       "default": {
         "enabled": false,
         "minWords": 3,
-        "indicator": "[MCRN NL]"
+        "indicator": "[NL]"
       }
     },
     "autofix": {
@@ -254,14 +254,103 @@
           "type": "integer",
           "minimum": 0,
           "maximum": 10,
-          "default": 3,
+          "default": 2,
           "description": "Number of relevant past successes to inject as few-shot examples."
         }
       },
       "default": {
         "enabled": true,
         "maxEntries": 1000,
-        "fewShotCount": 3
+        "fewShotCount": 2
+      }
+    },
+    "patterns": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable local prompt-pattern resolution before invoking Copilot."
+        },
+        "source": {
+          "type": "string",
+          "enum": ["file", "config"],
+          "default": "file",
+          "description": "Load patterns from a sibling patterns.json file or inline config entries."
+        },
+        "entries": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "name": { "type": "string" },
+              "mode": { "type": "string" },
+              "regex": { "type": "string" },
+              "flags": { "type": "string" },
+              "command": { "type": "string" }
+            },
+            "required": ["regex", "command"]
+          },
+          "description": "Inline prompt patterns used when patterns.source is set to config."
+        }
+      },
+      "default": {
+        "enabled": true,
+        "source": "file",
+        "entries": []
+      }
+    },
+    "branding": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "productName": {
+          "type": "string",
+          "minLength": 1,
+          "default": "ghostline-zle",
+          "description": "User-facing product name for status text and documentation examples."
+        },
+        "statusPrefix": {
+          "type": "string",
+          "minLength": 1,
+          "default": "[GHOSTLINE]",
+          "description": "Prefix used for normal status messages shown in the ZLE status area."
+        },
+        "errorPrefix": {
+          "type": "string",
+          "minLength": 1,
+          "default": "[GHOSTLINE ERROR]",
+          "description": "Prefix used for error messages shown in the ZLE status area."
+        },
+        "fixPrefix": {
+          "type": "string",
+          "minLength": 1,
+          "default": "[GHOSTLINE FIX]",
+          "description": "Prefix used for proactive fix suggestions."
+        },
+        "explainPrefix": {
+          "type": "string",
+          "minLength": 1,
+          "default": "[GHOSTLINE HELP]",
+          "description": "Prefix used for explain-mode status messages."
+        },
+        "thinkingLabel": {
+          "type": "string",
+          "minLength": 1,
+          "default": "WHISPERING",
+          "description": "Base label for thinking/status spinner text. Dots are appended automatically."
+        }
+      },
+      "default": {
+        "productName": "ghostline-zle",
+        "statusPrefix": "[GHOSTLINE]",
+        "errorPrefix": "[GHOSTLINE ERROR]",
+        "fixPrefix": "[GHOSTLINE FIX]",
+        "explainPrefix": "[GHOSTLINE HELP]",
+        "thinkingLabel": "WHISPERING"
       }
     }
   }

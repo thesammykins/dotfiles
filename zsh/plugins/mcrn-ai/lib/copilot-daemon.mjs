@@ -7,16 +7,18 @@ import { loadConfig } from "./config.mjs";
 import { markExecuted } from "./flight-log.mjs";
 
 const config = loadConfig();
-const DEFAULT_MODEL = process.env.MCRN_COPILOT_MODEL || config.model.default || "gpt-5-mini";
+const DEFAULT_MODEL = process.env.COPILOT_ZLE_MODEL || config.model.default || "gpt-5-mini";
+const PRODUCT_NAME = config.branding?.productName || "Copilot ZLE";
 const DEFAULT_TIMEOUT_MS = Number.parseInt(
-  process.env.MCRN_AI_TIMEOUT_MS || "30000",
+  process.env.COPILOT_ZLE_TIMEOUT_MS || "30000",
   10
 );
 const TCP_MODE = process.argv.includes("--tcp");
 const IDLE_TIMEOUT_SEC = config.daemon.idleTimeoutSec || 300;
 const STATE_FILE =
-  process.env.MCRN_AI_DAEMON_STATE_FILE ||
-  `/tmp/mcrn-ai-daemon-${process.getuid()}.json`;
+  process.env.COPILOT_ZLE_DAEMON_STATE_FILE ||
+  `/tmp/copilot-zle-daemon-${process.getuid()}.json`;
+const FIELD_DELIMITER = "\n";
 
 const safeJson = (payload) => JSON.stringify(payload);
 
@@ -172,6 +174,7 @@ const handleRequest = async (request) => {
     const t0 = Date.now();
     const response = await service.request({
       prompt: payload.prompt,
+      mode: payload.mode,
       timeoutMs: Number.isFinite(payload.timeoutMs)
         ? payload.timeoutMs
         : DEFAULT_TIMEOUT_MS,
@@ -217,12 +220,22 @@ const handleRequest = async (request) => {
 const formatZle = (result) => {
   const p = result?.payload || {};
   if (result?.type === "explain") {
-    return `\n\n${p.explanation || p.error || ""}`;
+    return [
+      p.error_code || "",
+      JSON.stringify(p.explanation || p.error || ""),
+      JSON.stringify(""),
+      JSON.stringify(""),
+    ].join(FIELD_DELIMITER);
   }
   const ec = p.error_code || "";
-  const err = p.error || "";
-  const cmd = p.command || "";
-  return `${ec}\n${err}\n${cmd}`;
+  const err = JSON.stringify(p.error || "");
+  const cmd = JSON.stringify(p.command || "");
+  const candidates = JSON.stringify(
+    Array.isArray(p.candidates)
+      ? p.candidates.filter((candidate) => typeof candidate === "string" && candidate.length > 0).join("\u001f")
+      : ""
+  );
+  return [ec, err, cmd, candidates].join(FIELD_DELIMITER);
 };
 
 // ── TCP Mode ────────────────────────────────────────────────────────
@@ -287,12 +300,12 @@ const startTcp = () => {
       JSON.stringify({ pid: process.pid, port }),
       "utf8"
     );
-    process.stderr.write(`mcrn-ai daemon listening on 127.0.0.1:${port}\n`);
+    process.stderr.write(`${PRODUCT_NAME} daemon listening on 127.0.0.1:${port}\n`);
     resetIdleTimer();
   });
 
   server.on("error", (err) => {
-    process.stderr.write(`mcrn-ai daemon server error: ${err.message}\n`);
+    process.stderr.write(`${PRODUCT_NAME} daemon server error: ${err.message}\n`);
     process.exit(1);
   });
 };
@@ -340,7 +353,7 @@ if (TCP_MODE) {
   // Pre-warm the Copilot SDK so the first generate request doesn't race
   // client.start() against session creation (causes "session.idle" timeout).
   service.start().catch((err) => {
-    process.stderr.write(`mcrn-ai daemon: SDK pre-warm failed: ${err.message}\n`);
+    process.stderr.write(`${PRODUCT_NAME} daemon: SDK pre-warm failed: ${err.message}\n`);
   });
 } else {
   startStdio();
