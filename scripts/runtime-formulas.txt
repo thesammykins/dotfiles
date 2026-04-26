@@ -11,3 +11,6 @@ asdf
 fnm
 pyenv
 rbenv
+rust
+pnpm
+opencode

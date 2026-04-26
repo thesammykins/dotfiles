@@ -3,10 +3,10 @@
 #   DOTFILES_INSTALL_DEV=1 ~/.dotfiles/scripts/install.sh
 
 # Toolchain and validation
+# Fast-moving dev CLIs such as opencode/pnpm/uv are pinned in mise, not Homebrew.
 brew "bats-core"
 brew "copilot-cli"
 brew "mise"
-brew "opencode"
 brew "shellcheck"
 brew "shfmt"
 brew "varlock"

@@ -30,10 +30,10 @@ if command -v npm &>/dev/null; then
     (
         cd "$REPO_ROOT/zsh/plugins/mcrn-ai"
         npm ci --dry-run --no-audit --no-fund --loglevel=error >/dev/null
-        node ./patch-copilot-sdk.mjs >/dev/null
+        node ./scripts/patch-copilot-sdk.mjs >/dev/null
         # shellcheck disable=SC2016
         node -e 'const fs=require("node:fs"); const lock=JSON.parse(fs.readFileSync("package-lock.json","utf8")); const expected=lock.packages["node_modules/@github/copilot-sdk"].version; const actual=require("./node_modules/@github/copilot-sdk/package.json").version; if(actual!==expected){console.error(`copilot-sdk mismatch: expected ${expected}, got ${actual}`); process.exit(1);} '
-        node ./copilot-helper.test.mjs >/dev/null
+        node ./tests/copilot-helper.test.mjs >/dev/null
     )
     log_info "MCRN AI dependency checks passed."
 else

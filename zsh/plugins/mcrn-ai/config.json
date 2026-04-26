@@ -25,7 +25,7 @@
     "idleTimeoutSec": 1800
   },
   "suggest": {
-    "enabled": true,
+    "enabled": false,
     "debounceMs": 500,
     "rateLimitMs": 2000,
     "skipCommands": [
@@ -40,7 +40,7 @@
     "ghostStyle": "fg=240"
   },
   "nlDetection": {
-    "enabled": true,
+    "enabled": false,
     "minWords": 3,
     "indicator": "[NL]"
   },
