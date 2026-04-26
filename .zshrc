@@ -5,8 +5,9 @@
 # ============================================================================
 # PATH AND ENVIRONMENT
 # ============================================================================
-# OpenCode (must be early in PATH)
-export PATH="$HOME/.opencode/bin:$PATH"
+# Local user binaries and OpenCode bootstrap paths
+typeset -U path PATH
+path=("$HOME/.local/bin" "$HOME/.opencode/bin" $path)
 export OPENCODE_EXPERIMENTAL_LSP_TOOL=true
 
 # Homebrew (Apple Silicon vs Intel)
@@ -29,6 +30,11 @@ export DOTFILES="$HOME/.dotfiles"
 
 # Bat theme (matches MCRN warm palette)
 export BAT_THEME="ansi"
+
+# Startup performance profile
+export MCRN_PERF_MODE="${MCRN_PERF_MODE:-1}"
+export MCRN_COMPLETION_CACHE_DIR="${MCRN_COMPLETION_CACHE_DIR:-${XDG_CACHE_HOME:-$HOME/.cache}/mcrn-zsh}"
+export MCRN_AI_EAGER_LOAD="${MCRN_AI_EAGER_LOAD:-0}"
 
 # ============================================================================
 # HISTORY CONFIGURATION
@@ -103,6 +109,34 @@ fi
 # ============================================================================
 # TOOL INITIALIZATION
 # ============================================================================
+# Cache shell snippets for faster startup (set MCRN_REBUILD_COMPLETION_CACHE=1 to refresh)
+_mcrn_source_cached_script() {
+    local cache_file="$1"
+    shift
+    local tmp_file
+
+    mkdir -p "${cache_file:h}" 2>/dev/null || return 1
+
+    if [[ "${MCRN_REBUILD_COMPLETION_CACHE:-0}" == "1" || ! -s "$cache_file" ]]; then
+        tmp_file="${cache_file}.tmp.$$"
+        if "$@" >| "$tmp_file" 2>/dev/null; then
+            mv "$tmp_file" "$cache_file"
+        else
+            rm -f "$tmp_file"
+            return 1
+        fi
+    fi
+
+    source "$cache_file"
+}
+
+# Mise - Global toolchain manager (must run before other tool hooks)
+if command -v mise &>/dev/null; then
+    eval "$(mise activate zsh)"
+    # Keep mise-managed runtimes ahead of ~/.local/bin while preserving Hermes/profile wrappers.
+    path=(${path:#$HOME/.local/bin} "$HOME/.local/bin")
+fi
+
 # FZF - Fuzzy finder
 if command -v fzf &>/dev/null; then
     eval "$(fzf --zsh)" 2>/dev/null || { [[ -f "$HOME/.fzf.zsh" ]] && source "$HOME/.fzf.zsh"; }
@@ -126,26 +160,33 @@ if command -v direnv &>/dev/null; then
     eval "$(direnv hook zsh)"
 fi
 
-# Mise - Global toolchain manager (Must be early)
-if command -v mise &>/dev/null; then
-    eval "$(mise activate zsh)"
-fi
-
 # UV - Python package manager
 if command -v uv &>/dev/null; then
-    eval "$(uv generate-shell-completion zsh)"
+    if [[ "${MCRN_PERF_MODE:-1}" == "1" ]]; then
+        _mcrn_source_cached_script "$MCRN_COMPLETION_CACHE_DIR/uv-completion.zsh" uv generate-shell-completion zsh || eval "$(uv generate-shell-completion zsh)"
+    else
+        eval "$(uv generate-shell-completion zsh)"
+    fi
 fi
 
 # 1Password CLI completions
 if command -v op &>/dev/null; then
-    eval "$(op completion zsh)" 2>/dev/null || true
+    if [[ "${MCRN_PERF_MODE:-1}" == "1" ]]; then
+        _mcrn_source_cached_script "$MCRN_COMPLETION_CACHE_DIR/op-completion.zsh" op completion zsh || eval "$(op completion zsh)" 2>/dev/null || true
+    else
+        eval "$(op completion zsh)" 2>/dev/null || true
+    fi
 fi
 
 # Carapace - Universal shell completions (hundreds of CLI tools)
 if command -v carapace &>/dev/null; then
     export CARAPACE_BRIDGES='zsh,fish,bash,inshellisense'
     zstyle ':completion:*' format $'%{\e[2;37;41m%}completing %d%{\e[0m%}'
-    source <(carapace _carapace)
+    if [[ "${MCRN_PERF_MODE:-1}" == "1" ]]; then
+        _mcrn_source_cached_script "$MCRN_COMPLETION_CACHE_DIR/carapace-init.zsh" carapace _carapace || source <(carapace _carapace)
+    else
+        source <(carapace _carapace)
+    fi
 fi
 
 # ============================================================================
@@ -202,7 +243,7 @@ vrun() {
 }
 
 vopencode() {
-    command varlock run --no-redact-stdout --path "$DOTFILES/.config/varlock" -- opencode "$@"
+    command "$DOTFILES/scripts/run-opencode.sh" "$@"
 }
 
 # ============================================================================
@@ -216,7 +257,30 @@ fi
 # AI INTEGRATION - MCRN Tactical Widget (Load last to avoid conflicts)
 # ============================================================================
 if [[ -f "$DOTFILES/zsh/plugins/mcrn-ai.zsh" ]]; then
-    source "$DOTFILES/zsh/plugins/mcrn-ai.zsh"
+    if [[ "${MCRN_AI_EAGER_LOAD:-0}" == "1" ]]; then
+        source "$DOTFILES/zsh/plugins/mcrn-ai.zsh"
+    else
+        typeset -g _MCRN_AI_LAZY_LOADED="${_MCRN_AI_LAZY_LOADED:-0}"
+
+        _mcrn_ai_lazy_bootstrap() {
+            if [[ "$_MCRN_AI_LAZY_LOADED" != "1" ]]; then
+                source "$DOTFILES/zsh/plugins/mcrn-ai.zsh" || {
+                    zle -M "mcrn-ai failed to load" 2>/dev/null || true
+                    return 1
+                }
+                _MCRN_AI_LAZY_LOADED=1
+            fi
+
+            if (( ${+widgets[copilot_zle_generate]} )); then
+                zle copilot_zle_generate
+            fi
+        }
+
+        zle -N _mcrn_ai_lazy_bootstrap
+        bindkey '^g' _mcrn_ai_lazy_bootstrap
+        bindkey -M viins '^g' _mcrn_ai_lazy_bootstrap 2>/dev/null || true
+        bindkey -M vicmd '^g' _mcrn_ai_lazy_bootstrap 2>/dev/null || true
+    fi
 fi
 
 # ============================================================================
@@ -230,6 +294,11 @@ fi
 # LOCAL OVERRIDES
 # ============================================================================
 [[ -f "$HOME/.zshrc.local" ]] && source "$HOME/.zshrc.local"
+
+# Re-assert mise after local overrides so the global toolchain remains authoritative.
+if command -v mise &>/dev/null; then
+    eval "$(mise activate zsh)"
+fi
 
 # ============================================================================
 # DOTFILES ALIAS

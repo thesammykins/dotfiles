@@ -30,9 +30,9 @@ Run:
 Use this split consistently:
 
 - **Homebrew base**: system CLI + GUI casks (e.g., `git`, `jq`, `ghostty`, `tailscale-app`).
-- **Homebrew dev**: developer-machine tools (e.g., `mise`, `opencode`, `orbstack`, validation tools).
+- **Homebrew dev**: developer-machine tools (e.g., `mise`, `orbstack`, validation tools).
 - **Homebrew workstation**: personal GUI apps (e.g., `zed`, `raycast`, `beeper`, `vesktop`, `opencode-desktop`).
-- **Mise**: dev runtimes/toolchains (`node`, `python`, `go`, `java`, `dotnet`, `terraform`, `gradle`, etc.).
+- **Mise**: dev runtimes/toolchains and fast-moving CLIs (`node`, `python`, `go`, `java`, `rust`, `dotnet`, `terraform`, `gradle`, `uv`, `pnpm`, `opencode`, etc.).
 
 When migrating an existing machine, run:
 

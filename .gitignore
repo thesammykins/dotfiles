@@ -1,3 +1,6 @@
 .last_motd
+.last_shell_open
 .DS_Store
 zsh/plugins/mcrn-ai/node_modules/
+zsh/plugins/*.bak
+zsh/plugins/*.backup-*/

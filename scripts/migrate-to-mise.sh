@@ -8,6 +8,7 @@ SCRIPT_DIR="$(cd -- "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DOTFILES_DIR="${DOTFILES_DIR:-$(cd -- "$SCRIPT_DIR/.." && pwd)}"
 MISE_CONFIG="${MISE_CONFIG:-$DOTFILES_DIR/.config/mise/config.toml}"
 AUTO_UNINSTALL="${MISE_AUTO_UNINSTALL_BREW_RUNTIMES:-0}"
+FORCE_UNINSTALL="${MISE_FORCE_UNINSTALL_BREW_RUNTIMES:-0}"
 DOTFILES_DRY_RUN="${DOTFILES_DRY_RUN:-0}"
 
 GREEN='\033[0;32m'
@@ -108,15 +109,36 @@ main() {
 
   log_warn "Detected Homebrew runtime formulas that should be managed by mise: ${overlaps[*]}"
 
-  if [[ "$AUTO_UNINSTALL" == "1" ]]; then
-    log_step "Uninstalling overlapping runtime formulas from Homebrew..."
-    if run_cmd brew uninstall "${overlaps[@]}"; then
+  local removable=()
+  local blocked=()
+  local users
+  for formula in "${overlaps[@]}"; do
+    users="$(brew uses --installed "$formula" 2>/dev/null || true)"
+    if [[ -n "$users" && "$FORCE_UNINSTALL" != "1" ]]; then
+      blocked+=("$formula -> used by: $(printf '%s' "$users" | tr '
+' ' ')")
+    else
+      removable+=("$formula")
+    fi
+  done
+
+  if [[ "${#blocked[@]}" -gt 0 ]]; then
+    log_warn "Some overlaps are Homebrew dependencies and were left installed unless MISE_FORCE_UNINSTALL_BREW_RUNTIMES=1 is set:"
+    printf '  %s
+' "${blocked[@]}"
+  fi
+
+  if [[ "$AUTO_UNINSTALL" == "1" && "${#removable[@]}" -gt 0 ]]; then
+    log_step "Uninstalling removable overlapping runtime formulas from Homebrew..."
+    if run_cmd brew uninstall "${removable[@]}"; then
       log_info "Requested Homebrew runtime uninstall complete."
     else
-      log_warn "Some formulas may remain if Homebrew reports dependency conflicts. Resolve manually with 'brew uninstall --ignore-dependencies ...' if needed."
+      log_warn "Some formulas may remain if Homebrew reports dependency conflicts. Resolve manually only after confirming dependents have alternatives."
     fi
+  elif [[ "$AUTO_UNINSTALL" == "1" ]]; then
+    log_info "No removable Homebrew runtime overlaps found."
   else
-    log_warn "No changes made. To uninstall overlaps automatically, rerun with:"
+    log_warn "No changes made. To uninstall safe leaf overlaps automatically, rerun with:"
     echo "  MISE_AUTO_UNINSTALL_BREW_RUNTIMES=1 DOTFILES_DRY_RUN=$DOTFILES_DRY_RUN $DOTFILES_DIR/scripts/migrate-to-mise.sh"
   fi
 

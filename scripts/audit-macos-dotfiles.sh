@@ -84,6 +84,25 @@ check_ghostty_policy() {
   )
 
   for line in "${required[@]}"; do
+    if [[ "$line" == 'shell-integration-features = cursor,sudo,title,ssh-env' ]]; then
+      local feature_line features required_features feature missing_features=()
+      feature_line="$(grep -E '^shell-integration-features[[:space:]]*=' "$cfg" | head -n1 || true)"
+      features="${feature_line#*=}"
+      features="${features//[[:space:]]/}"
+      required_features="cursor sudo title ssh-env"
+      for feature in $required_features; do
+        if [[ ",$features," != *",$feature,"* ]]; then
+          missing_features+=("$feature")
+        fi
+      done
+      if [[ "${#missing_features[@]}" -eq 0 ]]; then
+        ok "$line"
+      else
+        warn "Missing Ghostty shell integration features: ${missing_features[*]}"
+      fi
+      continue
+    fi
+
     if grep -Fqx "$line" "$cfg"; then
       ok "$line"
     else
@@ -172,30 +191,56 @@ check_runtime_migration() {
     return 0
   fi
 
-  local installed installed_families
+  local installed
   installed="$(brew list --formula 2>/dev/null || true)"
-  installed_families="$(printf '%s\n' "$installed" | sed 's/@.*$//' | sort -u)"
 
   local overlaps=()
-  local formula
-  for formula in "${RUNTIME_FORMULAS[@]}"; do
-    if printf '%s\n' "$installed_families" | grep -Fxq "${formula%@*}"; then
-      overlaps+=("$formula")
+  local installed_formula runtime_formula installed_family runtime_family
+  while IFS= read -r installed_formula || [[ -n "$installed_formula" ]]; do
+    [[ -n "$installed_formula" ]] || continue
+    installed_family="${installed_formula%@*}"
+    for runtime_formula in "${RUNTIME_FORMULAS[@]}"; do
+      runtime_family="${runtime_formula%@*}"
+      if [[ "$installed_formula" == "$runtime_formula" || "$installed_family" == "$runtime_family" ]]; then
+        overlaps+=("$installed_formula")
+        break
+      fi
+    done
+  done <<< "$installed"
+
+  if [[ "${#overlaps[@]}" -eq 0 ]]; then
+    ok "No Homebrew runtime overlap detected (mise migration clean)"
+    return 0
+  fi
+
+  local removable=()
+  local dependency_owned=()
+  local users
+  for installed_formula in "${overlaps[@]}"; do
+    users="$(brew uses --installed "$installed_formula" 2>/dev/null || true)"
+    if [[ -n "$users" ]]; then
+      dependency_owned+=("$installed_formula")
+    else
+      removable+=("$installed_formula")
     fi
   done
 
-  if [[ "${#overlaps[@]}" -gt 0 ]]; then
-    warn "Found runtime formulas still on Homebrew: ${overlaps[*]}"
+  if [[ "${#removable[@]}" -gt 0 ]]; then
+    warn "Found removable Homebrew runtime formulas that should move to mise: ${removable[*]}"
     warn "Use scripts/migrate-to-mise.sh to reconcile package replacement"
   else
-    ok "No Homebrew runtime overlap detected (mise migration clean)"
+    ok "No removable Homebrew runtime overlap detected"
+  fi
+
+  if [[ "${#dependency_owned[@]}" -gt 0 ]]; then
+    info "Homebrew still owns dependency runtimes required by formulas: ${dependency_owned[*]}"
   fi
 }
 
 check_mcrn_ai_sdk_alignment() {
   printf '\n== MCRN AI Copilot SDK alignment ==\n'
 
-  local helper="$REPO_ROOT/zsh/plugins/mcrn-ai/copilot-helper.mjs"
+  local helper="$REPO_ROOT/zsh/plugins/mcrn-ai/lib/copilot-helper.mjs"
   local package_json="$REPO_ROOT/zsh/plugins/mcrn-ai/package.json"
 
   if grep -Fq 'mode: "append"' "$helper"; then

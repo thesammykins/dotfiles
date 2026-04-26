@@ -135,6 +135,56 @@ PY
 	printf '%s\n' "$quote" | fold -s -w "$width"
 }
 
+print_hermes_profiles() {
+	local total_width
+	local panel_width
+	local inner_width
+	local top_border
+	local bottom_border
+	local header_fill
+	local line
+	local padding
+	local profiles=(
+		"sentinel   :: SRE / observability / production health"
+		"forge      :: builder / implementation engineer"
+		"scout      :: research / QA / reconnaissance"
+		"prospector :: automation opportunity discovery"
+	)
+
+	total_width=$(get_terminal_width)
+	panel_width=$((total_width - 2))
+	if ((panel_width > 92)); then
+		panel_width=92
+	fi
+	if ((panel_width < 56)); then
+		panel_width=56
+	fi
+
+	inner_width=$((panel_width - 2))
+	top_border="┌$(repeat_char "─" $((panel_width - 2)))┐"
+	bottom_border="└$(repeat_char "─" $((panel_width - 2)))┘"
+	header_fill=$(repeat_char "═" $((inner_width - 26)))
+
+	echo -e "${HOLOMAP}${top_border}${RESET}"
+	echo -e "${HOLOMAP}│${RESET}${BOLD}${PDC_AMBER}[HERMES PROFILE ROSTER]${RESET}${HOLOMAP}${header_fill}│${RESET}"
+	echo -e "${HOLOMAP}├$(repeat_char "─" $((panel_width - 2)))┤${RESET}"
+	for line in "${profiles[@]}"; do
+		padding=$((inner_width - 3 - ${#line}))
+		if ((padding < 0)); then
+			padding=0
+		fi
+		echo -e "${HOLOMAP}│${RESET} ${RUST_ORANGE}› ${line}$(repeat_char " " "$padding")${RESET}${HOLOMAP}│${RESET}"
+	done
+	line="quick launch: sentinel | forge | scout | prospector"
+	padding=$((inner_width - 3 - ${#line}))
+	if ((padding < 0)); then
+		padding=0
+	fi
+	echo -e "${HOLOMAP}├$(repeat_char "─" $((panel_width - 2)))┤${RESET}"
+	echo -e "${HOLOMAP}│${RESET} ${STARLIGHT}» ${line}$(repeat_char " " "$padding")${RESET}${HOLOMAP}│${RESET}"
+	echo -e "${HOLOMAP}${bottom_border}${RESET}\n"
+}
+
 print_quote_banner() {
 	local total_width
 	local panel_width
@@ -203,6 +253,7 @@ main() {
 		fastfetch --config ~/.config/fastfetch/config.jsonc 2>/dev/null || true
 	fi
 
+	print_hermes_profiles
 	print_quote_banner
 
 	# Update display timestamp

@@ -159,7 +159,7 @@ starlight = "#eaeaea"      # White
 - Keep helper imports safe for tests; do not auto-run the helper on module import.
 
 **Known SDK Gotcha**:
-- `@github/copilot-sdk` on Node 24/25 currently needs a post-install patch for the `vscode-jsonrpc/node` import path. Preserve `zsh/plugins/mcrn-ai/patch-copilot-sdk.mjs` and the installer/test hooks that call it unless upstream fully resolves the issue.
+- `@github/copilot-sdk` on Node 24/25 currently needs a post-install patch for the `vscode-jsonrpc/node` import path. Preserve `zsh/plugins/mcrn-ai/scripts/patch-copilot-sdk.mjs` and the installer/test hooks that call it unless upstream fully resolves the issue.
 
 ---
 

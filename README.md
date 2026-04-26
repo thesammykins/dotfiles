@@ -51,7 +51,7 @@ DOTFILES_DRY_RUN=1 DOTFILES_LINK_MODE=migrate \
 
 ## Brewfile Tiers
 - `Brewfile`: base shell, terminal, CLI, auth, and Tailscale baseline.
-- `Brewfile.dev`: developer machine additions such as `mise`, `opencode`, `varlock`, validation tools, and `orbstack`.
+- `Brewfile.dev`: developer machine additions such as `mise`, `varlock`, validation tools, and `orbstack`.
 - `Brewfile.workstation`: daily GUI apps for this personal workstation setup (`zed`, `raycast`, `beeper`, `vesktop`, `opencode-desktop`, `QuickDrop`).
 
 ## 1Password And Varlock
@@ -60,6 +60,8 @@ DOTFILES_DRY_RUN=1 DOTFILES_LINK_MODE=migrate \
 - The current baseline maps `CONTEXT7_API_KEY`, `ZAI_API_KEY`, `TF_TOKEN_app_terraform_io`, and `NPM_TOKEN` from `op://ENV/...` references.
 - Use `vopencode` for interactive OpenCode sessions and `vrun <command>` for other commands that need the same env set.
 - Local consumers should prefer env substitution like `{env:CONTEXT7_API_KEY}` or `${NPM_TOKEN}` over hardcoded values.
+- `vopencode` now prefers fast startup by default. If you need on-demand Context7 env injection for a session, run `MCRN_OPENCODE_RESOLVE_CONTEXT7=1 vopencode`.
+- `vopencode` now also supports optional server attach mode for faster warm starts (`MCRN_OPENCODE_SERVER_MODE=1`, default). Disable with `MCRN_OPENCODE_SERVER_MODE=0`.
 
 ```bash
 vopencode
