@@ -1,18 +1,14 @@
 # Developer-machine additions.
 # Install with:
-#   DOTFILES_INSTALL_DEV=1 ~/.dotfiles/scripts/install.sh
+#   DOTFILES_INSTALL_DEV=1 ~/Development/dotfiles/scripts/install.sh
 
-# Toolchain and validation
-# Fast-moving dev CLIs such as opencode/pnpm/uv are pinned in mise, not Homebrew.
 brew "bats-core"
-brew "copilot-cli"
+brew "carapace"
 brew "mise"
+brew "opencode"
 brew "shellcheck"
 brew "shfmt"
 brew "varlock"
 
-# Universal completions
-brew "carapace"
-
-# Local containers
+cask "codex"
 cask "orbstack"
