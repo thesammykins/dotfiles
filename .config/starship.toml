@@ -1,252 +1,69 @@
-# Starship Configuration - Rocinante Bridge Theme (The Expanse)
-# MCRN Tactical OS Prompt (Warp-like)
-
-# ============================================================================
-# GENERAL SETTINGS
-# ============================================================================
-add_newline = false
+add_newline = true
 command_timeout = 500
 scan_timeout = 10
-palette = "mcrn"
 
-# ============================================================================
-# FORMAT - Sharp Powerline Tactical Readout
-# ============================================================================
-format = """
-$directory$git_branch$git_status${custom.stack_git}${custom.stack_plain}
-$cmd_duration$character"""
+format = "$directory$git_branch$git_status$cmd_duration$python$nodejs$rust$golang$terraform$docker_context$line_break$character"
 
-right_format = "${env_var.GHOSTLINE_PROMPT_STATUS}"
-
-[palettes.mcrn]
-carbon = "#1a0b0c"
-hull_breach = "#ff2929"
-drive_plume = "#b04c2a"
-warning = "#ffd34e"
-holomap = "#c47a40"
-sensor_ghost = "#994444"
-ice = "#ffd34e"
-starlight = "#eaeaea"
-
-# ============================================================================
-# MODULES - MCRN Color Scheme
-# ============================================================================
 [character]
-success_symbol = "[❯](fg:warning bold)"
-error_symbol = "[❯](fg:hull_breach bold)"
-vimcmd_symbol = "[❮](fg:drive_plume bold)"
+success_symbol = "[>](bold green)"
+error_symbol = "[>](bold red)"
+vimcmd_symbol = "[<](bold yellow)"
 
 [directory]
-style = "fg:carbon bg:warning bold"
-format = "[](fg:warning)[ 󰉋 $path ]($style)[$read_only]($read_only_style)"
-truncation_length = 4
-truncation_symbol = "…/"
-read_only = " 󰌾 "
-read_only_style = "fg:hull_breach bg:warning bold"
-home_symbol = "~"
-truncate_to_repo = false
-use_os_path_sep = true
-
-[directory.substitutions]
-"Development" = "Dev"
-"Code" = "Code"
-"Projects" = "Proj"
+format = "[$path]($style) "
+style = "bold blue"
+truncation_length = 3
+truncation_symbol = ".../"
+truncate_to_repo = true
+read_only = " ro"
 
 [git_branch]
-symbol = ""
-style = "fg:carbon bg:holomap bold"
-format = "[](fg:warning bg:holomap)[  $branch ]($style)"
-truncation_length = 20
+format = "[$symbol$branch]($style) "
+style = "purple"
+symbol = "git:"
+truncation_length = 28
 truncation_symbol = "..."
 
 [git_status]
-style = "fg:carbon bg:holomap bold"
-format = '[ $all_status$ahead_behind  ]($style)'
-conflicted = " "
-ahead = " ⇡"
-behind = " ⇣"
-diverged = " ⇕"
-untracked = " "
-stashed = " "
-modified = " "
-staged = " "
-renamed = " "
-deleted = " "
-up_to_date = ""
+format = "([$all_status$ahead_behind]($style) )"
+style = "yellow"
 
 [cmd_duration]
+format = "[$duration]($style) "
 min_time = 1000
-format = "[ $duration](fg:sensor_ghost bold) "
-show_milliseconds = false
-show_notifications = false
+style = "dimmed white"
 
-[env_var.GHOSTLINE_PROMPT_STATUS]
-variable = "GHOSTLINE_PROMPT_STATUS"
-format = "[](fg:sensor_ghost)[ $env_value ](fg:warning bg:sensor_ghost bold)"
-default = " idle"
-
-[custom.stack_git]
-description = "Project stack segment inside git repos"
-shell = ["zsh", "-f"]
-use_stdin = true
-when = '''
-git rev-parse --is-inside-work-tree >/dev/null 2>&1 &&
-[[ -f package.json || -f .node-version || -f .nvmrc || \
-   -f pyproject.toml || -f requirements.txt || -f Pipfile || -f setup.py || -n "$VIRTUAL_ENV" || \
-   -f Cargo.toml || -f go.mod || -f Gemfile || -f composer.json || \
-   -f pom.xml || -f build.gradle || -f build.gradle.kts || \
-   -f Dockerfile || -f docker-compose.yml || -f docker-compose.yaml || -f compose.yml || -f compose.yaml || \
-   -f .terraform.lock.hcl || -d .terraform ]]
-'''
-command = '''
-parts=()
-[[ -f package.json || -f .node-version || -f .nvmrc ]] && parts+=("")
-[[ -f pyproject.toml || -f requirements.txt || -f Pipfile || -f setup.py || -n "$VIRTUAL_ENV" ]] && parts+=("")
-[[ -f Cargo.toml ]] && parts+=("")
-[[ -f go.mod ]] && parts+=("")
-[[ -f Gemfile ]] && parts+=("")
-[[ -f composer.json ]] && parts+=("")
-[[ -f pom.xml || -f build.gradle || -f build.gradle.kts ]] && parts+=("")
-[[ -f build.gradle.kts ]] && parts+=("")
-[[ -f Dockerfile || -f docker-compose.yml || -f docker-compose.yaml || -f compose.yml || -f compose.yaml ]] && parts+=("")
-[[ -f .terraform.lock.hcl || -d .terraform ]] && parts+=("")
-print -r -- "${(j: :)parts}"
-'''
-format = "[](fg:holomap bg:drive_plume)[   $output   ](fg:starlight bg:drive_plume bold)"
-
-[custom.stack_plain]
-description = "Project stack segment outside git repos"
-shell = ["zsh", "-f"]
-use_stdin = true
-when = '''
-! git rev-parse --is-inside-work-tree >/dev/null 2>&1 &&
-[[ -f package.json || -f .node-version || -f .nvmrc || \
-   -f pyproject.toml || -f requirements.txt || -f Pipfile || -f setup.py || -n "$VIRTUAL_ENV" || \
-   -f Cargo.toml || -f go.mod || -f Gemfile || -f composer.json || \
-   -f pom.xml || -f build.gradle || -f build.gradle.kts || \
-   -f Dockerfile || -f docker-compose.yml || -f docker-compose.yaml || -f compose.yml || -f compose.yaml || \
-   -f .terraform.lock.hcl || -d .terraform ]]
-'''
-command = '''
-parts=()
-[[ -f package.json || -f .node-version || -f .nvmrc ]] && parts+=("")
-[[ -f pyproject.toml || -f requirements.txt || -f Pipfile || -f setup.py || -n "$VIRTUAL_ENV" ]] && parts+=("")
-[[ -f Cargo.toml ]] && parts+=("")
-[[ -f go.mod ]] && parts+=("")
-[[ -f Gemfile ]] && parts+=("")
-[[ -f composer.json ]] && parts+=("")
-[[ -f pom.xml || -f build.gradle || -f build.gradle.kts ]] && parts+=("")
-[[ -f build.gradle.kts ]] && parts+=("")
-[[ -f Dockerfile || -f docker-compose.yml || -f docker-compose.yaml || -f compose.yml || -f compose.yaml ]] && parts+=("")
-[[ -f .terraform.lock.hcl || -d .terraform ]] && parts+=("")
-print -r -- "${(j: :)parts}"
-'''
-format = "[](fg:warning bg:drive_plume)[   $output   ](fg:starlight bg:drive_plume bold)"
-
-# ============================================================================
-# LANGUAGE MODULES - Subsystems
-# ============================================================================
 [python]
-symbol = "PY"
-style = "fg:sensor_ghost"
-format = "[$symbol]($style bold) "
-pyenv_version_name = true
-pyenv_prefix = ""
-detect_files = ["*.py", "pyproject.toml", "requirements.txt", "Pipfile", "setup.py"]
+format = "[py]($style) "
+style = "yellow"
 
 [nodejs]
-symbol = "⬢"
-style = "fg:drive_plume"
-format = "[$symbol]($style bold) "
-detect_files = ["package.json", ".node-version", ".nvmrc"]
+format = "[node]($style) "
+style = "green"
 
 [rust]
-symbol = "RS"
-style = "fg:hull_breach"
-format = "[$symbol]($style bold) "
+format = "[rs]($style) "
+style = "red"
 
 [golang]
-symbol = "GO"
-style = "fg:ice"
-format = "[$symbol]($style bold) "
+format = "[go]($style) "
+style = "cyan"
 
-[ruby]
-symbol = "RB"
-style = "fg:sensor_ghost"
-format = "[$symbol]($style bold) "
+[terraform]
+format = "[tf]($style) "
+style = "purple"
 
-[java]
-symbol = "JVM"
-style = "fg:warning"
-format = "[$symbol]($style bold) "
+[docker_context]
+format = "[docker]($style) "
+style = "blue"
+only_with_files = true
+detect_files = ["docker-compose.yml", "docker-compose.yaml", "Dockerfile", "compose.yml", "compose.yaml"]
 
-[kotlin]
-symbol = "KT"
-style = "fg:holomap"
-format = "[$symbol]($style bold) "
-
-[haskell]
-symbol = "HS"
-style = "fg:holomap"
-format = "[$symbol]($style bold) "
-
-[php]
-symbol = "PHP"
-style = "fg:warning"
-format = "[$symbol]($style bold) "
-
-[lua]
-symbol = "LUA"
-style = "fg:drive_plume"
-format = "[$symbol]($style bold) "
-
-# ============================================================================
-# DISABLED MODULES
-# ============================================================================
 [username]
 disabled = true
 
 [hostname]
 disabled = true
 
-[container]
-disabled = true
-
-[shell]
-disabled = true
-
-[shlvl]
-disabled = true
-
-[sudo]
-disabled = true
-
-[jobs]
-disabled = true
-
 [package]
 disabled = true
-
-[aws]
-disabled = true
-
-[gcloud]
-disabled = true
-
-[azure]
-disabled = true
-
-[kubernetes]
-disabled = true
-
-[terraform]
-symbol = ""
-style = "fg:holomap"
-format = "[$symbol]($style bold) "
-
-[docker_context]
-symbol = "DOCKER"
-style = "fg:drive_plume"
-format = "[$symbol]($style bold) "
-only_with_files = true
-detect_files = ["docker-compose.yml", "docker-compose.yaml", "Dockerfile", "compose.yml", "compose.yaml"]

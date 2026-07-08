@@ -1,13 +1,10 @@
 # Personal workstation apps.
 # Install with:
-#   DOTFILES_INSTALL_WORKSTATION=1 ~/.dotfiles/scripts/install.sh
+#   DOTFILES_INSTALL_WORKSTATION=1 ~/Development/dotfiles/scripts/install.sh
 
-# Productivity and communication
 cask "beeper"
-cask "opencode-desktop"
 cask "raycast"
 cask "vesktop"
 cask "zed"
 
-# App Store installs
 mas "QuickDrop", id: 6740147178

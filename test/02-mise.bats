@@ -18,3 +18,8 @@ setup() {
   run grep -E '=[[:space:]]*"(latest|lts)"' "$DOTFILES_DIR/.config/mise/config.toml"
   [ "$status" -ne 0 ]
 }
+
+@test "global mise baseline stays small" {
+  run grep -E '^[[:space:]]*(java|dotnet|gradle|terraform|flyctl)[[:space:]]*=' "$DOTFILES_DIR/.config/mise/config.toml"
+  [ "$status" -ne 0 ]
+}
