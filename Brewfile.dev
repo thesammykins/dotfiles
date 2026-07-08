@@ -2,18 +2,13 @@
 # Install with:
 #   DOTFILES_INSTALL_DEV=1 ~/Development/dotfiles/scripts/install.sh
 
-# Toolchain and validation
 brew "bats-core"
-brew "copilot-cli"
+brew "carapace"
 brew "mise"
 brew "opencode"
 brew "shellcheck"
 brew "shfmt"
 brew "varlock"
+
 cask "codex"
-
-# Universal completions
-brew "carapace"
-
-# Local containers
 cask "orbstack"

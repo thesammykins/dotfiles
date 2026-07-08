@@ -1,15 +1,14 @@
-[tools]
-node = "24.14.0"
+[settings]
+task.run_auto_install = false
 
 [tasks.check]
 description = "Run dotfiles validation."
 run = "bash scripts/test.sh"
 
 [tasks.audit]
-description = "Run the macOS dotfiles audit."
+description = "Run the local dotfiles audit."
 run = "bash scripts/audit-macos-dotfiles.sh"
 
 [tasks.install-dry-run]
 description = "Preview a safe base+dev+workstation install."
 run = "DOTFILES_DRY_RUN=1 DOTFILES_LINK_MODE=safe DOTFILES_INSTALL_DEV=1 DOTFILES_INSTALL_WORKSTATION=1 bash scripts/install.sh"
-

@@ -2,11 +2,7 @@ node
 python
 python@3
 go
-openjdk
-temurin
-terraform
-gradle
-dotnet
+uv
 asdf
 fnm
 pyenv

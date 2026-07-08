@@ -1,4 +1,6 @@
-.last_motd
 .DS_Store
-zsh/plugins/mcrn-ai/node_modules/
+.zcompdump*
+.zsh_history
+.zshrc.local
+node_modules/
 .agents/skills/
