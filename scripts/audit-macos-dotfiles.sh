@@ -102,7 +102,8 @@ check_install_reliability() {
     warn "install.sh timeout check may be incompatible with macOS"
   fi
 
-  if grep -q "DOTFILES=\"\$HOME/.dotfiles\"" "$REPO_ROOT/.zshrc"; then
+  # shellcheck disable=SC2016
+  if grep -q 'DOTFILES="${DOTFILES:-$HOME/Development/dotfiles}"' "$REPO_ROOT/.zshrc"; then
     ok "DOTFILES path points to canonical repo location"
   else
     warn "DOTFILES path in .zshrc is not canonical"
@@ -264,7 +265,7 @@ pathway() {
 == Migration pathway (new + existing Macs) ==
 1) On existing Macs, run this audit first and capture output to a ticket/docs.
 2) Install base + dev + workstation bundles with safe links first:
-   DOTFILES_LINK_MODE=safe DOTFILES_INSTALL_DEV=1 DOTFILES_INSTALL_WORKSTATION=1 ~/.dotfiles/scripts/install.sh
+   DOTFILES_LINK_MODE=safe DOTFILES_INSTALL_DEV=1 DOTFILES_INSTALL_WORKSTATION=1 "$HOME/Development/dotfiles/scripts/install.sh"
 3) Install Dia manually, launch it once, then restore the saved profile if needed.
 4) Reconcile package replacement with mise using scripts/migrate-to-mise.sh.
 5) Resolve any skipped links manually, then rerun with force only if needed.

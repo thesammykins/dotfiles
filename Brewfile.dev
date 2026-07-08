@@ -1,6 +1,6 @@
 # Developer-machine additions.
 # Install with:
-#   DOTFILES_INSTALL_DEV=1 ~/.dotfiles/scripts/install.sh
+#   DOTFILES_INSTALL_DEV=1 ~/Development/dotfiles/scripts/install.sh
 
 # Toolchain and validation
 brew "bats-core"
@@ -10,6 +10,7 @@ brew "opencode"
 brew "shellcheck"
 brew "shfmt"
 brew "varlock"
+cask "codex"
 
 # Universal completions
 brew "carapace"

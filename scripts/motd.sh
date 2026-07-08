@@ -4,7 +4,7 @@
 
 set -e
 
-DOTFILES="${DOTFILES:-$HOME/.dotfiles}"
+DOTFILES="${DOTFILES:-$HOME/Development/dotfiles}"
 MOTD_FLAG="$DOTFILES/.last_motd"
 
 # MCRN Hex Palette (24-bit ANSI RGB)

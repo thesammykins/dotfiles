@@ -7,7 +7,7 @@ set -euo pipefail
 # ============================================================================
 # CONFIGURATION
 # ============================================================================
-DOTFILES_REPO="https://github.com/sammykins/dotfiles.git"
+DOTFILES_REPO="https://github.com/thesammykins/dotfiles.git"
 SCRIPT_DIR="$(cd -- "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DOTFILES_WORKTREE="${DOTFILES_WORKTREE:-$(cd -- "$SCRIPT_DIR/.." && pwd)}"
 DOTFILES_CLOUD_BACKUP="${DOTFILES_CLOUD_BACKUP:-0}"
@@ -16,6 +16,8 @@ BACKUP_DIR="${DOTFILES_BACKUP_DIR:-$HOME/.dotfiles.backup/$(date +%Y%m%d_%H%M%S)
 DOTFILES_LINK_MODE="${DOTFILES_LINK_MODE:-migrate}"
 DOTFILES_ROOT="${DOTFILES_ROOT:-$DOTFILES_WORKTREE}"
 DOTFILES_DRY_RUN="${DOTFILES_DRY_RUN:-0}"
+DOTFILES_INSTALL_BREW="${DOTFILES_INSTALL_BREW:-1}"
+DOTFILES_INSTALL_MCRN_AI_DEPS="${DOTFILES_INSTALL_MCRN_AI_DEPS:-1}"
 DOTFILES_INSTALL_DEV="${DOTFILES_INSTALL_DEV:-0}"
 DOTFILES_INSTALL_WORKSTATION="${DOTFILES_INSTALL_WORKSTATION:-0}"
 DOTFILES_APPLY_MACOS_DEFAULTS="${DOTFILES_APPLY_MACOS_DEFAULTS:-0}"
@@ -73,6 +75,11 @@ run_shell() {
 }
 
 ensure_mcrn_ai_dependencies() {
+    if [[ "$DOTFILES_INSTALL_MCRN_AI_DEPS" != "1" ]]; then
+        log_info "Skipping MCRN AI dependency install because DOTFILES_INSTALL_MCRN_AI_DEPS=$DOTFILES_INSTALL_MCRN_AI_DEPS"
+        return 0
+    fi
+
     local plugin_dir="$DOTFILES_ROOT/zsh/plugins/mcrn-ai"
     local package_json="$plugin_dir/package.json"
     local package_lock="$plugin_dir/package-lock.json"
@@ -356,6 +363,7 @@ link_dotfiles() {
     link_item "$DOTFILES_WORKTREE/.config/fastfetch/mcrn_logo.txt" "$HOME/.config/fastfetch/mcrn_logo.txt" ".config/fastfetch/mcrn_logo.txt"
     link_item "$DOTFILES_WORKTREE/.config/atuin/config.toml" "$HOME/.config/atuin/config.toml" ".config/atuin/config.toml"
     link_item "$DOTFILES_WORKTREE/.config/ghostty/config" "$HOME/Library/Application Support/com.mitchellh.ghostty/config" "Library/Application Support/com.mitchellh.ghostty/config"
+    link_item "$DOTFILES_WORKTREE/.agents/AGENTS.md" "$HOME/.agents/AGENTS.md" ".agents/AGENTS.md"
 }
 
 # ============================================================================
@@ -415,6 +423,11 @@ setup_bare_repo() {
 # INSTALL DEPENDENCIES
 # ============================================================================
 install_dependencies() {
+    if [[ "$DOTFILES_INSTALL_BREW" != "1" ]]; then
+        log_info "Skipping Homebrew bundle install because DOTFILES_INSTALL_BREW=$DOTFILES_INSTALL_BREW"
+        return 0
+    fi
+
     log_step "Installing Homebrew dependencies..."
 
     log_info "Running brew bundle..."
@@ -629,7 +642,7 @@ check_varlock() {
 
     log_warn "varlock not found"
     echo "Install the developer bundle to get varlock:"
-    echo "  DOTFILES_INSTALL_DEV=1 $HOME/.dotfiles/scripts/install.sh"
+    echo "  DOTFILES_INSTALL_DEV=1 $DOTFILES_WORKTREE/scripts/install.sh"
     echo ""
 }
 
@@ -649,7 +662,7 @@ print_post_install() {
     echo ""
     echo "2. Configure Git (if not already done):"
     echo "   gh auth login"
-    echo "   $HOME/.dotfiles/scripts/setup-git.sh"
+    echo "   $DOTFILES_WORKTREE/scripts/setup-git.sh"
     echo ""
     echo "3. Verify GitHub Copilot access in your terminal session."
     echo ""
@@ -661,7 +674,7 @@ print_post_install() {
     echo "   vopencode"
     echo ""
     echo "6. Refresh quotes weekly:"
-    echo "   $HOME/.dotfiles/scripts/refresh-quotes.sh"
+    echo "   $DOTFILES_WORKTREE/scripts/refresh-quotes.sh"
     echo ""
     echo "7. Test your setup:"
     echo "   - Press Ctrl+G and type a command description"
@@ -693,7 +706,11 @@ main() {
     check_prerequisites
     show_migration_notice
     backup_configs
-    install_homebrew
+    if [[ "$DOTFILES_INSTALL_BREW" == "1" ]]; then
+        install_homebrew
+    else
+        resolve_brew_bin >/dev/null 2>&1 || true
+    fi
     setup_bare_repo
     link_dotfiles
     install_dependencies

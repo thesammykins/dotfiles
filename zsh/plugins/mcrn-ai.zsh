@@ -1,4 +1,4 @@
-# ~/.dotfiles/zsh/plugins/mcrn-ai.zsh (repo path: ~/.dotfiles/zsh/plugins/mcrn-ai.zsh)
+# $HOME/Development/dotfiles/zsh/plugins/mcrn-ai.zsh
 # MCRN Tactical Display - Real-Time AI ZLE Widget
 # Generates shell commands from natural language without leaving the prompt.
 # Engine: Copilot SDK

@@ -4,8 +4,8 @@ setup() {
   export DOTFILES_DIR="$(cd "$(dirname "$BATS_TEST_FILENAME")/.." && pwd)"
 }
 
-@test "repo contract uses ~/.dotfiles as canonical path" {
-  run rg -n --glob '!zsh/plugins/mcrn-ai/node_modules/**' --glob '!test/05-repo-contract.bats' '\$HOME/Development/dotfiles|~/Development/dotfiles' \
+@test "repo contract uses ~/Development/dotfiles as canonical path" {
+  run rg -n --glob '!zsh/plugins/mcrn-ai/node_modules/**' --glob '!test/05-repo-contract.bats' '(\$HOME/\.dotfiles|~/\.dotfiles)(/|"|$)' \
     "$DOTFILES_DIR"
   [ "$status" -ne 0 ]
 }
@@ -21,7 +21,7 @@ setup() {
 }
 
 @test "README and AGENTS describe canonical path" {
-  run rg -n '\$HOME/\.dotfiles|~/\.dotfiles' "$DOTFILES_DIR/README.md" "$DOTFILES_DIR/AGENTS.md"
+  run rg -n '\$HOME/Development/dotfiles|~/Development/dotfiles' "$DOTFILES_DIR/README.md" "$DOTFILES_DIR/AGENTS.md"
   [ "$status" -eq 0 ]
 }
 

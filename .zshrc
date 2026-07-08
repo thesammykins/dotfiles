@@ -25,7 +25,7 @@ if command -v nvim &>/dev/null; then
 fi
 
 # Dotfiles location
-export DOTFILES="$HOME/.dotfiles"
+export DOTFILES="${DOTFILES:-$HOME/Development/dotfiles}"
 
 # Bat theme (matches MCRN warm palette)
 export BAT_THEME="ansi"
