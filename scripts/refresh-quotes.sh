@@ -4,7 +4,7 @@
 
 set -euo pipefail
 
-DOTFILES="${DOTFILES:-$HOME/.dotfiles}"
+DOTFILES="${DOTFILES:-$HOME/Development/dotfiles}"
 QUOTES_FILE="$DOTFILES/quotes/tech-quotes.json"
 CACHE_FILE="$DOTFILES/.quote_refresh_cache"
 

@@ -1,6 +1,6 @@
 # Personal workstation apps.
 # Install with:
-#   DOTFILES_INSTALL_WORKSTATION=1 ~/.dotfiles/scripts/install.sh
+#   DOTFILES_INSTALL_WORKSTATION=1 ~/Development/dotfiles/scripts/install.sh
 
 # Productivity and communication
 cask "beeper"

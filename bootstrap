@@ -122,7 +122,7 @@ script_explainer() {
             echo "Sets git user.name/email (via gh if available) and default branch name."
             ;;
         refresh-quotes.sh)
-            echo "Regenerates quotes via opencode and updates ~/.dotfiles/quotes cache."
+            echo "Regenerates quotes via opencode and updates the dotfiles quotes cache."
             ;;
         motd.sh)
             echo "Displays the daily MOTD (no persistent changes)."
