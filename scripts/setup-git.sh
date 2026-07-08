@@ -1,5 +1,5 @@
 #!/bin/bash
-# Setup Git Configuration - Run manually after bootstrap
+# Setup Git Configuration - Run manually after install
 # Configures git user.name and user.email from GitHub CLI
 
 set -e

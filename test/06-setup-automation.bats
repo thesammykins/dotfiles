@@ -18,13 +18,21 @@ setup() {
 }
 
 @test "installer exposes explicit macOS automation flags" {
-  run rg -n 'DOTFILES_APPLY_MACOS_DEFAULTS|DOTFILES_APPLY_DOCK' "$DOTFILES_DIR/scripts/install.sh" "$DOTFILES_DIR/README.md"
+  run rg -n 'DOTFILES_APPLY_MACOS_DEFAULTS' "$DOTFILES_DIR/scripts/install.sh" "$DOTFILES_DIR/README.md"
   [ "$status" -eq 0 ]
 }
 
-@test "installer uses defaults and dockutil for optional automation" {
-  run rg -n 'defaults write|dockutil --no-restart|Pictures/Screenshots' "$DOTFILES_DIR/scripts/install.sh"
+@test "installer uses defaults for optional macOS automation" {
+  run rg -n 'defaults write|Pictures/Screenshots' "$DOTFILES_DIR/scripts/install.sh"
   [ "$status" -eq 0 ]
+}
+
+@test "personal app state helpers are not part of dotfiles" {
+  run test -e "$DOTFILES_DIR/scripts/backup-dia-profile.sh" -o -e "$DOTFILES_DIR/scripts/restore-dia-profile.sh" -o -e "$DOTFILES_DIR/scripts/run-opencode.sh"
+  [ "$status" -ne 0 ]
+
+  run rg -n 'dockutil|vopencode' "$DOTFILES_DIR/scripts/install.sh" "$DOTFILES_DIR/.zshrc" "$DOTFILES_DIR/README.md"
+  [ "$status" -ne 0 ]
 }
 
 @test "unmanaged app report script exists and checks brew plus mas" {

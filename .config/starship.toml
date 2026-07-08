@@ -1,191 +1,69 @@
-# Starship Configuration - Rocinante Bridge Theme (The Expanse)
-# MCRN Tactical OS Prompt (Warp-like)
-
-# ============================================================================
-# GENERAL SETTINGS
-# ============================================================================
 add_newline = true
 command_timeout = 500
 scan_timeout = 10
-palette = "mcrn"
 
-[palettes.mcrn]
-carbon = "#1a0b0c"
-hull_breach = "#ff2929"
-drive_plume = "#b04c2a"
-warning = "#ffd34e"
-holomap = "#c47a40"
-sensor_ghost = "#994444"
-ice = "#ffd34e"
-starlight = "#eaeaea"
+format = "$directory$git_branch$git_status$cmd_duration$python$nodejs$rust$golang$terraform$docker_context$line_break$character"
 
-# ============================================================================
-# FORMAT - Tactical Readout Style (Two-Line)
-# ============================================================================
-format = """
-$directory$git_branch$git_status$cmd_duration$python$nodejs$rust$golang$ruby$java$kotlin$haskell$php$lua$terraform$docker_context
-$character"""
-
-right_format = ""
-
-# ============================================================================
-# MODULES - MCRN Color Scheme
-# ============================================================================
 [character]
-success_symbol = "[›](fg:warning)"
-error_symbol = "[›](fg:hull_breach)"
-vimcmd_symbol = "[«](fg:drive_plume)"
+success_symbol = "[>](bold green)"
+error_symbol = "[>](bold red)"
+vimcmd_symbol = "[<](bold yellow)"
 
 [directory]
-style = "fg:warning"
-format = "[$read_only]($read_only_style)[⬡ $path ]($style)"
+format = "[$path]($style) "
+style = "bold blue"
 truncation_length = 3
-truncation_symbol = "…/"
-read_only = "󰌾 "
-read_only_style = "fg:carbon"
-home_symbol = "~"
+truncation_symbol = ".../"
 truncate_to_repo = true
-before_repo_root_style = "fg:holomap"
-repo_root_style = "fg:ice bold"
-repo_root_format = "[⬡ $before_root_path]($before_repo_root_style)[$repo_root]($repo_root_style)[$path ]($style)"
-
-[directory.substitutions]
-"Development" = "Dev"
-"Code" = "Code"
-"Projects" = "Proj"
+read_only = " ro"
 
 [git_branch]
-symbol = " "
-style = "fg:holomap"
 format = "[$symbol$branch]($style) "
-truncation_length = 20
+style = "purple"
+symbol = "git:"
+truncation_length = 28
 truncation_symbol = "..."
 
 [git_status]
-style = "fg:sensor_ghost"
-format = '([$all_status$ahead_behind]($style) )'
-conflicted = " [!](fg:hull_breach)"
-ahead = " [↑](fg:sensor_ghost)"
-behind = " [↓](fg:sensor_ghost)"
-diverged = " [⇕](fg:sensor_ghost)"
-untracked = " [•](fg:warning)"
-stashed = " [*](fg:holomap)"
-modified = " [Δ](fg:hull_breach)"
-staged = " [+](fg:drive_plume)"
-renamed = " [»](fg:sensor_ghost)"
-deleted = " [✘](fg:hull_breach)"
-up_to_date = ""
+format = "([$all_status$ahead_behind]($style) )"
+style = "yellow"
 
 [cmd_duration]
+format = "[$duration]($style) "
 min_time = 1000
-format = "[T+ $duration ](fg:ice)"
-show_milliseconds = false
-show_notifications = false
+style = "dimmed white"
 
-# ============================================================================
-# LANGUAGE MODULES - Subsystems
-# ============================================================================
 [python]
-symbol = "󰌠 "
-style = "fg:sensor_ghost"
-format = "[$symbol]($style)"
-pyenv_version_name = true
-pyenv_prefix = ""
-detect_files = ["*.py", "pyproject.toml", "requirements.txt", "Pipfile", "setup.py"]
+format = "[py]($style) "
+style = "yellow"
 
 [nodejs]
-symbol = "󰎙 "
-style = "fg:drive_plume"
-format = "[$symbol]($style)"
-detect_files = ["package.json", ".node-version", ".nvmrc"]
+format = "[node]($style) "
+style = "green"
 
 [rust]
-symbol = "󱘗 "
-style = "fg:hull_breach"
-format = "[$symbol]($style)"
+format = "[rs]($style) "
+style = "red"
 
 [golang]
-symbol = "󰟓 "
-style = "fg:ice"
-format = "[$symbol]($style)"
+format = "[go]($style) "
+style = "cyan"
 
-[ruby]
-symbol = " "
-style = "fg:sensor_ghost"
-format = "[$symbol]($style)"
+[terraform]
+format = "[tf]($style) "
+style = "purple"
 
-[java]
-symbol = " "
-style = "fg:warning"
-format = "[$symbol]($style)"
+[docker_context]
+format = "[docker]($style) "
+style = "blue"
+only_with_files = true
+detect_files = ["docker-compose.yml", "docker-compose.yaml", "Dockerfile", "compose.yml", "compose.yaml"]
 
-[kotlin]
-symbol = "󰌋 "
-style = "fg:holomap"
-format = "[$symbol]($style)"
-
-[haskell]
-symbol = "λ "
-style = "fg:holomap"
-format = "[$symbol]($style)"
-
-[php]
-symbol = "󰌟 "
-style = "fg:warning"
-format = "[$symbol]($style)"
-
-[lua]
-symbol = "󰢱 "
-style = "fg:drive_plume"
-format = "[$symbol]($style)"
-
-# ============================================================================
-# DISABLED MODULES
-# ============================================================================
 [username]
 disabled = true
 
 [hostname]
 disabled = true
 
-[container]
-disabled = true
-
-[shell]
-disabled = true
-
-[shlvl]
-disabled = true
-
-[sudo]
-disabled = true
-
-[jobs]
-disabled = true
-
 [package]
 disabled = true
-
-[aws]
-disabled = true
-
-[gcloud]
-disabled = true
-
-[azure]
-disabled = true
-
-[kubernetes]
-disabled = true
-
-[terraform]
-symbol = "󱁢 "
-style = "fg:holomap"
-format = "[$symbol]($style)"
-
-[docker_context]
-symbol = "󰡨 "
-style = "fg:drive_plume"
-format = "[$symbol]($style)"
-only_with_files = true
-detect_files = ["docker-compose.yml", "docker-compose.yaml", "Dockerfile", "compose.yml", "compose.yaml"]

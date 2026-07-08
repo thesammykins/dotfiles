@@ -1,147 +1,78 @@
-# DOTFILES - MCRN Tactical Terminal
+# Dotfiles
 
-MCRN-themed dotfiles for Ghostty, zsh, Starship, OpenCode, and a Copilot-powered AI shell widget. Built for macOS. The canonical install location is `$HOME/Development/dotfiles`, with `DEV_ROOT`/`DOTFILES_WORKTREE` available for overrides.
+Small macOS dotfiles repo for shell config, Homebrew bundle tiers, a narrow
+global `mise` runtime baseline, and shared agent instructions.
 
-## Highlights
-
-- Ghostty with an MCRN palette, shell integration, native macOS titlebar, and inherited working directory.
-- Zsh with fast completions, modern CLI defaults, and local overrides in `~/.zshrc.local`.
-- Two-line Starship prompt with repo-aware path styling.
-- Reproducible runtime management via pinned `mise` versions.
-- Split Homebrew bundles for base machine, developer stack, and workstation apps.
-- Shared agent rules in `.agents/AGENTS.md`; skills are managed by `thesammykins/skills`.
+Fresh Mac setup starts in [`thesammykins/new-mac`](https://github.com/thesammykins/new-mac).
+This repo is the payload that `new-mac` installs.
 
 ## Quick Start
 
 ```bash
 git clone https://github.com/thesammykins/dotfiles.git "$HOME/Development/dotfiles"
-alias dotfiles='git -C "$HOME/Development/dotfiles"'
-"$HOME/Development/dotfiles/scripts/install.sh"
+bash "$HOME/Development/dotfiles/scripts/install.sh"
 exec zsh
 ```
 
-## Install Model
+## What This Repo Owns
 
-- `$HOME/Development/dotfiles` is the default repo root and source of truth.
-- The installer links tracked config files from the repo into `$HOME`.
-- Local machine-only changes belong in `~/.zshrc.local`.
-- Backups are stored under `$HOME/.dotfiles.backup/`.
-- Fresh-machine orchestration belongs in `thesammykins/new-mac`.
+- `.zshrc` and `.zprofile`
+- `.config/starship.toml`
+- `.config/mise/config.toml`
+- `.config/atuin/config.toml`
+- `.config/varlock/.env.schema`
+- `.agents/AGENTS.md` and `.agents/GEMINI.md`
+- `Brewfile`, `Brewfile.dev`, and `Brewfile.workstation`
 
-## Optional Flags
+It intentionally does not own terminal-app themes, generated AI widgets, local
+browser profiles, secrets, or installed agent skills.
 
-- `DOTFILES_WORKTREE=/path/to/dotfiles`: override the repo checkout path.
+## Install Flags
+
+- `DOTFILES_WORKTREE=/path/to/dotfiles`: override the checkout path.
 - `DOTFILES_LINK_MODE=migrate|safe|force`: choose how existing files are handled. Default: `migrate`.
-- `DOTFILES_DRY_RUN=1`: preview filesystem, Brew, and `mise` actions.
-- `DOTFILES_INSTALL_BREW=0`: link/configure dotfiles without running Homebrew bundle installs.
-- `DOTFILES_INSTALL_MCRN_AI_DEPS=0`: skip npm dependency installation for the shell AI widget.
+- `DOTFILES_DRY_RUN=1`: preview file, Brew, and `mise` actions.
+- `DOTFILES_INSTALL_BREW=0`: link config without running Homebrew.
+- `DOTFILES_INSTALL_DEV=1`: install developer tools from `Brewfile.dev`.
+- `DOTFILES_INSTALL_WORKSTATION=1`: install personal apps from `Brewfile.workstation`.
+- `DOTFILES_APPLY_MACOS_DEFAULTS=1`: apply low-risk Finder/Dock/screenshot defaults.
 - `DOTFILES_CLOUD_BACKUP=1`: copy backups to iCloud if available.
-- `DOTFILES_BACKUP_DIR=/path/to/backup`: override the backup target.
-- `DOTFILES_INSTALL_DEV=1`: also install the developer stack from `Brewfile.dev`.
-- `DOTFILES_INSTALL_WORKSTATION=1`: also install workstation apps from `Brewfile.workstation`.
-- `DOTFILES_APPLY_MACOS_DEFAULTS=1`: apply the repo's Finder, Dock recents, and screenshot defaults.
-- `DOTFILES_APPLY_DOCK=1`: apply the repo's canonical Dock layout with `dockutil`.
-
-## Dry Run
-
-```bash
-DOTFILES_DRY_RUN=1 DOTFILES_LINK_MODE=migrate \
-  "$HOME/Development/dotfiles/scripts/install.sh"
-"$HOME/Development/dotfiles/scripts/audit-macos-dotfiles.sh"
-"$HOME/Development/dotfiles/scripts/report-unmanaged-brew-apps.sh"
-```
-
-## macOS Automation
-
-- `DOTFILES_APPLY_MACOS_DEFAULTS=1` applies only low-risk settings: Finder visibility/view defaults, Dock recent-app suppression, and PNG screenshots in `~/Pictures/Screenshots`.
-- `DOTFILES_APPLY_DOCK=1` resets the Dock to the repo's small canonical app set using `dockutil`.
-- Raycast should be restored with Raycast Cloud Sync or settings export/import. Do not track `~/.config/raycast/config.json`; it contains machine auth tokens.
-- Dia is intentionally handled outside Homebrew. Install it from `diabrowser.com`, then use the Dia backup scripts in this repo to move the local profile between Macs.
-- iCloud Desktop/Documents is intentionally unmanaged here. This repo assumes cloud file sync is optional and browser migration is handled explicitly.
 
 ## Brewfile Tiers
 
-- `Brewfile`: base shell, terminal, CLI, auth, and Tailscale baseline.
-- `Brewfile.dev`: developer machine additions such as `mise`, Codex, OpenCode, `varlock`, validation tools, and `orbstack`.
-- `Brewfile.workstation`: daily GUI apps for this personal workstation setup (`zed`, `raycast`, `beeper`, `vesktop`, `opencode-desktop`, `QuickDrop`).
+- `Brewfile`: core shell, CLI, auth, and VPN tools.
+- `Brewfile.dev`: developer tools such as `mise`, Codex, OpenCode, validation tools, and OrbStack.
+- `Brewfile.workstation`: personal GUI apps.
 
-## 1Password And Varlock
+Keep these curated. Do not mirror every installed package from one Mac.
 
-- Stable env-style secrets live in the `ENV` vault in 1Password, not in tracked config or shell startup files.
-- The tracked schema lives at `.config/varlock/.env.schema` and resolves local secrets with `op read`.
-- Local consumers should prefer env substitution like `{env:CONTEXT7_API_KEY}` or `${NPM_TOKEN}` over hardcoded values.
+## Runtime Baseline
+
+Global `mise` pins are intentionally small: Node, Python, Go, and uv. Put
+project-specific tools such as Java, .NET, Gradle, Terraform, and deployment CLIs
+in the project that needs them.
+
+## Secrets
+
+Tracked files must not contain secrets. Store durable env-style secrets in
+1Password and expose them through varlock.
 
 ```bash
-vopencode
-vrun terraform plan
 vrun npm whoami
 ```
-
-## Agent Config And Skills
-
-- `.agents/AGENTS.md` is the shared global rules file for Codex, OpenCode, Gemini, and related clients.
-- `.agents/skills/` is intentionally not tracked here. Use `thesammykins/skills` plus its `skills.toml` manifest to install skills into `$HOME/.agents/skills`.
-- `thesammykins/codex-stuff` remains the Codex plugin marketplace.
-
-## Dia Backup And Restore
-
-Install Dia manually, launch it once, then use:
-
-```bash
-"$HOME/Development/dotfiles/scripts/backup-dia-profile.sh"
-"$HOME/Development/dotfiles/scripts/restore-dia-profile.sh" /path/to/dia-backup
-```
-
-- The backup script copies local Dia profile data while excluding caches and lock files.
-- Expect bookmarks, history, and settings to migrate well.
-- Expect some login state to need reauthentication because parts of Chromium auth can be keychain-backed.
-
-## Runtime Migration
-
-```bash
-DOTFILES_DRY_RUN=1 "$HOME/Development/dotfiles/scripts/migrate-to-mise.sh"
-"$HOME/Development/dotfiles/scripts/audit-macos-dotfiles.sh"
-"$HOME/Development/dotfiles/scripts/migrate-to-mise.sh"
-```
-
-- Detailed runbook: [`docs/macos-install-migration-pathway.md`](docs/macos-install-migration-pathway.md)
-- Use this before onboarding a new Mac or reconciling an existing one.
-
-## AI Command Generation
-
-Press `Ctrl+G` and type a natural language request. The buffer is replaced with a single shell command. The widget uses GitHub Copilot SDK with `gpt-5-mini` by default, and it expects the standalone `copilot` CLI to be installed via `Brewfile.dev`.
-
-- Quick model override: set `MCRN_COPILOT_MODEL` in `~/.zshrc.local`.
-- Repo default model: edit `zsh/plugins/mcrn-ai/config.json` under `model.default`.
-
-## MCRN AI Paths
-
-- Config: `$HOME/Development/dotfiles/zsh/plugins/mcrn-ai/config.json`
-- Schema: `$HOME/Development/dotfiles/zsh/plugins/mcrn-ai/config.schema.json`
-- Tools: `$HOME/Development/dotfiles/zsh/plugins/mcrn-ai/tools/index.mjs`
 
 ## Validation
 
 ```bash
 mise run check
-bash "$HOME/Development/dotfiles/scripts/test.sh"
+mise run audit
+DOTFILES_DRY_RUN=1 DOTFILES_LINK_MODE=safe DOTFILES_INSTALL_DEV=1 DOTFILES_INSTALL_WORKSTATION=1 bash scripts/install.sh
 ```
 
-## Restore
+## Repo Boundaries
 
-```bash
-"$HOME/Development/dotfiles/scripts/restore-dotfiles.sh"
-```
-
-## Troubleshooting
-
-- Ghostty config: `$HOME/.config/ghostty/config`
-- Mise config: `$HOME/.config/mise/config.toml`
-- Varlock schema: `$HOME/Development/dotfiles/.config/varlock/.env.schema`
-- Zsh config: `$HOME/.zshrc`
-- MCRN AI debug log: `/tmp/mcrn-ai-debug.log`
-
-## References
-
-- Ghostty: [ghostty.org](https://ghostty.org/)
-- MCRN theme guide: [`docs/expanse-mcrn-theme.md`](docs/expanse-mcrn-theme.md)
+- `thesammykins/new-mac`: fresh-machine orchestration and profile selection.
+- `thesammykins/dotfiles`: shell/app config and Brewfile tiers.
+- `thesammykins/skills`: local skills and upstream skill manifests.
+- `thesammykins/codex-stuff`: Codex plugin marketplace.
+- `thesammykins/brewfile`: legacy/deprecated Brewfile repo.

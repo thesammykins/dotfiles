@@ -1,15 +1,10 @@
-# ~/.config/mise/config.toml
-# Global toolchain manager configuration for MCRN Tactical Setup
+# Small global runtime baseline. Projects should declare heavier or tighter pins
+# in their own mise.toml files.
 
 [tools]
 node = "24.14.0"
 python = "3.13.12"
 go = "1.26.1"
-java = "21"
-dotnet = "10.0.201"
-terraform = "1.14.7"
-flyctl = "0.4.26"
-gradle = "9.4.1"
 uv = "0.10.12"
 
 [settings]

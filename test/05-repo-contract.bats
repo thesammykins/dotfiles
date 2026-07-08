@@ -5,8 +5,7 @@ setup() {
 }
 
 @test "repo contract uses ~/Development/dotfiles as canonical path" {
-  run rg -n --glob '!zsh/plugins/mcrn-ai/node_modules/**' --glob '!test/05-repo-contract.bats' '(\$HOME/\.dotfiles|~/\.dotfiles)(/|"|$)' \
-    "$DOTFILES_DIR"
+  run rg -n --hidden --glob '!.git/**' --glob '!test/05-repo-contract.bats' '(\$HOME/\.dotfiles|~/\.dotfiles)(/|"|$)' "$DOTFILES_DIR"
   [ "$status" -ne 0 ]
 }
 
@@ -15,35 +14,31 @@ setup() {
   [ "$status" -ne 0 ]
 }
 
-@test "Ghostty library mirror is not tracked in repo" {
-  run test -e "$DOTFILES_DIR/Library/Application Support/com.mitchellh.ghostty/config"
+@test "terminal-app themes and generated shell widgets are not tracked" {
+  run rg -n --hidden --glob '!.git/**' --glob '!test/05-repo-contract.bats' \
+    'MCRN|mcrn-ai|Ghostty|ghostty|Copilot SDK|copilot-sdk|MCRN_COPILOT|fastfetch|opencode-desktop|copilot-cli' \
+    "$DOTFILES_DIR"
   [ "$status" -ne 0 ]
 }
 
-@test "README and AGENTS describe canonical path" {
+@test "README and AGENTS describe simple ownership" {
   run rg -n '\$HOME/Development/dotfiles|~/Development/dotfiles' "$DOTFILES_DIR/README.md" "$DOTFILES_DIR/AGENTS.md"
   [ "$status" -eq 0 ]
-}
 
-@test "Copilot-only contract is documented consistently" {
-  run rg -n 'gpt-5-mini|Copilot SDK|copilot' \
-    "$DOTFILES_DIR/README.md" \
-    "$DOTFILES_DIR/AGENTS.md" \
-    "$DOTFILES_DIR/zsh/plugins/mcrn-ai/AGENTS.md" \
-    "$DOTFILES_DIR/zsh/plugins/mcrn-ai/SKILL.md"
+  run rg -n 'terminal-app themes|generated shell widgets|skills' "$DOTFILES_DIR/README.md" "$DOTFILES_DIR/AGENTS.md"
   [ "$status" -eq 0 ]
 }
 
-@test "No repo docs or scripts reference removed local model flow" {
-  run rg -n \
-    'qwen3-codersmall|llama-server|llama\\.cpp|SKIP_MODEL_DOWNLOAD|local-helper\\.sh|MCRN_AI_PROVIDER|MCRN_LLM_' \
-    "$DOTFILES_DIR/README.md" \
-    "$DOTFILES_DIR/AGENTS.md" \
-    "$DOTFILES_DIR/bootstrap" \
-    "$DOTFILES_DIR/scripts/install.sh" \
-    "$DOTFILES_DIR/Brewfile" \
-    "$DOTFILES_DIR/docs/macos-install-migration-pathway.md" \
-    "$DOTFILES_DIR/zsh/plugins/mcrn-ai/AGENTS.md" \
-    "$DOTFILES_DIR/zsh/plugins/mcrn-ai/SKILL.md"
-  [ "$status" -ne 0 ]
+@test "install contract is explicit about linked files" {
+  run rg -n 'link_item "\$DOTFILES_WORKTREE/\.zshrc"' "$DOTFILES_DIR/scripts/install.sh"
+  [ "$status" -eq 0 ]
+
+  run rg -n 'link_item "\$DOTFILES_WORKTREE/\.config/starship\.toml"' "$DOTFILES_DIR/scripts/install.sh"
+  [ "$status" -eq 0 ]
+
+  run rg -n 'link_item "\$DOTFILES_WORKTREE/\.config/mise/config\.toml"' "$DOTFILES_DIR/scripts/install.sh"
+  [ "$status" -eq 0 ]
+
+  run rg -n 'link_item "\$DOTFILES_WORKTREE/\.agents/AGENTS\.md"' "$DOTFILES_DIR/scripts/install.sh"
+  [ "$status" -eq 0 ]
 }
