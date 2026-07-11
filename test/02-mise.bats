@@ -19,6 +19,11 @@ setup() {
   [ "$status" -ne 0 ]
 }
 
+@test "installer trusts its managed mise config before installation" {
+  run rg -n 'mise trust.*\.config/mise/config\.toml' "$DOTFILES_DIR/scripts/install.sh"
+  [ "$status" -eq 0 ]
+}
+
 @test "global mise baseline stays small" {
   run grep -E '^[[:space:]]*(java|dotnet|gradle|terraform|flyctl)[[:space:]]*=' "$DOTFILES_DIR/.config/mise/config.toml"
   [ "$status" -ne 0 ]
