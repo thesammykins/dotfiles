@@ -117,7 +117,7 @@ main() {
   outdated_file="$WORK_DIR/outdated.txt"
 
   tracked_entries > "$tracked_file"
-  brew bundle dump --describe --force --file="$dump_file" >/dev/null
+  brew bundle dump --force --file="$dump_file" >/dev/null
   current_brew_entries "$dump_file" > "$current_file"
 
   if command -v mas >/dev/null 2>&1; then
