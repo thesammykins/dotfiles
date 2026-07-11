@@ -27,6 +27,12 @@ setup() {
   [ "$status" -eq 0 ]
 }
 
+@test "installer exposes structured backend status" {
+  run rg -n 'DOTFILES_STATUS_FILE|"linked"|"installed"|"skipped"|"outdated"|"failed"' \
+    "$DOTFILES_DIR/scripts/install.sh"
+  [ "$status" -eq 0 ]
+}
+
 @test "runtime baseline preserves the attested developer toolchain" {
   run rg -n 'rust =|bun =|deno =|aqua:pnpm/pnpm|aqua:gitleaks/gitleaks|postinstall = "corepack enable"' "$DOTFILES_DIR/.config/mise/config.toml"
   [ "$status" -eq 0 ]
