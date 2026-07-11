@@ -60,9 +60,8 @@ pathway() {
 
 == Setup pathway ==
 1. Clone thesammykins/new-mac on a fresh Mac.
-2. Run mise run plan -- --profile personal --dry-run.
-3. Let new-mac install Homebrew tiers, dotfiles, skills, and plugins.
-4. Keep machine-only edits in ~/.zshrc.local.
+2. Run ./setup.sh and choose the guided profile.
+3. Keep machine-only edits in ~/.zshrc.local.
 TXT
 }
 

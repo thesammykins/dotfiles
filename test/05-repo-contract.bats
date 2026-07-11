@@ -29,6 +29,14 @@ setup() {
   [ "$status" -eq 0 ]
 }
 
+@test "audit points users to the single guided setup" {
+  run rg -n '\./setup\.sh' "$DOTFILES_DIR/scripts/audit-macos-dotfiles.sh"
+  [ "$status" -eq 0 ]
+
+  run rg -n 'mise run plan|mise run apply' "$DOTFILES_DIR/scripts/audit-macos-dotfiles.sh"
+  [ "$status" -ne 0 ]
+}
+
 @test "install contract is explicit about linked files" {
   run rg -n 'link_item "\$DOTFILES_WORKTREE/\.zshrc"' "$DOTFILES_DIR/scripts/install.sh"
   [ "$status" -eq 0 ]
