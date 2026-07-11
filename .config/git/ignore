@@ -1,0 +1,53 @@
+# OS noise
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon?
+._*
+Thumbs.db
+
+# Editor noise
+*.swp
+*.swo
+*~
+.idea/
+.vscode/settings.json
+.vscode/.ropeproject/
+
+# Local environment and secrets
+.env
+.env.*
+!.env.example
+*.local
+*.local.*
+*.secret
+*.secrets
+secrets/
+private/
+
+# Agent local state
+.claude/settings.local.json
+.claude.local.md
+CLAUDE.local.md
+.codex/local/
+.codex/secrets/
+
+# Common dependency/build artifacts
+node_modules/
+.pnpm-store/
+.venv/
+venv/
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+target/
+.gradle/
+build/
+dist/
+.terraform/
+.terraform.lock.hcl.local
+
+# macOS and Xcode
+DerivedData/
+*.xcuserstate
+xcuserdata/

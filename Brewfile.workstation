@@ -2,9 +2,22 @@
 # Install with:
 #   DOTFILES_INSTALL_WORKSTATION=1 ~/Development/dotfiles/scripts/install.sh
 
+tap "lzhgus/tap"
+
+cask "appcleaner"
 cask "beeper"
+cask "bitwarden"
+cask "lzhgus/tap/capso"
+cask "discord"
+cask "handy"
+cask "hyperkey"
+cask "keyclu"
 cask "raycast"
+cask "stats"
+cask "the-unarchiver"
+cask "thebrowsercompany-dia"
 cask "vesktop"
+cask "warp@preview"
 cask "zed"
 
 mas "QuickDrop", id: 6740147178

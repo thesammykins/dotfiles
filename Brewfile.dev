@@ -2,13 +2,32 @@
 # Install with:
 #   DOTFILES_INSTALL_DEV=1 ~/Development/dotfiles/scripts/install.sh
 
+tap "buildkite/buildkite"
+tap "mobile-dev-inc/tap"
+
+brew "age"
+brew "asc"
 brew "bats-core"
+brew "buildkite/buildkite/bk@3"
 brew "carapace"
+brew "mobile-dev-inc/tap/maestro"
 brew "mise"
 brew "opencode"
-brew "shellcheck"
-brew "shfmt"
+brew "scrcpy"
+brew "tmux"
+brew "tree"
 brew "varlock"
+brew "watchman"
+brew "xcodegen"
+brew "xcodes"
+brew "yq"
 
+cask "android-commandlinetools"
+cask "android-platform-tools"
 cask "codex"
+cask "font-jetbrains-mono-nerd-font"
+cask "google-chrome"
 cask "orbstack"
+cask "temurin"
+
+mas "TestFlight", id: 899247664
