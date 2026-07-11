@@ -22,6 +22,7 @@ setup() {
 @test "installer trusts its managed mise config before installation" {
   run rg -n 'mise trust.*\.config/mise/config\.toml' "$DOTFILES_DIR/scripts/install.sh"
   [ "$status" -eq 0 ]
+  [ "$(printf '%s\n' "$output" | wc -l | tr -d ' ')" -eq 2 ]
 }
 
 @test "global mise baseline stays small" {

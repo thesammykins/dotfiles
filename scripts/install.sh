@@ -294,6 +294,7 @@ install_mise_tools() {
     fi
 
     run_cmd mise trust "$DOTFILES_WORKTREE/.config/mise/config.toml"
+    run_cmd mise trust "$HOME/.config/mise/config.toml"
     run_cmd env MISE_GLOBAL_CONFIG_FILE="$DOTFILES_WORKTREE/.config/mise/config.toml" mise install
 }
 
