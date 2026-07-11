@@ -13,7 +13,7 @@ setup() {
 }
 
 @test "developer Brewfile standardizes on OrbStack and OpenCode" {
-  run rg -n 'cask "orbstack"|brew "opencode"' "$DOTFILES_DIR/Brewfile.dev"
+  run rg -n 'cask "orbstack"|tap "anomalyco/tap"|brew "anomalyco/tap/opencode"' "$DOTFILES_DIR/Brewfile.dev"
   [ "$status" -eq 0 ]
 }
 

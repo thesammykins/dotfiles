@@ -2,6 +2,7 @@
 # Install with:
 #   DOTFILES_INSTALL_DEV=1 ~/Development/dotfiles/scripts/install.sh
 
+tap "anomalyco/tap"
 tap "buildkite/buildkite"
 tap "mobile-dev-inc/tap"
 
@@ -12,7 +13,7 @@ brew "buildkite/buildkite/bk@3"
 brew "carapace"
 brew "mobile-dev-inc/tap/maestro"
 brew "mise"
-brew "opencode"
+brew "anomalyco/tap/opencode"
 brew "scrcpy"
 brew "tmux"
 brew "tree"
