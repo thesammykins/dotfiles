@@ -22,6 +22,21 @@ setup() {
   [ "$status" -eq 0 ]
 }
 
+@test "installer does not upgrade Brew dependencies implicitly" {
+  run rg -n 'bundle install --no-upgrade' "$DOTFILES_DIR/scripts/install.sh"
+  [ "$status" -eq 0 ]
+}
+
+@test "runtime baseline preserves the attested developer toolchain" {
+  run rg -n 'rust =|bun =|deno =|aqua:pnpm/pnpm|aqua:gitleaks/gitleaks|postinstall = "corepack enable"' "$DOTFILES_DIR/.config/mise/config.toml"
+  [ "$status" -eq 0 ]
+}
+
+@test "brew audit reports outdated packages separately" {
+  run rg -n 'Tracked and installed but outdated|brew outdated' "$DOTFILES_DIR/scripts/report-unmanaged-brew-apps.sh"
+  [ "$status" -eq 0 ]
+}
+
 @test "installer uses defaults for optional macOS automation" {
   run rg -n 'defaults write|Pictures/Screenshots' "$DOTFILES_DIR/scripts/install.sh"
   [ "$status" -eq 0 ]

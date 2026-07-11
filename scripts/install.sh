@@ -281,7 +281,7 @@ install_brew_bundles() {
             log_warn "Missing Brewfile: $brewfile"
             continue
         }
-        run_cmd "$BREW_BIN" bundle install --file="$brewfile"
+        run_cmd "$BREW_BIN" bundle install --no-upgrade --file="$brewfile"
     done
 }
 

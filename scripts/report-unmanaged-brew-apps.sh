@@ -99,7 +99,7 @@ main() {
   require_cmd sort
 
   local tracked_file dump_file current_file current_mas_file
-  local untracked_brew_file untracked_mas_file tracked_missing_file
+  local untracked_brew_file untracked_mas_file tracked_missing_file tracked_outdated_file outdated_file
   WORK_DIR="$(mktemp -d)"
   trap cleanup EXIT
 
@@ -110,6 +110,8 @@ main() {
   untracked_brew_file="$WORK_DIR/untracked-brew.txt"
   untracked_mas_file="$WORK_DIR/untracked-mas.txt"
   tracked_missing_file="$WORK_DIR/tracked-missing.txt"
+  tracked_outdated_file="$WORK_DIR/tracked-outdated.txt"
+  outdated_file="$WORK_DIR/outdated.txt"
 
   tracked_entries > "$tracked_file"
   brew bundle dump --describe --force --file="$dump_file" >/dev/null
@@ -125,6 +127,8 @@ main() {
   comm -23 "$current_file" "$tracked_file" > "$untracked_brew_file"
   comm -23 "$current_mas_file" "$tracked_file" > "$untracked_mas_file"
   comm -23 "$tracked_file" "$current_file" > "$tracked_missing_file"
+  { brew outdated --formula; brew outdated --cask; } | awk '{print $1}' | sort -u > "$outdated_file"
+  awk -F: '/^(brew|cask):/ {print $2}' "$tracked_file" | sort -u | comm -12 - "$outdated_file" > "$tracked_outdated_file"
 
   info "Tracked source files:"
   info "  $REPO_ROOT/Brewfile"
@@ -138,6 +142,7 @@ main() {
   print_section "Installed via Homebrew bundle dump but not tracked" "$untracked_brew_file"
   print_section "Installed via mas list but not tracked" "$untracked_mas_file"
   print_section "Tracked but missing from current machine" "$tracked_missing_file"
+  print_section "Tracked and installed but outdated" "$tracked_outdated_file"
 }
 
 main "$@"
