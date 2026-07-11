@@ -7,4 +7,4 @@ run = "bash scripts/test.sh"
 
 [tasks.audit]
 description = "Run the local dotfiles audit."
-run = "bash scripts/audit-macos-dotfiles.sh"
+run = "bash scripts/audit-macos-dotfiles.sh && bash scripts/report-unmanaged-brew-apps.sh"
