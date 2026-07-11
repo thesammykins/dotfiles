@@ -46,6 +46,9 @@ parse_brewfile_entries() {
       name = line
       sub(/^[^"]*"/, "", name)
       sub(/".*$/, "", name)
+      if (kind == "brew" || kind == "cask") {
+        sub(/^.*\//, "", name)
+      }
       if (name != "") {
         printf "%s:%s\n", kind, name
       }
@@ -127,7 +130,7 @@ main() {
   comm -23 "$current_file" "$tracked_file" > "$untracked_brew_file"
   comm -23 "$current_mas_file" "$tracked_file" > "$untracked_mas_file"
   comm -23 "$tracked_file" "$current_file" > "$tracked_missing_file"
-  { brew outdated --formula; brew outdated --cask; } | awk '{print $1}' | sort -u > "$outdated_file"
+  { brew outdated --formula; brew outdated --cask; } | awk '{name = $1; sub(/^.*\//, "", name); print name}' | sort -u > "$outdated_file"
   awk -F: '/^(brew|cask):/ {print $2}' "$tracked_file" | sort -u | comm -12 - "$outdated_file" > "$tracked_outdated_file"
 
   info "Tracked source files:"
@@ -145,4 +148,6 @@ main() {
   print_section "Tracked and installed but outdated" "$tracked_outdated_file"
 }
 
-main "$@"
+if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
+  main "$@"
+fi

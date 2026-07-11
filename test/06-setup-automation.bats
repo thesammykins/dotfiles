@@ -43,6 +43,21 @@ setup() {
   [ "$status" -eq 0 ]
 }
 
+@test "brew audit normalizes tapped package names" {
+  cat > "$BATS_TEST_TMPDIR/Brewfile" <<'EOF'
+brew "anomalyco/tap/opencode"
+cask "vendor/tap/example-app"
+tap "vendor/tap"
+EOF
+
+  run bash -c 'source "$1/scripts/report-unmanaged-brew-apps.sh"; parse_brewfile_entries "$2"' _ \
+    "$DOTFILES_DIR" "$BATS_TEST_TMPDIR/Brewfile"
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"brew:opencode"* ]]
+  [[ "$output" == *"cask:example-app"* ]]
+  [[ "$output" == *"tap:vendor/tap"* ]]
+}
+
 @test "installer uses defaults for optional macOS automation" {
   run rg -n 'defaults write|Pictures/Screenshots' "$DOTFILES_DIR/scripts/install.sh"
   [ "$status" -eq 0 ]
