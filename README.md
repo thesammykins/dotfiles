@@ -21,7 +21,7 @@ outdated, and failed items.
 
 ## What this repository owns
 
-- `.zshrc`, `.zprofile`, Starship, Atuin, varlock, and mise configuration
+- `.zshrc`, `.zprofile`, Starship, Atuin, Git ignore, varlock, and mise configuration
 - `.agents/AGENTS.md` and `.agents/GEMINI.md`
 - `Brewfile`, `Brewfile.dev`, and `Brewfile.workstation`
 

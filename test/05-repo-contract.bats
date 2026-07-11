@@ -47,6 +47,9 @@ setup() {
   run rg -n 'link_item "\$DOTFILES_WORKTREE/\.config/mise/config\.toml"' "$DOTFILES_DIR/scripts/install.sh"
   [ "$status" -eq 0 ]
 
+  run rg -n 'link_item "\$DOTFILES_WORKTREE/\.config/git/ignore"' "$DOTFILES_DIR/scripts/install.sh"
+  [ "$status" -eq 0 ]
+
   run rg -n 'link_item "\$DOTFILES_WORKTREE/\.agents/AGENTS\.md"' "$DOTFILES_DIR/scripts/install.sh"
   [ "$status" -eq 0 ]
 }

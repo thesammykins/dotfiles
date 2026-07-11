@@ -17,6 +17,42 @@ setup() {
   [ "$status" -eq 0 ]
 }
 
+@test "developer Brewfile owns agent and mobile toolchains without mise duplicates" {
+  for entry in \
+    'brew "buildkite/buildkite/bk@3"' \
+    'brew "mobile-dev-inc/tap/maestro"' \
+    'brew "asc"' \
+    'brew "xcodes"' \
+    'cask "android-commandlinetools"' \
+    'cask "android-platform-tools"' \
+    'cask "temurin"' \
+    'mas "TestFlight", id: 899247664'; do
+    run rg -F -x "$entry" "$DOTFILES_DIR/Brewfile.dev"
+    [ "$status" -eq 0 ]
+  done
+
+  run rg -n 'brew "(shellcheck|shfmt)"' "$DOTFILES_DIR/Brewfile.dev"
+  [ "$status" -ne 0 ]
+}
+
+@test "workstation Brewfile owns the selected daily applications" {
+  for entry in \
+    'cask "appcleaner"' \
+    'cask "bitwarden"' \
+    'cask "lzhgus/tap/capso"' \
+    'cask "discord"' \
+    'cask "handy"' \
+    'cask "hyperkey"' \
+    'cask "keyclu"' \
+    'cask "stats"' \
+    'cask "the-unarchiver"' \
+    'cask "thebrowsercompany-dia"' \
+    'cask "warp@preview"'; do
+    run rg -F -x "$entry" "$DOTFILES_DIR/Brewfile.workstation"
+    [ "$status" -eq 0 ]
+  done
+}
+
 @test "installer exposes explicit macOS automation flags" {
   run rg -n 'DOTFILES_APPLY_MACOS_DEFAULTS' "$DOTFILES_DIR/scripts/install.sh" "$DOTFILES_DIR/README.md"
   [ "$status" -eq 0 ]
