@@ -13,8 +13,10 @@ DOTFILES_INSTALL_WORKSTATION="${DOTFILES_INSTALL_WORKSTATION:-0}"
 DOTFILES_APPLY_MACOS_DEFAULTS="${DOTFILES_APPLY_MACOS_DEFAULTS:-0}"
 DOTFILES_CLOUD_BACKUP="${DOTFILES_CLOUD_BACKUP:-0}"
 DOTFILES_BACKUP_DIR="${DOTFILES_BACKUP_DIR:-}"
+DOTFILES_STATUS_FILE="${DOTFILES_STATUS_FILE:-}"
 BACKUP_DIR="${DOTFILES_BACKUP_DIR:-$HOME/.dotfiles.backup/$(date +%Y%m%d_%H%M%S)}"
 BREW_BIN=""
+STATUS_WRITTEN=0
 
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
@@ -26,6 +28,52 @@ log_info() { echo -e "${GREEN}[INFO]${NC} $1"; }
 log_warn() { echo -e "${YELLOW}[WARN]${NC} $1"; }
 log_error() { echo -e "${RED}[ERROR]${NC} $1" >&2; }
 log_step() { echo -e "${BLUE}[STEP]${NC} $1"; }
+
+status_event() {
+    [[ -n "$DOTFILES_STATUS_FILE" ]] || return 0
+    python3 - "$DOTFILES_STATUS_FILE.events" "$1" "$2" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+path = Path(sys.argv[1])
+path.parent.mkdir(parents=True, exist_ok=True)
+with path.open("a", encoding="utf-8") as handle:
+    handle.write(json.dumps({"status": sys.argv[2], "item": sys.argv[3]}) + "\n")
+PY
+}
+
+write_status() {
+    [[ -n "$DOTFILES_STATUS_FILE" ]] || return 0
+    python3 - "$DOTFILES_STATUS_FILE.events" "$DOTFILES_STATUS_FILE" "$1" "$BACKUP_DIR" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+events_path = Path(sys.argv[1])
+output_path = Path(sys.argv[2])
+payload = {key: [] for key in ("linked", "installed", "skipped", "outdated", "failed")}
+if events_path.exists():
+    for line in events_path.read_text(encoding="utf-8").splitlines():
+        event = json.loads(line)
+        payload[event["status"]].append(event["item"])
+payload["result"] = sys.argv[3]
+payload["backup"] = sys.argv[4]
+output_path.parent.mkdir(parents=True, exist_ok=True)
+output_path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+events_path.unlink(missing_ok=True)
+PY
+    STATUS_WRITTEN=1
+}
+
+write_failed_status() {
+    local exit_status=$?
+    if [[ "$STATUS_WRITTEN" != "1" && -n "$DOTFILES_STATUS_FILE" ]]; then
+        status_event failed "dotfiles installer exited with status $exit_status"
+        write_status failed
+    fi
+    return "$exit_status"
+}
 
 fail() {
     log_error "$1"
@@ -196,6 +244,7 @@ link_item() {
 
     if [[ ! -e "$source" ]]; then
         log_warn "Source missing: $source"
+        status_event skipped "$target (source missing)"
         return 0
     fi
 
@@ -205,11 +254,13 @@ link_item() {
         current="$(readlink "$target")"
         if [[ "$current" == "$source" ]]; then
             log_info "Already linked: $target"
+            status_event skipped "$target (already linked)"
             return 0
         fi
 
         if [[ "$DOTFILES_LINK_MODE" == "safe" ]]; then
             log_warn "Link differs, skipping: $target"
+            status_event skipped "$target (safe mode)"
             return 0
         fi
 
@@ -227,6 +278,7 @@ link_item() {
     elif [[ -e "$target" ]]; then
         if [[ "$DOTFILES_LINK_MODE" == "safe" ]]; then
             log_warn "Target exists, skipping: $target"
+            status_event skipped "$target (safe mode)"
             return 0
         fi
 
@@ -241,6 +293,7 @@ link_item() {
 
     run_cmd ln -s "$source" "$target"
     log_info "Linked: $target"
+    status_event linked "$target"
 }
 
 link_dotfiles() {
@@ -282,6 +335,7 @@ install_brew_bundles() {
             continue
         }
         run_cmd "$BREW_BIN" bundle install --no-upgrade --file="$brewfile"
+        status_event installed "$brewfile"
     done
 }
 
@@ -378,6 +432,10 @@ print_post_install() {
 
 main() {
     echo "== Dotfiles Bootstrap =="
+    trap write_failed_status EXIT
+    if [[ -n "$DOTFILES_STATUS_FILE" ]]; then
+        rm -f "$DOTFILES_STATUS_FILE.events"
+    fi
 
     check_prerequisites
     backup_existing
@@ -394,6 +452,7 @@ main() {
     apply_macos_defaults
     check_optional_tools
     print_post_install
+    write_status success
 }
 
 main "$@"
