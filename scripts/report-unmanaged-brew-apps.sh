@@ -127,7 +127,12 @@ main() {
   outdated_file="$WORK_DIR/outdated.txt"
 
   tracked_entries > "$tracked_file"
-  brew bundle dump --force --file="$dump_file" >/dev/null
+  # dump probes go and cargo for packages; mise shims print errors for them in
+  # directories with no version set. Show stderr only when the dump fails.
+  if ! brew bundle dump --force --file="$dump_file" >/dev/null 2>"$WORK_DIR/dump.err"; then
+    cat "$WORK_DIR/dump.err" >&2
+    exit 1
+  fi
   current_brew_entries "$dump_file" > "$current_file"
   installed_brew_entries > "$installed_file"
 
