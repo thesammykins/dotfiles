@@ -1,28 +1,45 @@
 # Personal workstation apps.
-# Install with:
-#   DOTFILES_INSTALL_WORKSTATION=1 ~/Development/dotfiles/scripts/install.sh
+# Install with: scripts/brew-tiers.sh install core workstation
 
 tap "lzhgus/tap"
 
+brew "mole"
+
 cask "appcleaner"
+cask "aside"
 cask "bambu-studio"
 cask "beeper"
 cask "bitwarden"
 cask "lzhgus/tap/capso"
+cask "chatgpt"
 cask "claude"
+cask "clop"
 cask "cmux"
 cask "crossover"
 cask "discord"
+cask "elgato-stream-deck"
+cask "elgato-wave-link"
+cask "grandperspective"
 cask "handy"
 cask "hyperkey"
 cask "keyclu"
+cask "macpacker"
+cask "macusb"
 cask "obs"
+cask "pangolin"
 cask "raycast"
+cask "shottr"
 cask "stats"
+cask "steam"
+cask "thaw"
 cask "the-unarchiver"
 cask "thebrowsercompany-dia"
 cask "vesktop"
+cask "vorssaint"
 cask "warp@preview"
 cask "zed"
 
+mas "Infuse", id: 1136220934
+mas "KDE Connect", id: 1580245991
 mas "QuickDrop", id: 6740147178
+mas "Remote Desktop", id: 409907375

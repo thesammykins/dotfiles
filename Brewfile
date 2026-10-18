@@ -1,5 +1,5 @@
 # Core Mac baseline.
-# Run: brew bundle install --file=Brewfile
+# Every Mac except CI runners. Install with: scripts/brew-tiers.sh install core
 
 # Shell and prompt
 brew "starship"
@@ -17,6 +17,7 @@ brew "fzf"
 brew "git-delta"
 brew "jq"
 brew "ripgrep"
+brew "wget"
 brew "zoxide"
 
 # Shell history and file navigation
