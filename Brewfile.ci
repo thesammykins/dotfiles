@@ -1,0 +1,22 @@
+# CI runner Macs (e.g. devmac). Install on its own:
+#   scripts/brew-tiers.sh install ci
+#
+# Deliberately small. Release jobs never use Homebrew: RosterEase's
+# script/ci_runner_setup.sh installs a root-owned, checksum-pinned toolbelt,
+# Xcode and the Buildkite agent for the dedicated CI user (see its
+# docs/ci-runner.md). This tier only gives the owner account what it needs to
+# reach, administer and re-provision the runner.
+
+tap "buildkite/buildkite"
+
+brew "aria2"
+brew "buildkite/buildkite/bk@3"
+brew "buildkite/buildkite/buildkite-agent@3"
+brew "gh"
+brew "git"
+brew "jq"
+brew "ripgrep"
+brew "xcodes"
+
+cask "1password-cli"
+cask "tailscale-app"

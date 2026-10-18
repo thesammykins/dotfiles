@@ -1,7 +1,7 @@
 # Dotfiles
 
 Portable configuration payload for Sammy's Macs: shell and application config,
-three curated Brewfile tiers, shared mise settings, and shared agent
+four curated Brewfile tiers, shared mise settings, and shared agent
 instructions.
 
 The canonical checkout is `$HOME/Development/dotfiles`.
@@ -23,11 +23,43 @@ outdated, and failed items.
 
 - `.zshrc`, `.zprofile`, Starship, Atuin, Git ignore, varlock, and global mise settings
 - `.agents/AGENTS.md`
-- `Brewfile`, `Brewfile.dev`, and `Brewfile.workstation`
+- `Brewfile`, `Brewfile.workstation`, `Brewfile.dev`, `Brewfile.ci`, and
+  `manual-installs.txt` for apps Homebrew can't install
 
 Projects own their language runtime and package-manager versions. This repository
 does not own installed skills, Codex-managed plugin caches, secrets, browser
 profiles, or machine-specific `~/.zshrc.local` contents.
+
+## Brewfile tiers
+
+| Tier | File | For |
+| --- | --- | --- |
+| `core` | `Brewfile` | Every Mac except CI runners: shell, CLI basics, 1Password, Tailscale |
+| `workstation` | `Brewfile.workstation` | Personal apps, no developer tooling |
+| `dev` | `Brewfile.dev` | Developer tooling, layered on workstation, including the Buildkite CLI and agent |
+| `ci` | `Brewfile.ci` | CI runner Macs on their own; the runner's release toolchain comes from its project setup, not Homebrew |
+
+`scripts/brew-tiers.sh` installs any combination and removes a tier without
+touching what another kept tier still lists:
+
+```bash
+scripts/brew-tiers.sh install core workstation dev
+scripts/brew-tiers.sh uninstall dev                      # preview: become workstation-only
+scripts/brew-tiers.sh uninstall --apply dev              # do it
+scripts/brew-tiers.sh uninstall --keep none --apply ci   # retire a CI runner
+```
+
+The installer asks which tiers to install when run in a terminal. It trusts
+exactly the third-party taps the chosen Brewfiles list, because Homebrew
+refuses formulae from untrusted taps. `mise run audit` also lists apps in
+`/Applications` that no Brewfile or `manual-installs.txt` covers.
+
+## Private skills
+
+Skills with personal content live in a separate private repository,
+[`thesammykins/skills-private`](https://github.com/thesammykins/skills-private),
+installed by `new-mac` alongside the public
+[`thesammykins/skills`](https://github.com/thesammykins/skills) catalog.
 
 ## Finding shell shortcuts
 

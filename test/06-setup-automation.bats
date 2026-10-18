@@ -60,7 +60,9 @@ setup() {
 }
 
 @test "installer does not upgrade Brew dependencies implicitly" {
-  run rg -n 'bundle install --no-upgrade' "$DOTFILES_DIR/scripts/install.sh"
+  run rg -n 'brew-tiers.sh" install' "$DOTFILES_DIR/scripts/install.sh"
+  [ "$status" -eq 0 ]
+  run rg -n 'bundle install --no-upgrade' "$DOTFILES_DIR/scripts/brew-tiers.sh"
   [ "$status" -eq 0 ]
 }
 

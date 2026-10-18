@@ -10,6 +10,9 @@ DOTFILES_LINK_MODE="${DOTFILES_LINK_MODE:-migrate}"
 DOTFILES_INSTALL_BREW="${DOTFILES_INSTALL_BREW:-1}"
 DOTFILES_INSTALL_DEV="${DOTFILES_INSTALL_DEV:-0}"
 DOTFILES_INSTALL_WORKSTATION="${DOTFILES_INSTALL_WORKSTATION:-0}"
+# Comma-separated tiers (core, workstation, dev, ci). Unset: ask in an
+# interactive terminal, otherwise core plus the legacy DEV/WORKSTATION flags.
+DOTFILES_TIERS="${DOTFILES_TIERS:-}"
 DOTFILES_APPLY_MACOS_DEFAULTS="${DOTFILES_APPLY_MACOS_DEFAULTS:-0}"
 DOTFILES_CLOUD_BACKUP="${DOTFILES_CLOUD_BACKUP:-0}"
 DOTFILES_BACKUP_DIR="${DOTFILES_BACKUP_DIR:-}"
@@ -305,26 +308,27 @@ install_brew_bundles() {
 
     log_step "Installing Homebrew bundles..."
     resolve_brew_bin || fail "Homebrew is required before installing Brewfile tiers."
+    # brew-tiers.sh calls brew by name.
+    PATH="$(dirname "$BREW_BIN"):$PATH"
 
-    local brewfiles=("$DOTFILES_ROOT/Brewfile")
-    local brewfile
-
-    if [[ "$DOTFILES_INSTALL_DEV" == "1" ]]; then
-        brewfiles+=("$DOTFILES_ROOT/Brewfile.dev")
+    local tiers_list="$DOTFILES_TIERS"
+    if [[ -z "$tiers_list" ]]; then
+        if [[ -t 0 && -t 2 ]] && ! dry_run_enabled; then
+            tiers_list="$(bash "$SCRIPT_DIR/brew-tiers.sh" choose | paste -sd, -)"
+        else
+            tiers_list="core"
+            [[ "$DOTFILES_INSTALL_WORKSTATION" == "1" ]] && tiers_list+=",workstation"
+            [[ "$DOTFILES_INSTALL_DEV" == "1" ]] && tiers_list+=",dev"
+        fi
     fi
+    [[ -n "$tiers_list" ]] || { log_info "No Brewfile tiers selected."; return 0; }
 
-    if [[ "$DOTFILES_INSTALL_WORKSTATION" == "1" ]]; then
-        brewfiles+=("$DOTFILES_ROOT/Brewfile.workstation")
-    fi
-
-    for brewfile in "${brewfiles[@]}"; do
-        [[ -f "$brewfile" ]] || {
-            log_warn "Missing Brewfile: $brewfile"
-            continue
-        }
-        run_cmd "$BREW_BIN" bundle install --no-upgrade --file="$brewfile"
-        status_event installed "$brewfile"
-    done
+    local -a tiers
+    IFS=',' read -r -a tiers <<< "$tiers_list"
+    local -a flags=()
+    dry_run_enabled && flags+=(--dry-run)
+    bash "$SCRIPT_DIR/brew-tiers.sh" install "${flags[@]+"${flags[@]}"}" "${tiers[@]}"
+    status_event installed "Brewfile tiers: $tiers_list"
 }
 
 create_local_config() {
