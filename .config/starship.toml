@@ -2,7 +2,7 @@ add_newline = true
 command_timeout = 500
 scan_timeout = 10
 
-format = "$directory$git_branch$git_status$cmd_duration$python$nodejs$rust$golang$terraform$docker_context$line_break$character"
+format = "$username$hostname$directory$git_branch$git_status$python$nodejs$rust$golang$terraform$docker_context$cmd_duration$line_break$status$character"
 
 [character]
 success_symbol = "[>](bold green)"
@@ -10,17 +10,17 @@ error_symbol = "[>](bold red)"
 vimcmd_symbol = "[<](bold yellow)"
 
 [directory]
-format = "[$path]($style) "
+format = "[$path]($style)[$read_only]($read_only_style) "
 style = "bold blue"
 truncation_length = 3
 truncation_symbol = ".../"
 truncate_to_repo = true
-read_only = " ro"
+read_only = " 󰌾"
 
 [git_branch]
 format = "[$symbol$branch]($style) "
 style = "purple"
-symbol = "git:"
+symbol = " "
 truncation_length = 28
 truncation_symbol = "..."
 
@@ -34,36 +34,41 @@ min_time = 1000
 style = "dimmed white"
 
 [python]
-format = "[py]($style) "
+format = "[py $version( $virtualenv)]($style) "
 style = "yellow"
 
 [nodejs]
-format = "[node]($style) "
+format = "[node $version]($style) "
 style = "green"
 
 [rust]
-format = "[rs]($style) "
+format = "[rs $version]($style) "
 style = "red"
 
 [golang]
-format = "[go]($style) "
+format = "[go $version]($style) "
 style = "cyan"
 
 [terraform]
-format = "[tf]($style) "
+format = "[tf $version( $workspace)]($style) "
 style = "purple"
 
 [docker_context]
-format = "[docker]($style) "
+format = "[docker $context]($style) "
 style = "blue"
-only_with_files = true
+only_with_files = false
 detect_files = ["docker-compose.yml", "docker-compose.yaml", "Dockerfile", "compose.yml", "compose.yaml"]
 
 [username]
-disabled = true
+show_always = false
 
 [hostname]
-disabled = true
+ssh_only = true
+format = "[$hostname]($style) "
+
+[status]
+disabled = false
+format = "[exit $status]($style) "
 
 [package]
 disabled = true
