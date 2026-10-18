@@ -4,10 +4,13 @@
 
 tap "anomalyco/tap"
 tap "buildkite/buildkite"
+tap "cameroncooke/axe"
 tap "mobile-dev-inc/tap"
 
+brew "actionlint"
 brew "age"
 brew "asc"
+brew "cameroncooke/axe/axe"
 brew "bats-core"
 brew "buildkite/buildkite/bk@3"
 brew "carapace"
