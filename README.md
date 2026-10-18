@@ -1,7 +1,7 @@
 # Dotfiles
 
 Portable configuration payload for Sammy's Macs: shell and application config,
-three curated Brewfile tiers, the pinned global mise baseline, and shared agent
+three curated Brewfile tiers, shared mise settings, and shared agent
 instructions.
 
 The canonical checkout is `$HOME/Development/dotfiles`.
@@ -21,12 +21,24 @@ outdated, and failed items.
 
 ## What this repository owns
 
-- `.zshrc`, `.zprofile`, Starship, Atuin, Git ignore, varlock, and mise configuration
+- `.zshrc`, `.zprofile`, Starship, Atuin, Git ignore, varlock, and global mise settings
 - `.agents/AGENTS.md` and `.agents/GEMINI.md`
 - `Brewfile`, `Brewfile.dev`, and `Brewfile.workstation`
 
-It does not own installed skills, Codex-managed plugin caches, secrets, browser
+Projects own their language runtime and package-manager versions. This repository
+does not own installed skills, Codex-managed plugin caches, secrets, browser
 profiles, or machine-specific `~/.zshrc.local` contents.
+
+## Finding shell shortcuts
+
+Type `keys` (or `shortcuts`) for a compact reference of useful commands and
+terminal-specific shortcuts. Warp gets its native shortcuts; ordinary terminals
+get this setup's Zsh, Atuin, and fzf bindings. Interactive login shells show a
+one-line reminder; scripts and non-interactive shells do not.
+
+In Warp, `Cmd-P` opens the native searchable command palette. Its shortcuts can
+be remapped in Settings. In ordinary terminals, fzf's directory picker works with
+`Esc` followed by lowercase `c`, even when Option is not configured as Meta.
 
 ## Maintainer checks
 
