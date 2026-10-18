@@ -40,7 +40,7 @@ setup() {
 @test "one manifest owns every managed home path" {
   run cat "$DOTFILES_DIR/scripts/managed-paths.txt"
   [ "$status" -eq 0 ]
-  [ "$output" = $'.zshrc\n.zprofile\n.config/starship.toml\n.config/mise/config.toml\n.config/atuin/config.toml\n.config/git/ignore\n.config/git/config\n.config/git/allowed_signers\n.config/varlock/.env.schema\n.agents/AGENTS.md\n.agents/GEMINI.md' ]
+  [ "$output" = $'.zshrc\n.zprofile\n.config/starship.toml\n.config/mise/config.toml\n.config/atuin/config.toml\n.config/git/ignore\n.config/git/config\n.config/git/allowed_signers\n.config/varlock/.env.schema\n.agents/AGENTS.md' ]
 
   run rg -n 'managed-paths\.txt' "$DOTFILES_DIR/scripts/install.sh" "$DOTFILES_DIR/scripts/restore-dotfiles.sh" "$DOTFILES_DIR/scripts/audit-macos-dotfiles.sh"
   [ "$status" -eq 0 ]

@@ -394,7 +394,6 @@ print_post_install() {
     echo "Next:"
     echo "  exec zsh"
     echo "  gh auth login"
-    echo "  $DOTFILES_WORKTREE/scripts/setup-git.sh"
     echo ""
 
     if dry_run_enabled; then
