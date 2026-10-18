@@ -10,8 +10,7 @@ Installation and updates are owned by
 [`thesammykins/new-mac`](https://github.com/thesammykins/new-mac):
 
 ```bash
-cd "$HOME/Development/new-mac"
-./setup.sh
+git clone https://github.com/thesammykins/new-mac.git ~/Development/new-mac && ~/Development/new-mac/setup.sh
 ```
 
 `new-mac` invokes this repository's idempotent installer as a backend, keeps
