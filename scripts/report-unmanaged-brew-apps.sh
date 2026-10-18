@@ -60,7 +60,7 @@ parse_brewfile_entries() {
 tracked_entries() {
   local file
 
-  for file in "$REPO_ROOT/Brewfile" "$REPO_ROOT/Brewfile.dev" "$REPO_ROOT/Brewfile.workstation"; do
+  for file in "$REPO_ROOT/Brewfile" "$REPO_ROOT/Brewfile.dev" "$REPO_ROOT/Brewfile.workstation" "$REPO_ROOT/Brewfile.ci"; do
     [[ -f "$file" ]] || continue
     parse_brewfile_entries "$file"
   done | sort -u
@@ -158,11 +158,76 @@ main() {
   if [[ -f "$REPO_ROOT/Brewfile.workstation" ]]; then
     info "  $REPO_ROOT/Brewfile.workstation"
   fi
+  if [[ -f "$REPO_ROOT/Brewfile.ci" ]]; then
+    info "  $REPO_ROOT/Brewfile.ci"
+  fi
 
   print_section "Installed via Homebrew bundle dump but not tracked" "$untracked_brew_file"
   print_section "Installed via mas list but not tracked" "$untracked_mas_file"
   print_section "Tracked but missing from current machine" "$tracked_missing_file"
   print_section "Tracked and installed but outdated" "$tracked_outdated_file"
+  uncovered_apps > "$WORK_DIR/uncovered-apps.txt"
+  print_section "Apps in no Brewfile and not in manual-installs.txt" "$WORK_DIR/uncovered-apps.txt"
+}
+
+# Apps installed outside Homebrew and the App Store that manual-installs.txt
+# doesn't list. Games and Xcode copies are skipped: Steam and xcodes own them.
+uncovered_apps() {
+  python3 - "$REPO_ROOT/manual-installs.txt" <<'PY'
+import json, pathlib, plistlib, re, subprocess, sys
+listed = set()
+for line in pathlib.Path(sys.argv[1]).read_text().splitlines():
+    if line and not line.startswith("#"):
+        listed.add(line.split("\t")[1])
+brewfiles = [pathlib.Path(sys.argv[1]).parent / name for name in ("Brewfile", "Brewfile.workstation", "Brewfile.dev", "Brewfile.ci")]
+tracked = [m.group(1) for f in brewfiles if f.exists() for m in re.finditer(r'^cask "([^"]+)"', f.read_text(), re.M)]
+installed = json.loads(subprocess.run(["brew", "info", "--json=v2", "--installed"], capture_output=True, text=True, check=True).stdout)["casks"]
+listed_casks = json.loads(subprocess.run(["brew", "info", "--json=v2", "--cask", *tracked], capture_output=True, text=True).stdout or '{"casks": []}')["casks"]
+
+def cask_apps(cask):
+    # App artifacts, plus apps a pkg-based cask deletes on uninstall.
+    for artifact in cask["artifacts"]:
+        if not isinstance(artifact, dict):
+            continue
+        for app in artifact.get("app", []):
+            if isinstance(app, str):
+                yield pathlib.Path(app).name
+        for step in artifact.get("uninstall", []):
+            if isinstance(step, dict):
+                deletes = step.get("delete", [])
+                for path in [deletes] if isinstance(deletes, str) else deletes:
+                    if str(path).startswith("/Applications/") and str(path).endswith(".app"):
+                        yield pathlib.Path(path).name
+
+def cask_bundle_ids(cask):
+    # pkg-based casks name their app only by bundle id (quit/pkgutil).
+    for artifact in cask["artifacts"]:
+        for step in (artifact.get("uninstall", []) if isinstance(artifact, dict) else []):
+            if isinstance(step, dict):
+                for key in ("quit", "pkgutil"):
+                    value = step.get(key, [])
+                    yield from [value] if isinstance(value, str) else value
+
+casks = [*installed, *listed_casks]
+from_casks = {app for cask in casks for app in cask_apps(cask)}
+cask_ids = {bundle_id for cask in casks for bundle_id in cask_bundle_ids(cask)}
+
+def bundle_id(app):
+    try:
+        return plistlib.loads((app / "Contents/Info.plist").read_bytes()).get("CFBundleIdentifier")
+    except (OSError, plistlib.InvalidFileException):
+        return None
+apps = sorted(p for p in pathlib.Path("/Applications").glob("*.app"))
+for app in apps:
+    name = app.stem
+    if app.name in from_casks or name in listed or (app / "Contents/_MASReceipt").exists() or bundle_id(app) in cask_ids:
+        continue
+    if name.startswith("Xcode") or (app / "Contents/MacOS/steam_appid.txt").exists():
+        continue
+    if re.search(r"steamapps|Steam", str(app.resolve())):
+        continue
+    print(name)
+PY
 }
 
 if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then

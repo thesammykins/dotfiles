@@ -1,0 +1,31 @@
+# Apps Homebrew can't install. The audit flags any other app in /Applications
+# that no Brewfile cask or App Store entry covers.
+#
+# manual  App name (as in /Applications, without .app)  Where to get it
+# ignore  App name                                       Why it isn't tracked
+manual	Cider	Apple Music client, from cider.sh
+manual	CrossOver Preview	CodeWeavers preview build (CrossOver itself is a cask)
+manual	Hermes	Vendor download
+manual	HuddlyWarp	Huddly download
+manual	Tern	Vendor download
+manual	UHF	Vendor download
+manual	UniFi Endpoint	Ubiquiti download
+manual	VencordInstaller	Vencord download, used for Vesktop
+ignore	MacTap	One-off utility
+ignore	MicLine	One-off utility
+ignore	Sikarugir Creator	Wine wrapper builder, used ad hoc
+ignore	Trellis	Built from its own source repository
+ignore	Safari	Ships with macOS
+ignore	Claude Code URL Handler	Installed by Claude Code
+ignore	Microsoft Defender Shim	Installed by Microsoft 365
+ignore	Microsoft 365 Copilot Shim	Installed by Microsoft 365
+ignore	vanillara	Game port built from source
+ignore	vanillatd	Game port built from source
+ignore	Wine Devel	Installed by hand on purpose
+ignore	Microsoft Word	Installed with Microsoft 365
+ignore	Microsoft Excel	Installed with Microsoft 365
+ignore	Microsoft PowerPoint	Installed with Microsoft 365
+ignore	Microsoft Outlook	Installed with Microsoft 365
+ignore	Microsoft OneNote	Installed with Microsoft 365
+ignore	Microsoft Teams	Installed with Microsoft 365
+ignore	OneDrive	Installed with Microsoft 365
