@@ -1,19 +1,9 @@
-# Attested global runtime baseline from the primary Mac on 2026-07-11.
-# Projects should still declare tighter project-specific pins where needed.
-
-[tools]
-node = { version = "24.16.0", postinstall = "corepack enable" }
-python = "3.13.13"
-go = "1.26.3"
-rust = "1.95.0"
-bun = "1.3.14"
-deno = "2.8.0"
-"aqua:astral-sh/uv" = "0.11.16"
-"aqua:pnpm/pnpm" = "11.3.0"
-"aqua:koalaman/shellcheck" = "0.11.0"
-"aqua:mvdan/sh" = "3.13.1"
-"aqua:gitleaks/gitleaks" = "8.30.1"
+# Shared mise behavior plus Claude Code, the one global tool. Projects own
+# their runtime and package-manager versions; Homebrew owns host utilities.
 
 [settings]
 experimental = true
 jobs = 4
+
+[tools]
+claude = "latest"

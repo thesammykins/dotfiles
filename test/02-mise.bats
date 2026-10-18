@@ -14,18 +14,28 @@ setup() {
   [ "$status" -eq 0 ]
 }
 
-@test "mise runtimes are pinned" {
-  run grep -E '=[[:space:]]*"(latest|lts)"' "$DOTFILES_DIR/.config/mise/config.toml"
-  [ "$status" -ne 0 ]
-}
-
-@test "installer trusts its managed mise config before installation" {
-  run rg -n 'mise trust.*\.config/mise/config\.toml' "$DOTFILES_DIR/scripts/install.sh"
+# Claude Code is the one global tool: it runs outside any project, so no
+# project config can own it. Language runtimes stay project-owned.
+@test "global mise config owns settings and only the claude tool" {
+  run awk '/^\[/ { section = $0; next }
+    section == "[tools]" && NF && $0 !~ /^[[:space:]]*#/ { print $1 }' \
+    "$DOTFILES_DIR/.config/mise/config.toml"
   [ "$status" -eq 0 ]
-  [ "$(printf '%s\n' "$output" | wc -l | tr -d ' ')" -eq 2 ]
+  [ "$output" = "claude" ]
+
+  run grep -E '^\[settings\]' "$DOTFILES_DIR/.config/mise/config.toml"
+  [ "$status" -eq 0 ]
 }
 
-@test "global mise baseline stays small" {
-  run grep -E '^[[:space:]]*(java|dotnet|gradle|terraform|flyctl)[[:space:]]*=' "$DOTFILES_DIR/.config/mise/config.toml"
+@test "installer does not install a global runtime baseline" {
+  run rg -n 'MISE_GLOBAL_CONFIG_FILE|mise install' "$DOTFILES_DIR/scripts/install.sh"
   [ "$status" -ne 0 ]
+}
+
+@test "shell startup keeps host PATH entries unique when sourced twice" {
+  run env -i HOME="$BATS_TEST_TMPDIR/home" PATH="/usr/bin:/bin" DOTFILES="$DOTFILES_DIR" \
+    /bin/zsh -c 'source "$DOTFILES/.zshrc"; source "$DOTFILES/.zshrc"; print -rl -- $path'
+  [ "$status" -eq 0 ]
+  [ "$(printf '%s\n' "$output" | grep -c '^/opt/homebrew/bin$')" -eq 1 ]
+  [ "$(printf '%s\n' "$output" | grep -c '^/opt/homebrew/sbin$')" -eq 1 ]
 }

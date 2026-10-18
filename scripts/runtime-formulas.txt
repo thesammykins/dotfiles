@@ -1,9 +1,0 @@
-node
-python
-python@3
-go
-uv
-asdf
-fnm
-pyenv
-rbenv
