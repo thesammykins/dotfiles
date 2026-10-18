@@ -15,6 +15,7 @@ DOTFILES_CLOUD_BACKUP="${DOTFILES_CLOUD_BACKUP:-0}"
 DOTFILES_BACKUP_DIR="${DOTFILES_BACKUP_DIR:-}"
 DOTFILES_STATUS_FILE="${DOTFILES_STATUS_FILE:-}"
 BACKUP_DIR="${DOTFILES_BACKUP_DIR:-$HOME/.dotfiles.backup/$(date +%Y%m%d_%H%M%S)}"
+MANAGED_PATHS_FILE="$SCRIPT_DIR/managed-paths.txt"
 BREW_BIN=""
 STATUS_WRITTEN=0
 
@@ -98,10 +99,7 @@ run_cmd() {
 validate_link_mode() {
     case "$DOTFILES_LINK_MODE" in
         migrate|safe|force) ;;
-        *)
-            log_warn "Unknown DOTFILES_LINK_MODE=$DOTFILES_LINK_MODE; using migrate."
-            DOTFILES_LINK_MODE="migrate"
-            ;;
+        *) fail "Invalid DOTFILES_LINK_MODE=$DOTFILES_LINK_MODE; expected migrate, safe, or force." ;;
     esac
 }
 
@@ -170,8 +168,10 @@ install_homebrew() {
 setup_repo() {
     log_step "Checking dotfiles repository..."
 
-    if [[ -d "$DOTFILES_WORKTREE/.git" ]]; then
+    if [[ -d "$DOTFILES_WORKTREE/.git" || -f "$DOTFILES_WORKTREE/.git" ]]; then
         log_info "Repo already exists at $DOTFILES_WORKTREE"
+    elif [[ -e "$DOTFILES_WORKTREE" ]] && [[ -n "$(find "$DOTFILES_WORKTREE" -mindepth 1 -maxdepth 1 -print -quit 2>/dev/null)" ]]; then
+        fail "Dotfiles target exists but is not a Git checkout: $DOTFILES_WORKTREE"
     else
         ensure_parent_dir "$DOTFILES_WORKTREE"
         run_cmd git clone "$DOTFILES_REPO" "$DOTFILES_WORKTREE"
@@ -184,18 +184,7 @@ setup_repo() {
 
 backup_existing() {
     log_step "Backing up existing config..."
-
-    local paths=(
-        ".zshrc"
-        ".zprofile"
-        ".config/starship.toml"
-        ".config/mise/config.toml"
-        ".config/atuin/config.toml"
-        ".config/git/ignore"
-        ".config/varlock/.env.schema"
-        ".agents/AGENTS.md"
-        ".agents/GEMINI.md"
-    )
+    [[ -f "$MANAGED_PATHS_FILE" ]] || fail "Managed paths file is missing: $MANAGED_PATHS_FILE"
 
     if dry_run_enabled; then
         log_info "Would create backup directory: $BACKUP_DIR"
@@ -204,7 +193,8 @@ backup_existing() {
     fi
 
     local relative source target link_target
-    for relative in "${paths[@]}"; do
+    while IFS= read -r relative || [[ -n "$relative" ]]; do
+        [[ -n "$relative" ]] || continue
         source="$HOME/$relative"
         target="$BACKUP_DIR/$relative"
 
@@ -222,7 +212,7 @@ backup_existing() {
         else
             cp -R "$source" "$target"
         fi
-    done
+    done < "$MANAGED_PATHS_FILE"
 
     if [[ "$DOTFILES_CLOUD_BACKUP" == "1" ]]; then
         local cloud_dir="$HOME/Library/Mobile Documents/com~apple~CloudDocs/Dotfiles Backup"
@@ -300,15 +290,11 @@ link_item() {
 link_dotfiles() {
     log_step "Linking tracked config..."
 
-    link_item "$DOTFILES_WORKTREE/.zshrc" "$HOME/.zshrc" ".zshrc"
-    link_item "$DOTFILES_WORKTREE/.zprofile" "$HOME/.zprofile" ".zprofile"
-    link_item "$DOTFILES_WORKTREE/.config/starship.toml" "$HOME/.config/starship.toml" ".config/starship.toml"
-    link_item "$DOTFILES_WORKTREE/.config/mise/config.toml" "$HOME/.config/mise/config.toml" ".config/mise/config.toml"
-    link_item "$DOTFILES_WORKTREE/.config/atuin/config.toml" "$HOME/.config/atuin/config.toml" ".config/atuin/config.toml"
-    link_item "$DOTFILES_WORKTREE/.config/git/ignore" "$HOME/.config/git/ignore" ".config/git/ignore"
-    link_item "$DOTFILES_WORKTREE/.config/varlock/.env.schema" "$HOME/.config/varlock/.env.schema" ".config/varlock/.env.schema"
-    link_item "$DOTFILES_WORKTREE/.agents/AGENTS.md" "$HOME/.agents/AGENTS.md" ".agents/AGENTS.md"
-    link_item "$DOTFILES_WORKTREE/.agents/GEMINI.md" "$HOME/.agents/GEMINI.md" ".agents/GEMINI.md"
+    local relative
+    while IFS= read -r relative || [[ -n "$relative" ]]; do
+        [[ -n "$relative" ]] || continue
+        link_item "$DOTFILES_WORKTREE/$relative" "$HOME/$relative" "$relative"
+    done < "$MANAGED_PATHS_FILE"
 }
 
 install_brew_bundles() {
@@ -339,19 +325,6 @@ install_brew_bundles() {
         run_cmd "$BREW_BIN" bundle install --no-upgrade --file="$brewfile"
         status_event installed "$brewfile"
     done
-}
-
-install_mise_tools() {
-    log_step "Checking mise tools..."
-
-    if ! command -v mise >/dev/null 2>&1; then
-        log_warn "mise not installed; skipping runtime install."
-        return 0
-    fi
-
-    run_cmd mise trust "$DOTFILES_WORKTREE/.config/mise/config.toml"
-    run_cmd mise trust "$HOME/.config/mise/config.toml"
-    run_cmd env MISE_GLOBAL_CONFIG_FILE="$DOTFILES_WORKTREE/.config/mise/config.toml" mise install
 }
 
 create_local_config() {
@@ -449,7 +422,6 @@ main() {
     setup_repo
     link_dotfiles
     install_brew_bundles
-    install_mise_tools
     create_local_config
     apply_macos_defaults
     check_optional_tools

@@ -1,0 +1,11 @@
+.zshrc
+.zprofile
+.config/starship.toml
+.config/mise/config.toml
+.config/atuin/config.toml
+.config/git/ignore
+.config/git/config
+.config/git/allowed_signers
+.config/varlock/.env.schema
+.agents/AGENTS.md
+.agents/GEMINI.md

@@ -3,6 +3,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd -- "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="${DOTFILES_REPO_ROOT:-$(cd -- "$SCRIPT_DIR/.." && pwd)}"
+MANAGED_PATHS_FILE="$SCRIPT_DIR/managed-paths.txt"
 
 warn() { echo "[WARN] $*"; }
 ok() { echo "[OK]   $*"; }
@@ -23,6 +24,15 @@ check_shell_contract() {
     check_file ".zprofile"
     check_file ".config/starship.toml"
     check_file ".config/mise/config.toml"
+    check_file "scripts/managed-paths.txt"
+
+    if [[ -f "$MANAGED_PATHS_FILE" ]]; then
+        local relative
+        while IFS= read -r relative || [[ -n "$relative" ]]; do
+            [[ -n "$relative" ]] || continue
+            check_file "$relative"
+        done < "$MANAGED_PATHS_FILE"
+    fi
 
     if rg -n 'source ".*\.zshrc"' "$REPO_ROOT/.zprofile" >/dev/null 2>&1; then
         warn ".zprofile sources .zshrc; login shells may double-load shell init"
@@ -48,10 +58,15 @@ check_brewfiles() {
 check_mise() {
     printf '\n== mise ==\n'
 
-    if rg -n '=[[:space:]]*"(latest|lts)"' "$REPO_ROOT/.config/mise/config.toml" >/dev/null 2>&1; then
-        warn "mise config uses floating versions"
+    # Claude Code is the one allowed global tool; runtimes belong in projects.
+    local global_tools
+    global_tools="$(awk '/^\[/ { section = $0; next }
+        section == "[tools]" && NF && $0 !~ /^[[:space:]]*#/ { print $1 }' \
+        "$REPO_ROOT/.config/mise/config.toml" | grep -vx 'claude' || true)"
+    if [[ -n "$global_tools" ]]; then
+        warn "global mise config declares tools other than claude: ${global_tools//$'\n'/ }"
     else
-        ok "mise config appears pinned"
+        ok "global mise config contains settings and claude only"
     fi
 }
 

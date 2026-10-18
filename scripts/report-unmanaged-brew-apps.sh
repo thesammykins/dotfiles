@@ -1,5 +1,6 @@
 #!/bin/bash
 set -euo pipefail
+export HOMEBREW_NO_AUTO_UPDATE=1
 
 SCRIPT_DIR="$(cd -- "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="${DOTFILES_REPO_ROOT:-$(cd -- "$SCRIPT_DIR/.." && pwd)}"
@@ -70,9 +71,17 @@ current_brew_entries() {
   parse_brewfile_entries "$dump_file" | sort -u
 }
 
+installed_brew_entries() {
+  {
+    brew list --formula | awk '{sub(/^.*\//, "", $0); print "brew:" $0}'
+    brew list --cask | awk '{sub(/^.*\//, "", $0); print "cask:" $0}'
+    brew tap | awk '{print "tap:" $0}'
+  } | sort -u
+}
+
 current_mas_entries() {
   mas list | awk '
-    /^[0-9]+[[:space:]]+/ {
+    /^[[:space:]]*[0-9]+[[:space:]]+/ {
       id = $1
       $1 = ""
       sub(/^[[:space:]]+/, "", $0)
@@ -101,7 +110,7 @@ main() {
   require_cmd mktemp
   require_cmd sort
 
-  local tracked_file dump_file current_file current_mas_file
+  local tracked_file dump_file current_file installed_file current_mas_file
   local untracked_brew_file untracked_mas_file tracked_missing_file tracked_outdated_file outdated_file
   WORK_DIR="$(mktemp -d)"
   trap cleanup EXIT
@@ -109,6 +118,7 @@ main() {
   tracked_file="$WORK_DIR/tracked.txt"
   dump_file="$WORK_DIR/current.Brewfile"
   current_file="$WORK_DIR/current.txt"
+  installed_file="$WORK_DIR/installed.txt"
   current_mas_file="$WORK_DIR/current-mas.txt"
   untracked_brew_file="$WORK_DIR/untracked-brew.txt"
   untracked_mas_file="$WORK_DIR/untracked-mas.txt"
@@ -119,9 +129,11 @@ main() {
   tracked_entries > "$tracked_file"
   brew bundle dump --force --file="$dump_file" >/dev/null
   current_brew_entries "$dump_file" > "$current_file"
+  installed_brew_entries > "$installed_file"
 
   if command -v mas >/dev/null 2>&1; then
     current_mas_entries > "$current_mas_file"
+    sort -u "$installed_file" "$current_mas_file" -o "$installed_file"
   else
     : > "$current_mas_file"
     warn "mas not installed; skipping live App Store comparison"
@@ -129,7 +141,7 @@ main() {
 
   comm -23 "$current_file" "$tracked_file" > "$untracked_brew_file"
   comm -23 "$current_mas_file" "$tracked_file" > "$untracked_mas_file"
-  comm -23 "$tracked_file" "$current_file" > "$tracked_missing_file"
+  comm -23 "$tracked_file" "$installed_file" > "$tracked_missing_file"
   { brew outdated --formula; brew outdated --cask; } | awk '{name = $1; sub(/^.*\//, "", name); print name}' | sort -u > "$outdated_file"
   awk -F: '/^(brew|cask):/ {print $2}' "$tracked_file" | sort -u | comm -12 - "$outdated_file" > "$tracked_outdated_file"
 

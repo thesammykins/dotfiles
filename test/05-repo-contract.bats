@@ -37,19 +37,12 @@ setup() {
   [ "$status" -ne 0 ]
 }
 
-@test "install contract is explicit about linked files" {
-  run rg -n 'link_item "\$DOTFILES_WORKTREE/\.zshrc"' "$DOTFILES_DIR/scripts/install.sh"
+@test "one manifest owns every managed home path" {
+  run cat "$DOTFILES_DIR/scripts/managed-paths.txt"
   [ "$status" -eq 0 ]
+  [ "$output" = $'.zshrc\n.zprofile\n.config/starship.toml\n.config/mise/config.toml\n.config/atuin/config.toml\n.config/git/ignore\n.config/git/config\n.config/git/allowed_signers\n.config/varlock/.env.schema\n.agents/AGENTS.md\n.agents/GEMINI.md' ]
 
-  run rg -n 'link_item "\$DOTFILES_WORKTREE/\.config/starship\.toml"' "$DOTFILES_DIR/scripts/install.sh"
+  run rg -n 'managed-paths\.txt' "$DOTFILES_DIR/scripts/install.sh" "$DOTFILES_DIR/scripts/restore-dotfiles.sh" "$DOTFILES_DIR/scripts/audit-macos-dotfiles.sh"
   [ "$status" -eq 0 ]
-
-  run rg -n 'link_item "\$DOTFILES_WORKTREE/\.config/mise/config\.toml"' "$DOTFILES_DIR/scripts/install.sh"
-  [ "$status" -eq 0 ]
-
-  run rg -n 'link_item "\$DOTFILES_WORKTREE/\.config/git/ignore"' "$DOTFILES_DIR/scripts/install.sh"
-  [ "$status" -eq 0 ]
-
-  run rg -n 'link_item "\$DOTFILES_WORKTREE/\.agents/AGENTS\.md"' "$DOTFILES_DIR/scripts/install.sh"
-  [ "$status" -eq 0 ]
+  [ "$(printf '%s\n' "$output" | cut -d: -f1 | sort -u | wc -l | tr -d ' ')" -eq 3 ]
 }

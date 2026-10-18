@@ -17,8 +17,12 @@ setup() {
   [ "$status" -eq 0 ]
 }
 
-@test "developer Brewfile owns agent and mobile toolchains without mise duplicates" {
+@test "developer Brewfile owns host utilities and mobile toolchains" {
   for entry in \
+    'brew "shellcheck"' \
+    'brew "shfmt"' \
+    'brew "gitleaks"' \
+    'brew "uv"' \
     'brew "buildkite/buildkite/bk@3"' \
     'brew "mobile-dev-inc/tap/maestro"' \
     'brew "asc"' \
@@ -30,9 +34,6 @@ setup() {
     run rg -F -x "$entry" "$DOTFILES_DIR/Brewfile.dev"
     [ "$status" -eq 0 ]
   done
-
-  run rg -n 'brew "(shellcheck|shfmt)"' "$DOTFILES_DIR/Brewfile.dev"
-  [ "$status" -ne 0 ]
 }
 
 @test "workstation Brewfile owns the selected daily applications" {
@@ -69,14 +70,35 @@ setup() {
   [ "$status" -eq 0 ]
 }
 
-@test "runtime baseline preserves the attested developer toolchain" {
-  run rg -n 'rust =|bun =|deno =|aqua:pnpm/pnpm|aqua:gitleaks/gitleaks|postinstall = "corepack enable"' "$DOTFILES_DIR/.config/mise/config.toml"
-  [ "$status" -eq 0 ]
+@test "retired global runtime migration artifacts are absent" {
+  run test -e "$DOTFILES_DIR/scripts/migrate-to-mise.sh" -o -e "$DOTFILES_DIR/scripts/runtime-formulas.txt"
+  [ "$status" -ne 0 ]
 }
 
 @test "brew audit reports outdated packages separately" {
   run rg -n 'Tracked and installed but outdated|brew outdated' "$DOTFILES_DIR/scripts/report-unmanaged-brew-apps.sh"
   [ "$status" -eq 0 ]
+}
+
+@test "brew audit disables package-manager auto-update" {
+  run rg -n '^export HOMEBREW_NO_AUTO_UPDATE=1$' "$DOTFILES_DIR/scripts/report-unmanaged-brew-apps.sh"
+  [ "$status" -eq 0 ]
+}
+
+@test "brew audit checks installed state instead of bundle leaves for missing items" {
+  run bash -c '
+    source "$1/scripts/report-unmanaged-brew-apps.sh"
+    brew() {
+      case "$1:${2:-}" in
+        list:--formula) printf "%s\n" shellcheck uv ;;
+        list:--cask) printf "%s\n" orbstack ;;
+        tap:) printf "%s\n" vendor/tap ;;
+      esac
+    }
+    installed_brew_entries
+  ' _ "$DOTFILES_DIR"
+  [ "$status" -eq 0 ]
+  [[ "$output" == $'brew:shellcheck\nbrew:uv\ncask:orbstack\ntap:vendor/tap' ]]
 }
 
 @test "brew audit normalizes tapped package names" {
@@ -92,6 +114,16 @@ EOF
   [[ "$output" == *"brew:opencode"* ]]
   [[ "$output" == *"cask:example-app"* ]]
   [[ "$output" == *"tap:vendor/tap"* ]]
+}
+
+@test "brew audit accepts left-padded MAS identifiers" {
+  run bash -c '
+    source "$1/scripts/report-unmanaged-brew-apps.sh"
+    mas() { printf "    899247664  TestFlight      (4.3.1)\n"; }
+    current_mas_entries
+  ' _ "$DOTFILES_DIR"
+  [ "$status" -eq 0 ]
+  [ "$output" = $'mas:899247664\tTestFlight' ]
 }
 
 @test "installer uses defaults for optional macOS automation" {
