@@ -171,7 +171,15 @@ cmd_uninstall() {
         IFS=$'\t' read -r kind name <<< "$entry"
         case "$kind" in
             brew) run brew uninstall --formula "$name" || failed=1 ;;
-            cask) run brew uninstall --cask "$name" || failed=1 ;;
+            cask)
+                # Over SSH, removing Tailscale would end the session running
+                # this script before it finishes.
+                if [[ "$name" == tailscale-app && -n "${SSH_CONNECTION:-}" ]]; then
+                    echo "Keeping tailscale-app: this session is connected over SSH."
+                else
+                    run brew uninstall --cask "$name" || failed=1
+                fi
+                ;;
             mas) echo "App Store app $name: remove it from /Applications or run: sudo mas uninstall $name" ;;
         esac
     done

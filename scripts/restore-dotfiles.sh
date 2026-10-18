@@ -1,7 +1,10 @@
 #!/usr/bin/env bash
-set -euo pipefail
+# -E carries the ERR traps into functions, so a failure while staging still
+# reports and cleans up instead of exiting silently.
+set -Eeuo pipefail
 
 SCRIPT_DIR="$(cd -- "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd -- "$SCRIPT_DIR/.." && pwd -P)"
 MANAGED_PATHS_FILE="$SCRIPT_DIR/managed-paths.txt"
 BACKUP_DIR="$HOME/.dotfiles.backup"
 DRY_RUN=0
@@ -26,7 +29,7 @@ log_step() { echo -e "${BLUE}[STEP]${NC} $1"; }
 
 usage() {
     echo "Usage: $0 [--dry-run] [--yes] [/path/to/backup]"
-    echo "If omitted, uses the most recent backup under ~/.dotfiles.backup."
+    echo "If omitted, uses the newest backup under ~/.dotfiles.backup that holds original files."
 }
 
 parse_args() {
@@ -56,16 +59,38 @@ backup_contains_managed_item() {
     return 1
 }
 
+# True when a backup holds something other than links back into this repo.
+# Re-running the installer backs up the repo's own links, and restoring those
+# would bring back nothing.
+backup_has_originals() {
+    local root="$1" relative marker link_target
+    while IFS= read -r relative || [[ -n "$relative" ]]; do
+        [[ -n "$relative" ]] || continue
+        marker="$root/$relative.symlink"
+        if [[ -f "$marker" ]]; then
+            link_target="$(cat "$marker")"
+            [[ "$link_target" == "$REPO_ROOT"/* ]] || return 0
+        elif [[ -e "$root/$relative" || -L "$root/$relative" ]]; then
+            return 0
+        fi
+    done < "$MANAGED_PATHS_FILE"
+    return 1
+}
+
 resolve_backup_dir() {
-    local root="$BACKUP_DIR" latest
+    local root="$BACKUP_DIR" candidate
     [[ -d "$root" ]] || return 1
     if backup_contains_managed_item "$root"; then
         return 0
     fi
-    latest="$(find "$root" -mindepth 1 -maxdepth 1 -type d -print 2>/dev/null | sort -r | head -n 1)"
-    [[ -n "$latest" && -d "$latest" ]] || return 1
-    BACKUP_DIR="$latest"
-    backup_contains_managed_item "$BACKUP_DIR"
+    while IFS= read -r candidate; do
+        if backup_has_originals "$candidate"; then
+            BACKUP_DIR="$candidate"
+            return 0
+        fi
+    done < <(find "$root" -mindepth 1 -maxdepth 1 -type d -print 2>/dev/null | sort -r)
+    log_error "No backup under $root holds original files; newer backups only link back to this repo."
+    return 1
 }
 
 resolved_link_target() {

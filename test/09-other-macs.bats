@@ -1,0 +1,88 @@
+#!/usr/bin/env bats
+# Behaviour that only shows up on a Mac other than the first one: no
+# 1Password signer, no ~/.gitconfig yet, older backups, remote sessions.
+
+setup() {
+  export DOTFILES_DIR="$(cd "$(dirname "$BATS_TEST_FILENAME")/.." && pwd)"
+  export TEST_HOME="$BATS_TEST_TMPDIR/home"
+  mkdir -p "$TEST_HOME"
+}
+
+install_into_test_home() {
+  run env HOME="$TEST_HOME" DOTFILES_WORKTREE="$DOTFILES_DIR" DOTFILES_ROOT="$DOTFILES_DIR" \
+    DOTFILES_INSTALL_BREW=0 DOTFILES_APPLY_MACOS_DEFAULTS=0 DOTFILES_LINK_MODE=safe \
+    DOTFILES_GIT_SIGNER="$1" /bin/bash "$DOTFILES_DIR/scripts/install.sh"
+}
+
+@test "without the 1Password signer, git still commits (unsigned)" {
+  install_into_test_home "$BATS_TEST_TMPDIR/no-such-signer"
+  [ "$status" -eq 0 ]
+  [ ! -e "$TEST_HOME/.config/git/signing.gitconfig" ]
+
+  repo="$BATS_TEST_TMPDIR/repo"
+  git init -q "$repo"
+  run env HOME="$TEST_HOME" GIT_CONFIG_NOSYSTEM=1 git -C "$repo" commit -q --allow-empty -m test
+  [ "$status" -eq 0 ]
+  run env HOME="$TEST_HOME" GIT_CONFIG_NOSYSTEM=1 git -C "$repo" config --get commit.gpgsign
+  [ -z "$output" ]
+}
+
+@test "with the signer, commit signing is linked" {
+  signer="$BATS_TEST_TMPDIR/op-ssh-sign"
+  printf '#!/bin/sh\n' > "$signer"
+  chmod +x "$signer"
+  install_into_test_home "$signer"
+  [ "$status" -eq 0 ]
+  [ -L "$TEST_HOME/.config/git/signing.gitconfig" ]
+  run env HOME="$TEST_HOME" GIT_CONFIG_NOSYSTEM=1 git config --get commit.gpgsign
+  [ "$output" = "true" ]
+}
+
+@test "the installer's git alias goes to ~/.gitconfig, not the tracked config" {
+  before="$(git -C "$DOTFILES_DIR" hash-object .config/git/config)"
+  install_into_test_home "$BATS_TEST_TMPDIR/no-such-signer"
+  [ "$status" -eq 0 ]
+  run env HOME="$TEST_HOME" git config --file "$TEST_HOME/.gitconfig" --get alias.dotfiles
+  [ "$status" -eq 0 ]
+  [ "$(git -C "$DOTFILES_DIR" hash-object .config/git/config)" = "$before" ]
+}
+
+@test "restore without a path skips backups that only link back to the repo" {
+  root="$TEST_HOME/.dotfiles.backup"
+  mkdir -p "$root/20260101_000000" "$root/20260202_000000"
+  printf 'my original\n' > "$root/20260101_000000/.zshrc"
+  printf '%s\n' "$(cd "$DOTFILES_DIR" && pwd -P)/.zshrc" > "$root/20260202_000000/.zshrc.symlink"
+
+  run env HOME="$TEST_HOME" /bin/bash "$DOTFILES_DIR/scripts/restore-dotfiles.sh" --dry-run
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"Restore plan from $root/20260101_000000"* ]]
+}
+
+@test "restore explains a staging failure and leaves no staging files" {
+  backup="$BATS_TEST_TMPDIR/backup"
+  mkdir -p "$backup/.config/atuin"
+  printf 'restored\n' > "$backup/.zshrc"
+  printf 'unreadable\n' > "$backup/.config/atuin/config.toml"
+  chmod 000 "$backup/.config/atuin/config.toml"
+  printf 'live\n' > "$TEST_HOME/.zshrc"
+
+  run env HOME="$TEST_HOME" /bin/bash "$DOTFILES_DIR/scripts/restore-dotfiles.sh" --yes "$backup"
+  chmod 600 "$backup/.config/atuin/config.toml"
+
+  [ "$status" -ne 0 ]
+  [[ "$output" == *"Restore staging failed; no live files were changed"* ]]
+  [ "$(cat "$TEST_HOME/.zshrc")" = "live" ]
+  [ -z "$(find "$TEST_HOME" -name '*.restore-new.*')" ]
+}
+
+@test "uninstall over SSH keeps Tailscale" {
+  run env SSH_CONNECTION="10.0.0.1 1 10.0.0.2 22" /bin/bash "$DOTFILES_DIR/scripts/brew-tiers.sh" uninstall --keep none core
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"Keeping tailscale-app"* ]]
+  [[ "$output" != *"--cask tailscale-app"* ]]
+}
+
+@test "the ci tier installs delta, which the shared git config uses as its pager" {
+  run rg -F -x 'brew "git-delta"' "$DOTFILES_DIR/Brewfile.ci"
+  [ "$status" -eq 0 ]
+}

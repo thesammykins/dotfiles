@@ -13,6 +13,8 @@ DOTFILES_INSTALL_WORKSTATION="${DOTFILES_INSTALL_WORKSTATION:-0}"
 # Comma-separated tiers (core, workstation, dev, ci). Unset: ask in an
 # interactive terminal, otherwise core plus the legacy DEV/WORKSTATION flags.
 DOTFILES_TIERS="${DOTFILES_TIERS:-}"
+# Commit signing is linked only where this signer exists (not on CI runners).
+DOTFILES_GIT_SIGNER="${DOTFILES_GIT_SIGNER:-/Applications/1Password.app/Contents/MacOS/op-ssh-sign}"
 DOTFILES_APPLY_MACOS_DEFAULTS="${DOTFILES_APPLY_MACOS_DEFAULTS:-0}"
 DOTFILES_CLOUD_BACKUP="${DOTFILES_CLOUD_BACKUP:-0}"
 DOTFILES_BACKUP_DIR="${DOTFILES_BACKUP_DIR:-}"
@@ -180,8 +182,10 @@ setup_repo() {
         run_cmd git clone "$DOTFILES_REPO" "$DOTFILES_WORKTREE"
     fi
 
+    # --global would write to ~/.config/git/config, a link into this repo,
+    # when ~/.gitconfig doesn't exist yet; machine settings belong in ~/.gitconfig.
     if ! git config --global alias.dotfiles >/dev/null 2>&1; then
-        run_cmd git config --global alias.dotfiles "!git -C \"$DOTFILES_WORKTREE\""
+        run_cmd git config --file "$HOME/.gitconfig" alias.dotfiles "!git -C \"$DOTFILES_WORKTREE\""
     fi
 }
 
@@ -298,6 +302,15 @@ link_dotfiles() {
         [[ -n "$relative" ]] || continue
         link_item "$DOTFILES_WORKTREE/$relative" "$HOME/$relative" "$relative"
     done < "$MANAGED_PATHS_FILE"
+
+    # The shared git config includes signing.gitconfig; without the 1Password
+    # signer, leaving it unlinked keeps commits working (unsigned).
+    if [[ -x "$DOTFILES_GIT_SIGNER" ]]; then
+        link_item "$DOTFILES_WORKTREE/.config/git/signing.gitconfig" "$HOME/.config/git/signing.gitconfig" ".config/git/signing.gitconfig"
+    else
+        log_info "Commit signing not linked: $DOTFILES_GIT_SIGNER is missing"
+        status_event skipped ".config/git/signing.gitconfig"
+    fi
 }
 
 install_brew_bundles() {

@@ -45,8 +45,12 @@ touching what another kept tier still lists:
 scripts/brew-tiers.sh install core workstation dev
 scripts/brew-tiers.sh uninstall dev                      # preview: become workstation-only
 scripts/brew-tiers.sh uninstall --apply dev              # do it
-scripts/brew-tiers.sh uninstall --keep none --apply ci   # retire a CI runner
+scripts/brew-tiers.sh uninstall --keep core --apply ci   # retire a CI runner, keep core tools
 ```
+
+Over SSH, uninstall never removes `tailscale-app`, so a remote session isn't
+cut off. Commit signing is linked only on Macs with the 1Password app, so git
+keeps working on CI runners.
 
 The installer asks which tiers to install when run in a terminal. It trusts
 exactly the third-party taps the chosen Brewfiles list, because Homebrew

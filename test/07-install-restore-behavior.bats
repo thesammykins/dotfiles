@@ -9,7 +9,7 @@ setup() {
 run_installer() {
   run env HOME="$TEST_HOME" DOTFILES_WORKTREE="$DOTFILES_DIR" DOTFILES_ROOT="$DOTFILES_DIR" \
     DOTFILES_INSTALL_BREW=0 DOTFILES_APPLY_MACOS_DEFAULTS=0 DOTFILES_LINK_MODE="$1" \
-    bash "$DOTFILES_DIR/scripts/install.sh"
+    /bin/bash "$DOTFILES_DIR/scripts/install.sh"
 }
 
 create_faulting_mv() {
@@ -52,7 +52,7 @@ EOF
 
   run env HOME="$TEST_HOME" DOTFILES_WORKTREE="$worktree" DOTFILES_ROOT="$DOTFILES_DIR" \
     DOTFILES_DRY_RUN=1 DOTFILES_INSTALL_BREW=0 DOTFILES_LINK_MODE=safe \
-    bash "$DOTFILES_DIR/scripts/install.sh"
+    /bin/bash "$DOTFILES_DIR/scripts/install.sh"
 
   [ "$status" -eq 0 ]
   [[ "$output" == *"Repo already exists"* ]]
@@ -67,7 +67,7 @@ EOF
   printf 'live-zshrc\n' > "$TEST_HOME/.zshrc"
   printf 'live-zprofile\n' > "$TEST_HOME/.zprofile"
 
-  run env HOME="$TEST_HOME" bash "$DOTFILES_DIR/scripts/restore-dotfiles.sh" --yes "$backup"
+  run env HOME="$TEST_HOME" /bin/bash "$DOTFILES_DIR/scripts/restore-dotfiles.sh" --yes "$backup"
 
   [ "$status" -ne 0 ]
   [[ "$output" == *"symlink target does not exist"* ]]
@@ -81,11 +81,11 @@ EOF
   printf 'restored\n' > "$backup/.zshrc"
   printf 'live\n' > "$TEST_HOME/.zshrc"
 
-  run env HOME="$TEST_HOME" bash "$DOTFILES_DIR/scripts/restore-dotfiles.sh" "$backup"
+  run env HOME="$TEST_HOME" /bin/bash "$DOTFILES_DIR/scripts/restore-dotfiles.sh" "$backup"
   [ "$status" -ne 0 ]
   [[ "$output" == *"requires --yes"* ]]
 
-  run env HOME="$TEST_HOME" bash "$DOTFILES_DIR/scripts/restore-dotfiles.sh" --dry-run "$backup"
+  run env HOME="$TEST_HOME" /bin/bash "$DOTFILES_DIR/scripts/restore-dotfiles.sh" --dry-run "$backup"
   [ "$status" -eq 0 ]
   [[ "$output" == *"Would restore: .zshrc"* ]]
   [ "$(cat "$TEST_HOME/.zshrc")" = "live" ]
@@ -100,7 +100,7 @@ EOF
   mkdir -p "$TEST_HOME/.config/git"
   printf 'live ignore\n' > "$TEST_HOME/.config/git/ignore"
 
-  run env HOME="$TEST_HOME" bash "$DOTFILES_DIR/scripts/restore-dotfiles.sh" --yes "$backup"
+  run env HOME="$TEST_HOME" /bin/bash "$DOTFILES_DIR/scripts/restore-dotfiles.sh" --yes "$backup"
 
   [ "$status" -eq 0 ]
   [ "$(cat "$TEST_HOME/.zshrc")" = "restored shell" ]
@@ -116,11 +116,11 @@ EOF
   printf 'restored\n' > "$backup/.zshrc"
   printf 'live\n' > "$TEST_HOME/.zshrc"
 
-  run env HOME="$TEST_HOME" bash "$DOTFILES_DIR/scripts/restore-dotfiles.sh" --yes "$backup"
+  run env HOME="$TEST_HOME" /bin/bash "$DOTFILES_DIR/scripts/restore-dotfiles.sh" --yes "$backup"
   [ "$status" -eq 0 ]
   first_rollback="$(printf '%s\n' "$output" | sed -n 's/^.*Rollback retained at: //p' | tail -1)"
 
-  run env HOME="$TEST_HOME" bash "$DOTFILES_DIR/scripts/restore-dotfiles.sh" --yes "$backup"
+  run env HOME="$TEST_HOME" /bin/bash "$DOTFILES_DIR/scripts/restore-dotfiles.sh" --yes "$backup"
   [ "$status" -eq 0 ]
   second_rollback="$(printf '%s\n' "$output" | sed -n 's/^.*Rollback retained at: //p' | tail -1)"
 
@@ -139,7 +139,7 @@ EOF
   create_faulting_mv
 
   run env HOME="$TEST_HOME" PATH="$fake_bin:/usr/bin:/bin" RESTORE_MV_COUNT="$BATS_TEST_TMPDIR/mv-count" RESTORE_MV_FAIL_ON=4 \
-    bash "$DOTFILES_DIR/scripts/restore-dotfiles.sh" --yes "$backup"
+    /bin/bash "$DOTFILES_DIR/scripts/restore-dotfiles.sh" --yes "$backup"
 
   [ "$status" -ne 0 ]
   [[ "$output" == *"applied changes were rolled back"* ]]
@@ -155,7 +155,7 @@ EOF
   create_faulting_mv
 
   run env HOME="$TEST_HOME" PATH="$fake_bin:/usr/bin:/bin" RESTORE_MV_COUNT="$BATS_TEST_TMPDIR/mv-count" RESTORE_MV_FAIL_ON=1 \
-    bash "$DOTFILES_DIR/scripts/restore-dotfiles.sh" --yes "$backup"
+    /bin/bash "$DOTFILES_DIR/scripts/restore-dotfiles.sh" --yes "$backup"
 
   [ "$status" -ne 0 ]
   [[ "$output" == *"applied changes were rolled back"* ]]
@@ -172,7 +172,7 @@ EOF
   create_faulting_mv
 
   run env HOME="$TEST_HOME" PATH="$fake_bin:/usr/bin:/bin" RESTORE_MV_COUNT="$BATS_TEST_TMPDIR/mv-count" RESTORE_MV_FAIL_ON=3 \
-    bash "$DOTFILES_DIR/scripts/restore-dotfiles.sh" --yes "$backup"
+    /bin/bash "$DOTFILES_DIR/scripts/restore-dotfiles.sh" --yes "$backup"
 
   [ "$status" -ne 0 ]
   [[ "$output" == *"applied changes were rolled back"* ]]
@@ -190,7 +190,7 @@ EOF
   create_faulting_mv
 
   run env HOME="$TEST_HOME" PATH="$fake_bin:/usr/bin:/bin" RESTORE_MV_COUNT="$BATS_TEST_TMPDIR/mv-count" RESTORE_MV_FAIL_ON=4,5 \
-    bash "$DOTFILES_DIR/scripts/restore-dotfiles.sh" --yes "$backup"
+    /bin/bash "$DOTFILES_DIR/scripts/restore-dotfiles.sh" --yes "$backup"
 
   [ "$status" -ne 0 ]
   [[ "$output" == *"rollback is incomplete"* ]]

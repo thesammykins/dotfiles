@@ -1,0 +1,17 @@
+# Linked by scripts/install.sh only where 1Password's op-ssh-sign exists.
+[user]
+	# Public half of the "GitHub Signing" key in 1Password.
+	signingkey = ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3qM4rE37D2jHWOl3kwwatgsM7H8TCTDrXaZtdA4zlP
+
+[gpg]
+	format = ssh
+
+[gpg "ssh"]
+	program = /Applications/1Password.app/Contents/MacOS/op-ssh-sign
+	allowedSignersFile = ~/.config/git/allowed_signers
+
+[commit]
+	gpgsign = true
+
+[tag]
+	gpgsign = true
