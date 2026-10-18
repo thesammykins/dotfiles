@@ -6,5 +6,6 @@
 .config/git/ignore
 .config/git/config
 .config/git/allowed_signers
+.config/git/signing.gitconfig
 .config/varlock/.env.schema
 .agents/AGENTS.md

@@ -4,7 +4,7 @@
 #   brew-tiers.sh list
 #   brew-tiers.sh choose                       # pick tiers interactively; prints them
 #   brew-tiers.sh install [--dry-run] TIER...
-#   brew-tiers.sh uninstall [--apply] [--keep TIER,...|none] TIER...
+#   brew-tiers.sh uninstall [--apply] [--keep TIER,...|none] [--remove-tailscale] TIER...
 #
 # Tiers: core (Brewfile), workstation, dev, ci (Brewfile.<tier>). A Brewfile
 # file name works anywhere a tier name does.
@@ -119,11 +119,12 @@ cmd_install() {
 }
 
 cmd_uninstall() {
-    local apply=0 keep_arg="" arg
+    local apply=0 keep_arg="" arg remove_tailscale=0
     local -a remove=()
     while [[ $# -gt 0 ]]; do
         case "$1" in
             --apply) apply=1 ;;
+            --remove-tailscale) remove_tailscale=1 ;;
             --keep) keep_arg="${2:?--keep needs a tier list}"; shift ;;
             *) remove+=("$1") ;;
         esac
@@ -172,10 +173,11 @@ cmd_uninstall() {
         case "$kind" in
             brew) run brew uninstall --formula "$name" || failed=1 ;;
             cask)
-                # Over SSH, removing Tailscale would end the session running
-                # this script before it finishes.
-                if [[ "$name" == tailscale-app && -n "${SSH_CONNECTION:-}" ]]; then
-                    echo "Keeping tailscale-app: this session is connected over SSH."
+                # Tailscale is often the only way into a remote Mac (SSH,
+                # Screen Sharing, a reattached tmux), and removing it cuts that
+                # off mid-run. It goes only when asked for by name.
+                if [[ "$name" == tailscale-app && "$remove_tailscale" != 1 ]]; then
+                    echo "Keeping tailscale-app; pass --remove-tailscale to remove it too."
                 else
                     run brew uninstall --cask "$name" || failed=1
                 fi

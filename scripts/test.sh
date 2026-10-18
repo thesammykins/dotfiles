@@ -41,6 +41,9 @@ else
     echo "zsh not found, skipping."
 fi
 
+# The bats tests search files with ripgrep.
+command -v rg >/dev/null 2>&1 || missing_tool rg
+
 log_step "Running Bats tests..."
 if command -v bats >/dev/null 2>&1; then
     bats "$REPO_ROOT"/test/*.bats

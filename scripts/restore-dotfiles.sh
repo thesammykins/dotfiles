@@ -59,6 +59,18 @@ backup_contains_managed_item() {
     return 1
 }
 
+# Resolve symlinked directories in a path, so a checkout reached through a
+# link (the installer records paths as it was invoked) compares equal to
+# REPO_ROOT. A path whose directory no longer exists is returned unchanged.
+physical_path() {
+    local dir
+    if dir="$(cd -P -- "$(dirname -- "$1")" 2>/dev/null && pwd -P)"; then
+        printf '%s/%s\n' "$dir" "$(basename -- "$1")"
+    else
+        printf '%s\n' "$1"
+    fi
+}
+
 # True when a backup holds something other than links back into this repo.
 # Re-running the installer backs up the repo's own links, and restoring those
 # would bring back nothing.
@@ -68,7 +80,7 @@ backup_has_originals() {
         [[ -n "$relative" ]] || continue
         marker="$root/$relative.symlink"
         if [[ -f "$marker" ]]; then
-            link_target="$(cat "$marker")"
+            link_target="$(physical_path "$(cat "$marker")")"
             [[ "$link_target" == "$REPO_ROOT"/* ]] || return 0
         elif [[ -e "$root/$relative" || -L "$root/$relative" ]]; then
             return 0
@@ -167,7 +179,7 @@ stage_replacements() {
 
 cleanup_staging() {
     local stage cleanup_failed=0
-    for stage in "${STAGED_PATHS[@]}"; do
+    for stage in ${STAGED_PATHS[@]+"${STAGED_PATHS[@]}"}; do
         if [[ -e "$stage" || -L "$stage" ]]; then
             rm -rf "$stage" || cleanup_failed=1
         fi

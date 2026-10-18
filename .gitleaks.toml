@@ -1,0 +1,11 @@
+# Known false positives: documentation examples inside third-party skills
+# that were once vendored here (placeholder keys, Figma file keys).
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Documentation examples in formerly vendored skills"
+paths = [
+  '''^\.agents/skills/cloudflare-deploy/references/''',
+  '''^\.agents/skills/figma-implement-design/SKILL\.md$''',
+]

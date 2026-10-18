@@ -2,7 +2,7 @@
 # credential helpers stay in ~/.gitconfig, which Git reads after this file.
 
 [user]
-	name = Sammykins
+	name = thesammykins
 	email = 26049947+thesammykins@users.noreply.github.com
 	# Refuse to commit without an explicit email instead of guessing one from
 	# the hostname (which produced sammykins@<tailnet host> commits before).
@@ -34,7 +34,8 @@
 [diff]
 	algorithm = histogram
 
-# git-delta is in the core Brewfile, so every Mac gets it.
+# git-delta is in the core and ci Brewfiles, so every tier that links this
+# config has it.
 [core]
 	pager = delta
 

@@ -36,7 +36,8 @@ log_error() { echo -e "${RED}[ERROR]${NC} $1" >&2; }
 log_step() { echo -e "${BLUE}[STEP]${NC} $1"; }
 
 status_event() {
-    [[ -n "$DOTFILES_STATUS_FILE" ]] || return 0
+    # A dry run reports what it would do but records nothing as done.
+    [[ -n "$DOTFILES_STATUS_FILE" ]] && ! dry_run_enabled || return 0
     python3 - "$DOTFILES_STATUS_FILE.events" "$1" "$2" <<'PY'
 import json
 import sys
@@ -206,6 +207,11 @@ backup_existing() {
         target="$BACKUP_DIR/$relative"
 
         [[ -e "$source" || -L "$source" ]] || continue
+        # A link to this repo's own copy holds nothing to keep, and backing it
+        # up would make the newest backup useless for restore.
+        if [[ -L "$source" && "$(readlink "$source")" == "$DOTFILES_WORKTREE/$relative" ]]; then
+            continue
+        fi
 
         if dry_run_enabled; then
             log_info "Would back up: $source -> $target"
@@ -300,16 +306,29 @@ link_dotfiles() {
     local relative
     while IFS= read -r relative || [[ -n "$relative" ]]; do
         [[ -n "$relative" ]] || continue
+        if [[ "$relative" == .config/git/signing.gitconfig ]]; then
+            link_signing_config
+            continue
+        fi
         link_item "$DOTFILES_WORKTREE/$relative" "$HOME/$relative" "$relative"
     done < "$MANAGED_PATHS_FILE"
+}
 
-    # The shared git config includes signing.gitconfig; without the 1Password
-    # signer, leaving it unlinked keeps commits working (unsigned).
+# The shared git config includes signing.gitconfig. Link it only where the
+# 1Password signer exists, and unlink our own link if the signer is gone,
+# since every commit would fail otherwise. Git skips a missing include.
+link_signing_config() {
+    local relative=".config/git/signing.gitconfig"
+    local source="$DOTFILES_WORKTREE/$relative" target="$HOME/$relative"
     if [[ -x "$DOTFILES_GIT_SIGNER" ]]; then
-        link_item "$DOTFILES_WORKTREE/.config/git/signing.gitconfig" "$HOME/.config/git/signing.gitconfig" ".config/git/signing.gitconfig"
+        link_item "$source" "$target" "$relative"
+    elif [[ -L "$target" && "$(readlink "$target")" == "$source" ]]; then
+        log_warn "Unlinking commit signing: $DOTFILES_GIT_SIGNER is missing"
+        run_cmd rm -f "$target"
+        status_event skipped "$target (signer missing; unlinked)"
     else
         log_info "Commit signing not linked: $DOTFILES_GIT_SIGNER is missing"
-        status_event skipped ".config/git/signing.gitconfig"
+        status_event skipped "$target (signer missing)"
     fi
 }
 
@@ -320,7 +339,11 @@ install_brew_bundles() {
     fi
 
     log_step "Installing Homebrew bundles..."
-    resolve_brew_bin || fail "Homebrew is required before installing Brewfile tiers."
+    if ! resolve_brew_bin; then
+        dry_run_enabled || fail "Homebrew is required before installing Brewfile tiers."
+        log_warn "Homebrew is not installed; a real run would stop here."
+        return 0
+    fi
     # brew-tiers.sh calls brew by name.
     PATH="$(dirname "$BREW_BIN"):$PATH"
 
