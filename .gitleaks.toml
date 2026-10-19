@@ -1,11 +1,15 @@
-# Known false positives: documentation examples inside third-party skills
-# that were once vendored here (placeholder keys, Figma file keys).
+# Known false positives: placeholder values from documentation examples in
+# third-party skills that were once vendored here. Listed by exact value, so
+# a real secret anywhere (even in those files) is still reported.
 [extend]
 useDefault = true
 
 [allowlist]
-description = "Documentation examples in formerly vendored skills"
-paths = [
-  '''^\.agents/skills/cloudflare-deploy/references/''',
-  '''^\.agents/skills/figma-implement-design/SKILL\.md$''',
+description = "Documentation placeholder values"
+regexTarget = "match"
+regexes = [
+  '''YOUR_API_TOKEN''',
+  '''sk_live_abc123''',
+  '''kL9xQn2VwM8pYrTb4ZcHjF''',
+  '''pR8mNv5KqXzGwY2JtCfL4D''',
 ]

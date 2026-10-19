@@ -127,13 +127,44 @@ install_into_test_home() {
 
 @test "a dry run without Homebrew warns, records nothing and skips its own links" {
   install_into_test_home "$BATS_TEST_TMPDIR/no-such-signer"
-  run env HOME="$TEST_HOME" PATH="/usr/bin:/bin" DOTFILES_WORKTREE="$DOTFILES_DIR" DOTFILES_ROOT="$DOTFILES_DIR" \
+  run env HOME="$TEST_HOME" PATH="/usr/bin:/bin" DOTFILES_HOMEBREW_PREFIXES="$BATS_TEST_TMPDIR/no-homebrew" \
+    DOTFILES_WORKTREE="$DOTFILES_DIR" DOTFILES_ROOT="$DOTFILES_DIR" \
     DOTFILES_DRY_RUN=1 DOTFILES_INSTALL_BREW=1 DOTFILES_TIERS=core DOTFILES_APPLY_MACOS_DEFAULTS=0 \
     DOTFILES_STATUS_FILE="$BATS_TEST_TMPDIR/status.json" DOTFILES_GIT_SIGNER="$BATS_TEST_TMPDIR/no-such-signer" \
     /bin/bash "$DOTFILES_DIR/scripts/install.sh"
   [ "$status" -eq 0 ]
+  [[ "$output" == *"Homebrew is not installed"* ]]
   [[ "$output" != *"Would back up: $TEST_HOME/.zshrc"* ]]
-  [ ! -e "$BATS_TEST_TMPDIR/status.json.events" ]
+  run python3 -c 'import json,sys; s=json.load(open(sys.argv[1])); print(s["result"], len(s["linked"]))' "$BATS_TEST_TMPDIR/status.json"
+  [ "$output" = "dry-run 0" ]
+}
+
+@test "a re-run with nothing to back up leaves no backup folder" {
+  install_into_test_home "$BATS_TEST_TMPDIR/no-such-signer"
+  run env HOME="$TEST_HOME" DOTFILES_WORKTREE="$DOTFILES_DIR" DOTFILES_ROOT="$DOTFILES_DIR" \
+    DOTFILES_INSTALL_BREW=0 DOTFILES_APPLY_MACOS_DEFAULTS=0 DOTFILES_LINK_MODE=migrate \
+    DOTFILES_BACKUP_DIR="$BATS_TEST_TMPDIR/rerun-backup" DOTFILES_GIT_SIGNER="$BATS_TEST_TMPDIR/no-such-signer" \
+    /bin/bash "$DOTFILES_DIR/scripts/install.sh"
+  [ "$status" -eq 0 ]
+  [ ! -e "$BATS_TEST_TMPDIR/rerun-backup" ]
+  [[ "$output" == *"No existing files needed a backup."* ]]
+}
+
+@test "through a symlinked checkout, signing is still unlinked when the signer goes" {
+  alias_dir="$BATS_TEST_TMPDIR/dotfiles-link"
+  ln -s "$DOTFILES_DIR" "$alias_dir"
+  signer="$BATS_TEST_TMPDIR/op-ssh-sign"
+  printf '#!/bin/sh\n' > "$signer"
+  chmod +x "$signer"
+  # Link once through the real path, then run again through the alias.
+  install_into_test_home "$signer"
+  rm "$signer"
+  run env HOME="$TEST_HOME" DOTFILES_WORKTREE="$alias_dir" DOTFILES_ROOT="$alias_dir" \
+    DOTFILES_INSTALL_BREW=0 DOTFILES_APPLY_MACOS_DEFAULTS=0 DOTFILES_LINK_MODE=safe \
+    DOTFILES_GIT_SIGNER="$signer" /bin/bash "$alias_dir/scripts/install.sh"
+  [ "$status" -eq 0 ]
+  [ ! -e "$TEST_HOME/.config/git/signing.gitconfig" ]
+  [[ "$output" != *"Link differs, skipping"* ]]
 }
 
 @test "re-running the installer doesn't create link-only backups" {

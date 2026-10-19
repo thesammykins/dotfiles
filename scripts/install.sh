@@ -132,24 +132,44 @@ ensure_parent_dir() {
     fi
 }
 
+# Where Homebrew installs on Apple silicon and Intel Macs.
+DOTFILES_HOMEBREW_PREFIXES="${DOTFILES_HOMEBREW_PREFIXES:-/opt/homebrew /usr/local}"
+
 resolve_brew_bin() {
     if command -v brew >/dev/null 2>&1; then
         BREW_BIN="$(command -v brew)"
         return 0
     fi
 
-    if [[ -x /opt/homebrew/bin/brew ]]; then
-        BREW_BIN="/opt/homebrew/bin/brew"
-        return 0
-    fi
-
-    if [[ -x /usr/local/bin/brew ]]; then
-        BREW_BIN="/usr/local/bin/brew"
-        return 0
-    fi
+    local prefix
+    for prefix in $DOTFILES_HOMEBREW_PREFIXES; do
+        if [[ -x "$prefix/bin/brew" ]]; then
+            BREW_BIN="$prefix/bin/brew"
+            return 0
+        fi
+    done
 
     BREW_BIN=""
     return 1
+}
+
+# Resolve symlinked directories so a checkout reached through a link compares
+# equal to its real location. A path whose directory doesn't exist is
+# returned unchanged.
+physical_path() {
+    local dir
+    if dir="$(cd -P -- "$(dirname -- "$1")" 2>/dev/null && pwd -P)"; then
+        printf '%s/%s\n' "$dir" "$(basename -- "$1")"
+    else
+        printf '%s\n' "$1"
+    fi
+}
+
+# True when link points at source, however either path was spelled.
+links_to() {
+    local link="$1" source="$2"
+    [[ -L "$link" ]] || return 1
+    [[ "$(physical_path "$(readlink "$link")")" == "$(physical_path "$source")" ]]
 }
 
 install_homebrew() {
@@ -194,12 +214,8 @@ backup_existing() {
     log_step "Backing up existing config..."
     [[ -f "$MANAGED_PATHS_FILE" ]] || fail "Managed paths file is missing: $MANAGED_PATHS_FILE"
 
-    if dry_run_enabled; then
-        log_info "Would create backup directory: $BACKUP_DIR"
-    else
-        mkdir -p "$BACKUP_DIR"
-    fi
-
+    # The backup folder is created on first use, so a run with nothing to
+    # back up leaves no empty folder (or iCloud copy) behind.
     local relative source target link_target
     while IFS= read -r relative || [[ -n "$relative" ]]; do
         [[ -n "$relative" ]] || continue
@@ -209,7 +225,7 @@ backup_existing() {
         [[ -e "$source" || -L "$source" ]] || continue
         # A link to this repo's own copy holds nothing to keep, and backing it
         # up would make the newest backup useless for restore.
-        if [[ -L "$source" && "$(readlink "$source")" == "$DOTFILES_WORKTREE/$relative" ]]; then
+        if links_to "$source" "$DOTFILES_WORKTREE/$relative"; then
             continue
         fi
 
@@ -232,7 +248,9 @@ backup_existing() {
         local cloud_target
         cloud_target="$cloud_dir/$(basename "$BACKUP_DIR")"
 
-        if [[ -d "$cloud_dir" ]]; then
+        if [[ ! -d "$BACKUP_DIR" ]]; then
+            log_info "Nothing was backed up, so nothing to copy to iCloud."
+        elif [[ -d "$cloud_dir" ]]; then
             run_cmd cp -R "$BACKUP_DIR" "$cloud_target"
         else
             log_warn "iCloud backup directory not found; skipping cloud backup."
@@ -256,7 +274,7 @@ link_item() {
 
     if [[ -L "$target" ]]; then
         current="$(readlink "$target")"
-        if [[ "$current" == "$source" ]]; then
+        if links_to "$target" "$source"; then
             log_info "Already linked: $target"
             status_event skipped "$target (already linked)"
             return 0
@@ -322,7 +340,7 @@ link_signing_config() {
     local source="$DOTFILES_WORKTREE/$relative" target="$HOME/$relative"
     if [[ -x "$DOTFILES_GIT_SIGNER" ]]; then
         link_item "$source" "$target" "$relative"
-    elif [[ -L "$target" && "$(readlink "$target")" == "$source" ]]; then
+    elif links_to "$target" "$source"; then
         log_warn "Unlinking commit signing: $DOTFILES_GIT_SIGNER is missing"
         run_cmd rm -f "$target"
         status_event skipped "$target (signer missing; unlinked)"
@@ -439,8 +457,10 @@ print_post_install() {
     if dry_run_enabled; then
         echo "Dry-run mode: no changes were applied."
         echo "Planned backup location: $BACKUP_DIR"
-    else
+    elif [[ -d "$BACKUP_DIR" ]]; then
         echo "Backups saved to: $BACKUP_DIR"
+    else
+        echo "No existing files needed a backup."
     fi
 }
 
@@ -465,7 +485,11 @@ main() {
     apply_macos_defaults
     check_optional_tools
     print_post_install
-    write_status success
+    if dry_run_enabled; then
+        write_status dry-run
+    else
+        write_status success
+    fi
 }
 
 main "$@"
