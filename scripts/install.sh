@@ -165,11 +165,14 @@ physical_path() {
     fi
 }
 
-# True when link points at source, however either path was spelled.
+# True when link points at source, however either path was spelled. A
+# relative link target is resolved from the link's own folder.
 links_to() {
-    local link="$1" source="$2"
+    local link="$1" source="$2" target
     [[ -L "$link" ]] || return 1
-    [[ "$(physical_path "$(readlink "$link")")" == "$(physical_path "$source")" ]]
+    target="$(readlink "$link")"
+    [[ "$target" == /* ]] || target="$(dirname -- "$link")/$target"
+    [[ "$(physical_path "$target")" == "$(physical_path "$source")" ]]
 }
 
 install_homebrew() {
@@ -216,7 +219,7 @@ backup_existing() {
 
     # The backup folder is created on first use, so a run with nothing to
     # back up leaves no empty folder (or iCloud copy) behind.
-    local relative source target link_target
+    local relative source target link_target backed_up=0
     while IFS= read -r relative || [[ -n "$relative" ]]; do
         [[ -n "$relative" ]] || continue
         source="$HOME/$relative"
@@ -229,6 +232,7 @@ backup_existing() {
             continue
         fi
 
+        backed_up=1
         if dry_run_enabled; then
             log_info "Would back up: $source -> $target"
             continue
@@ -248,7 +252,7 @@ backup_existing() {
         local cloud_target
         cloud_target="$cloud_dir/$(basename "$BACKUP_DIR")"
 
-        if [[ ! -d "$BACKUP_DIR" ]]; then
+        if [[ "$backed_up" == 0 ]]; then
             log_info "Nothing was backed up, so nothing to copy to iCloud."
         elif [[ -d "$cloud_dir" ]]; then
             run_cmd cp -R "$BACKUP_DIR" "$cloud_target"

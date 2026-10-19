@@ -181,3 +181,22 @@ install_into_test_home() {
   run rg -F -x 'brew "git-delta"' "$DOTFILES_DIR/Brewfile.ci"
   [ "$status" -eq 0 ]
 }
+
+@test "a dry run with iCloud backup on doesn't claim nothing was backed up" {
+  printf 'my own zshrc\n' > "$TEST_HOME/.zshrc"
+  run env HOME="$TEST_HOME" DOTFILES_WORKTREE="$DOTFILES_DIR" DOTFILES_ROOT="$DOTFILES_DIR" \
+    DOTFILES_DRY_RUN=1 DOTFILES_INSTALL_BREW=0 DOTFILES_APPLY_MACOS_DEFAULTS=0 DOTFILES_CLOUD_BACKUP=1 \
+    DOTFILES_GIT_SIGNER="$BATS_TEST_TMPDIR/no-such-signer" /bin/bash "$DOTFILES_DIR/scripts/install.sh"
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"Would back up: $TEST_HOME/.zshrc"* ]]
+  [[ "$output" != *"Nothing was backed up"* ]]
+}
+
+@test "a relative link into the repo counts as already linked" {
+  target="$(python3 -c 'import os,sys; print(os.path.relpath(os.path.realpath(sys.argv[1]), os.path.realpath(sys.argv[2])))' "$DOTFILES_DIR/.zshrc" "$TEST_HOME")"
+  ln -s "$target" "$TEST_HOME/.zshrc"
+  install_into_test_home "$BATS_TEST_TMPDIR/no-such-signer"
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"Already linked: $TEST_HOME/.zshrc"* ]]
+  [[ "$output" != *"Link differs, skipping: $TEST_HOME/.zshrc"* ]]
+}

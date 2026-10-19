@@ -80,7 +80,7 @@ backup_has_originals() {
         [[ -n "$relative" ]] || continue
         marker="$root/$relative.symlink"
         if [[ -f "$marker" ]]; then
-            link_target="$(physical_path "$(cat "$marker")")"
+            link_target="$(physical_path "$(resolved_link_target "$relative" "$(cat "$marker")")")"
             [[ "$link_target" == "$REPO_ROOT"/* ]] || return 0
         elif [[ -e "$root/$relative" || -L "$root/$relative" ]]; then
             return 0
