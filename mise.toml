@@ -6,5 +6,5 @@ description = "Run dotfiles validation."
 run = "bash scripts/test.sh"
 
 [tasks.audit]
-description = "Run the local dotfiles audit."
-run = "bash scripts/audit-macos-dotfiles.sh && bash scripts/report-unmanaged-brew-apps.sh"
+description = "List installed apps and packages no Brewfile covers."
+run = "bash scripts/report-unmanaged-brew-apps.sh"

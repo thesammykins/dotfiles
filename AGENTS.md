@@ -9,9 +9,9 @@ see that repo's AGENTS.md for the questions to ask before setting up a Mac.
 
 ## Rules
 
-- Keep this repo boring and repeatable.
-- Prefer `mise` for runtimes and project tasks.
-- Prefer Homebrew for system tools and GUI apps.
+- Keep this repo small. Prefer deleting a feature over adding a flag.
+- Projects own runtimes through their own `mise.toml`; the global mise config holds settings only.
+- Homebrew owns system tools, GUI apps and agent CLIs (Claude Code, Codex, OpenCode).
 - Keep Brewfiles curated; do not mirror every installed package. A third-party
   package needs its `tap` line in the same Brewfile.
 - Apps Homebrew can't install go in `manual-installs.txt`.
@@ -36,6 +36,5 @@ see that repo's AGENTS.md for the questions to ask before setting up a Mac.
 
 ```bash
 mise run check
-mise run audit
-DOTFILES_DRY_RUN=1 DOTFILES_LINK_MODE=safe DOTFILES_TIERS=core,workstation,dev bash scripts/install.sh
+DOTFILES_DRY_RUN=1 bash scripts/install.sh
 ```

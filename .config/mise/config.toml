@@ -1,9 +1,6 @@
-# Shared mise behavior plus Claude Code, the one global tool. Projects own
-# their runtime and package-manager versions; Homebrew owns host utilities.
+# Shared mise behavior only. Projects own their runtime and package-manager
+# versions; Homebrew owns host tools and agent CLIs.
 
 [settings]
 experimental = true
 jobs = 4
-
-[tools]
-claude = "latest"

@@ -29,20 +29,11 @@ setup() {
   [ "$status" -eq 0 ]
 }
 
-@test "audit points users to the single guided setup" {
-  run rg -n '\./setup\.sh' "$DOTFILES_DIR/scripts/audit-macos-dotfiles.sh"
-  [ "$status" -eq 0 ]
-
-  run rg -n 'mise run plan|mise run apply' "$DOTFILES_DIR/scripts/audit-macos-dotfiles.sh"
-  [ "$status" -ne 0 ]
-}
-
 @test "one manifest owns every managed home path" {
   run cat "$DOTFILES_DIR/scripts/managed-paths.txt"
   [ "$status" -eq 0 ]
   [ "$output" = $'.zshrc\n.zprofile\n.config/starship.toml\n.config/mise/config.toml\n.config/atuin/config.toml\n.config/git/ignore\n.config/git/config\n.config/git/allowed_signers\n.config/git/signing.gitconfig\n.config/varlock/.env.schema\n.agents/AGENTS.md' ]
 
-  run rg -n 'managed-paths\.txt' "$DOTFILES_DIR/scripts/install.sh" "$DOTFILES_DIR/scripts/restore-dotfiles.sh" "$DOTFILES_DIR/scripts/audit-macos-dotfiles.sh"
-  [ "$status" -eq 0 ]
-  [ "$(printf '%s\n' "$output" | cut -d: -f1 | sort -u | wc -l | tr -d ' ')" -eq 3 ]
+  run rg -l 'managed-paths\.txt' "$DOTFILES_DIR/scripts"
+  [ "$output" = "$DOTFILES_DIR/scripts/install.sh" ]
 }

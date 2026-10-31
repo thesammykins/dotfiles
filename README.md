@@ -1,61 +1,38 @@
 # Dotfiles
 
-Portable configuration payload for Sammy's Macs: shell and application config,
-four curated Brewfile tiers, shared mise settings, and shared agent
-instructions.
-
-The canonical checkout is `$HOME/Development/dotfiles`.
-
-Installation and updates are owned by
-[`thesammykins/new-mac`](https://github.com/thesammykins/new-mac):
+Shell and app config, Brewfile tiers and shared agent instructions for Sammy's
+Macs. The checkout lives at `~/Development/dotfiles`;
+[`new-mac`](https://github.com/thesammykins/new-mac) installs and updates it:
 
 ```bash
 git clone https://github.com/thesammykins/new-mac.git ~/Development/new-mac && ~/Development/new-mac/setup.sh
 ```
 
-`new-mac` invokes this repository's idempotent installer as a backend, keeps
-Homebrew upgrades out of normal setup, preserves replaced files in timestamped
-backups, and consumes a structured result describing linked, installed, skipped,
-outdated, and failed items.
-
-## What this repository owns
-
-- `.zshrc`, `.zprofile`, Starship, Atuin, Git ignore, varlock, and global mise settings
-- `.agents/AGENTS.md`
-- `Brewfile`, `Brewfile.workstation`, `Brewfile.dev`, `Brewfile.ci`, and
-  `manual-installs.txt` for apps Homebrew can't install
-
-Projects own their language runtime and package-manager versions. This repository
-does not own installed skills, Codex-managed plugin caches, secrets, browser
-profiles, or machine-specific `~/.zshrc.local` contents.
+`scripts/install.sh` links every path in `scripts/managed-paths.txt` into
+`$HOME`, copying anything it replaces to `~/.dotfiles.backup/<timestamp>`.
+Commit signing is linked only on Macs with the 1Password app.
+Machine-only settings go in `~/.zshrc.local`. Skills, secrets and terminal-app
+themes live elsewhere.
 
 ## Brewfile tiers
 
 | Tier | File | For |
 | --- | --- | --- |
-| `core` | `Brewfile` | Every Mac except CI runners: shell, CLI basics, 1Password, Tailscale |
-| `workstation` | `Brewfile.workstation` | Personal apps, no developer tooling |
-| `dev` | `Brewfile.dev` | Developer tooling, layered on workstation, including the Buildkite CLI and agent |
-| `ci` | `Brewfile.ci` | CI runner Macs on their own; the runner's release toolchain comes from its project setup, not Homebrew |
-
-`scripts/brew-tiers.sh` installs any combination and removes a tier without
-touching what another kept tier still lists:
+| `core` | `Brewfile` | Every Mac except CI runners |
+| `workstation` | `Brewfile.workstation` | Personal apps |
+| `dev` | `Brewfile.dev` | Developer tools and agent CLIs, on top of workstation |
+| `ci` | `Brewfile.ci` | CI runner Macs, on their own |
 
 ```bash
 scripts/brew-tiers.sh install core workstation dev
-scripts/brew-tiers.sh uninstall dev                      # preview: become workstation-only
-scripts/brew-tiers.sh uninstall --apply dev              # do it
-scripts/brew-tiers.sh uninstall --keep core --apply ci   # retire a CI runner, keep core tools
+scripts/brew-tiers.sh uninstall dev           # preview
+scripts/brew-tiers.sh uninstall --apply dev   # do it
 ```
 
-Uninstall never removes `tailscale-app` unless you pass `--remove-tailscale`,
-so a remote session isn't cut off. Commit signing is linked only on Macs with the 1Password app, so git
-keeps working on CI runners.
-
-The installer asks which tiers to install when run in a terminal. It trusts
-exactly the third-party taps the chosen Brewfiles list, because Homebrew
-refuses formulae from untrusted taps. `mise run audit` also lists apps in
-`/Applications` that no Brewfile or `manual-installs.txt` covers.
+Uninstall keeps anything a kept tier still lists, and keeps Tailscale unless
+you pass `--remove-tailscale`. Apps Homebrew can't install are listed in
+`manual-installs.txt`; `mise run audit` lists anything installed that no
+Brewfile covers.
 
 ## Repos volume
 
@@ -86,30 +63,10 @@ To move projects in later: copy `~/Development` into `~/repos` (`ditto` keeps
 metadata), verify, then point `DOTFILES` and the dotfile symlinks at the new
 checkout before removing the old tree.
 
-## Private skills
-
-Skills with personal content live in a separate private repository,
-[`thesammykins/skills-private`](https://github.com/thesammykins/skills-private),
-installed by `new-mac` alongside the public
-[`thesammykins/skills`](https://github.com/thesammykins/skills) catalog.
-
-## Finding shell shortcuts
-
-Type `keys` (or `shortcuts`) for a compact reference of useful commands and
-terminal-specific shortcuts. Warp gets its native shortcuts; ordinary terminals
-get this setup's Zsh, Atuin, and fzf bindings. Interactive login shells show a
-one-line reminder; scripts and non-interactive shells do not.
-
-In Warp, `Cmd-P` opens the native searchable command palette. Its shortcuts can
-be remapped in Settings. In ordinary terminals, fzf's directory picker works with
-`Esc` followed by lowercase `c`, even when Option is not configured as Meta.
-
-## Maintainer checks
+## Checks
 
 ```bash
 mise run check
-mise run audit
 ```
 
-The internal installer remains directly callable for recovery and CI, but its
-environment contract is intentionally not part of the normal user workflow.
+Type `keys` in a shell for a shortcut reference.

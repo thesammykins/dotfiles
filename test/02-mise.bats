@@ -14,15 +14,10 @@ setup() {
   [ "$status" -eq 0 ]
 }
 
-# Claude Code is the one global tool: it runs outside any project, so no
-# project config can own it. Language runtimes stay project-owned.
-@test "global mise config owns settings and only the claude tool" {
-  run awk '/^\[/ { section = $0; next }
-    section == "[tools]" && NF && $0 !~ /^[[:space:]]*#/ { print $1 }' \
-    "$DOTFILES_DIR/.config/mise/config.toml"
-  [ "$status" -eq 0 ]
-  [ "$output" = "claude" ]
-
+# Runtimes and agent CLIs are project- or Homebrew-owned, never global mise tools.
+@test "global mise config holds settings only" {
+  run grep -E '^\[tools\]' "$DOTFILES_DIR/.config/mise/config.toml"
+  [ "$status" -ne 0 ]
   run grep -E '^\[settings\]' "$DOTFILES_DIR/.config/mise/config.toml"
   [ "$status" -eq 0 ]
 }
