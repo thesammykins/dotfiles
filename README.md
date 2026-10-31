@@ -1,11 +1,11 @@
 # Dotfiles
 
 Shell and app config, Brewfile tiers and shared agent instructions for Sammy's
-Macs. The checkout lives at `~/Development/dotfiles`;
+Macs. The checkout lives at `~/repos/dotfiles`;
 [`new-mac`](https://github.com/thesammykins/new-mac) installs and updates it:
 
 ```bash
-git clone https://github.com/thesammykins/new-mac.git ~/Development/new-mac && ~/Development/new-mac/setup.sh
+git clone https://github.com/thesammykins/new-mac.git /tmp/new-mac && /tmp/new-mac/setup.sh
 ```
 
 `scripts/install.sh` links every path in `scripts/managed-paths.txt` into
@@ -59,9 +59,11 @@ and Xcode DerivedData onto `~/repos/.tools`. Quit Xcode and Android Studio and r
 `gradle --stop` first, and run it from Terminal, not from a mise-installed tool.
 Rerun after installing a new toolchain.
 
-To move projects in later: copy `~/Development` into `~/repos` (`ditto` keeps
-metadata), verify, then point `DOTFILES` and the dotfile symlinks at the new
-checkout before removing the old tree.
+new-mac creates this volume before cloning anything into `~/repos` (personal,
+work and agent-dev profiles), which is why the bootstrap clone above goes to
+`/tmp`. CI and minimal profiles use a plain `~/repos` folder. To move a project
+in by hand, `ditto` it into `~/repos`, verify it, run `mise trust` in it (mise
+trusts configs by real path), and rerun `scripts/install.sh` if it was this repo.
 
 ## Checks
 

@@ -4,7 +4,9 @@
 # it is safe to rerun.
 set -euo pipefail
 
-DOTFILES="$(cd -- "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+# Physical path, so links survive removing a symlinked parent such as the old
+# ~/Development -> ~/repos compatibility links.
+DOTFILES="$(cd -- "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 DRY_RUN="${DOTFILES_DRY_RUN:-0}"
 APPLY_MACOS_DEFAULTS="${DOTFILES_APPLY_MACOS_DEFAULTS:-0}"
 # Commit signing is linked only where this signer exists (not on CI runners).
@@ -41,6 +43,11 @@ links_to() {
 link() {
     local relative="$1" source="$DOTFILES/$1" target="$HOME/$1"
     if links_to "$target" "$source"; then
+        # Already ours. Repoint a link spelled through another path (e.g. the
+        # pre-move ~/Development checkout); there is nothing to back up.
+        [[ "$(readlink "$target")" == "$source" ]] && return 0
+        run ln -sfn "$source" "$target"
+        echo "repointed $target"
         return 0
     fi
     if [[ -e "$target" || -L "$target" ]]; then
@@ -72,8 +79,9 @@ done < "$DOTFILES/scripts/managed-paths.txt"
 
 # --global would write through ~/.config/git/config, a link into this repo,
 # when ~/.gitconfig doesn't exist yet; machine settings belong in ~/.gitconfig.
-if ! git config --global alias.dotfiles >/dev/null 2>&1; then
-    run git config --file "$HOME/.gitconfig" alias.dotfiles "!git -C \"$DOTFILES\""
+dotfiles_alias="!git -C \"$DOTFILES\""
+if [[ "$(git config --file "$HOME/.gitconfig" --get alias.dotfiles 2>/dev/null)" != "$dotfiles_alias" ]]; then
+    run git config --file "$HOME/.gitconfig" alias.dotfiles "$dotfiles_alias"
 fi
 
 if [[ ! -e "$HOME/.zshrc.local" ]]; then

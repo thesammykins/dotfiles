@@ -3,7 +3,7 @@
 # Keep startup predictable. Machine-specific exports, paths, and aliases belong
 # in ~/.zshrc.local.
 
-export DOTFILES="${DOTFILES:-$HOME/Development/dotfiles}"
+export DOTFILES="${DOTFILES:-$HOME/repos/dotfiles}"
 export EDITOR="${EDITOR:-vim}"
 typeset -U path PATH
 

@@ -79,11 +79,19 @@ fake_signer() {
   [ "$(git -C "$DOTFILES_DIR" hash-object .config/git/config)" = "$before" ]
 }
 
-@test "a relative link into the repo counts as already linked" {
-  target="$(python3 -c 'import os,sys; print(os.path.relpath(os.path.realpath(sys.argv[1]), os.path.realpath(sys.argv[2])))' "$DOTFILES_DIR/.zshrc" "$TEST_HOME")"
-  ln -s "$target" "$TEST_HOME/.zshrc"
+@test "links into the repo spelled another way are repointed, not backed up" {
+  real="$(cd "$DOTFILES_DIR" && pwd -P)"
+  # Old-style link through a symlinked parent, like ~/Development -> ~/repos.
+  ln -s "$real" "$BATS_TEST_TMPDIR/old-root"
+  ln -s "$BATS_TEST_TMPDIR/old-root/.zshrc" "$TEST_HOME/.zshrc"
+  # Relative link straight into the checkout.
+  mkdir -p "$TEST_HOME/.config"
+  ln -s "$(python3 -c 'import os,sys; print(os.path.relpath(sys.argv[1], os.path.realpath(sys.argv[2])))' "$real/.config/starship.toml" "$TEST_HOME/.config")" "$TEST_HOME/.config/starship.toml"
   install_into_test_home "$BATS_TEST_TMPDIR/no-such-signer"
   [ "$status" -eq 0 ]
-  [ "$(readlink "$TEST_HOME/.zshrc")" = "$target" ]
+  [ "$(readlink "$TEST_HOME/.zshrc")" = "$real/.zshrc" ]
+  [ "$(readlink "$TEST_HOME/.config/starship.toml")" = "$real/.config/starship.toml" ]
   [ ! -e "$TEST_HOME/.dotfiles.backup" ]
+  run git config --file "$TEST_HOME/.gitconfig" --get alias.dotfiles
+  [ "$output" = "!git -C \"$real\"" ]
 }

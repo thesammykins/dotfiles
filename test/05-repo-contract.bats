@@ -4,7 +4,7 @@ setup() {
   export DOTFILES_DIR="$(cd "$(dirname "$BATS_TEST_FILENAME")/.." && pwd)"
 }
 
-@test "repo contract uses ~/Development/dotfiles as canonical path" {
+@test "repo contract uses ~/repos/dotfiles as canonical path" {
   run rg -n --hidden --glob '!.git/**' --glob '!test/05-repo-contract.bats' '(\$HOME/\.dotfiles|~/\.dotfiles)(/|"|$)' "$DOTFILES_DIR"
   [ "$status" -ne 0 ]
 }
@@ -22,7 +22,7 @@ setup() {
 }
 
 @test "README and AGENTS describe simple ownership" {
-  run rg -n '\$HOME/Development/dotfiles|~/Development/dotfiles' "$DOTFILES_DIR/README.md" "$DOTFILES_DIR/AGENTS.md"
+  run rg -n '\$HOME/repos/dotfiles|~/repos/dotfiles' "$DOTFILES_DIR/README.md" "$DOTFILES_DIR/AGENTS.md"
   [ "$status" -eq 0 ]
 
   run rg -n 'terminal-app themes|generated shell widgets|skills' "$DOTFILES_DIR/README.md" "$DOTFILES_DIR/AGENTS.md"
