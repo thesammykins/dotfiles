@@ -17,6 +17,8 @@ see that repo's AGENTS.md for the questions to ask before setting up a Mac.
 - Apps Homebrew can't install go in `manual-installs.txt`.
 - `scripts/brew-tiers.sh uninstall` removes apps: preview it and get a yes
   before running it with `--apply`.
+- `scripts/repos-volume.sh` and `scripts/tool-storage.sh --apply` change disks
+  and move data: never run them without a yes. They stay out of `install.sh`.
 - Do not add bespoke terminal themes, generated shell widgets, or local browser profiles here.
 - Do not store secrets in tracked files. Use 1Password and varlock references.
 - Keep machine-specific overrides in `~/.zshrc.local`.

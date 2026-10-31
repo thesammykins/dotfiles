@@ -57,6 +57,35 @@ exactly the third-party taps the chosen Brewfiles list, because Homebrew
 refuses formulae from untrusted taps. `mise run audit` also lists apps in
 `/Applications` that no Brewfile or `manual-installs.txt` covers.
 
+## Repos volume
+
+Optional, run by hand. Adapted from
+[elithrar/dotfiles](https://github.com/elithrar/dotfiles/tree/main#macos-repos-volume)
+(MIT). Read upstream's README for the full recovery notes.
+
+```bash
+bash scripts/repos-volume.sh          # once; asks for sudo
+bash scripts/tool-storage.sh          # preview
+bash scripts/tool-storage.sh --apply  # move caches, leave symlinks
+```
+
+`repos-volume.sh` adds an **unencrypted** APFS volume to the startup container,
+mounted at `~/repos` via a UUID entry in `/etc/fstab`, with Spotlight and
+persistent FSEvents off. It shares free space with the startup disk; it is not
+extra capacity. It refuses a non-empty `~/repos`, never deletes or force-unmounts
+anything, and keeps its state in `/var/db/dotfiles-repos-$(id -u)/record`. If it
+stops part-way, inspect that record and `diskutil apfs list` before rerunning;
+never delete the volume or record just to retry.
+
+`tool-storage.sh` moves mise, Rust, npm/pnpm, uv/pip, Go, Bun, Gradle, SwiftPM
+and Xcode DerivedData onto `~/repos/.tools`. Quit Xcode and Android Studio and run
+`gradle --stop` first, and run it from Terminal, not from a mise-installed tool.
+Rerun after installing a new toolchain.
+
+To move projects in later: copy `~/Development` into `~/repos` (`ditto` keeps
+metadata), verify, then point `DOTFILES` and the dotfile symlinks at the new
+checkout before removing the old tree.
+
 ## Private skills
 
 Skills with personal content live in a separate private repository,
