@@ -35,10 +35,12 @@ save_record() {
 }
 verify_volume() {
     info "$volume_uuid"
+    # Unlike upstream, the volume name is not part of its identity: the unique
+    # label only finds the UUID at creation, so the volume can be renamed to
+    # something readable. UUID, container and the on-volume marker still bind it.
     [[ $(plist "$tmp/info" VolumeUUID) == "$volume_uuid" &&
        $(plist "$tmp/info" FilesystemType) == apfs &&
-       $(plist "$tmp/info" APFSContainerReference) == "$container" &&
-       $(plist "$tmp/info" VolumeName) == "$label" ]] || die 'Recorded volume identity/container does not match; refusing to adopt it.'
+       $(plist "$tmp/info" APFSContainerReference) == "$container" ]] || die 'Recorded volume identity/container does not match; refusing to adopt it.'
     device=$(plist "$tmp/info" DeviceIdentifier)
     [[ $device =~ ^disk[0-9]+s[0-9]+$ ]] || die 'Unexpected APFS device identifier.'
 }
