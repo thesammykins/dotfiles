@@ -4,3 +4,4 @@
 .zshrc.local
 node_modules/
 .agents/skills/
+.amp/portals/*

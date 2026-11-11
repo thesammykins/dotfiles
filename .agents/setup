@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+REPO_ROOT="$(cd -- "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$REPO_ROOT"
+
+SECONDS=0
+echo "Preparing Linux validation tools..."
+missing=()
+for package in bats ca-certificates curl git python3 ripgrep shellcheck zsh; do
+    if [[ "$(dpkg-query -W -f='${Status}' "$package" 2>/dev/null || true)" != "install ok installed" ]]; then
+        missing+=("$package")
+    fi
+done
+if (( ${#missing[@]} )); then
+    sudo apt-get update
+    sudo env DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends "${missing[@]}"
+fi
+echo "Validation tools ready (${SECONDS}s)."
+
+SECONDS=0
+echo "Preparing mise..."
+if ! command -v mise >/dev/null 2>&1; then
+    # A system PATH location also works in clean non-interactive login shells.
+    curl -fsSL https://mise.run | sudo env MISE_INSTALL_PATH=/usr/local/bin/mise sh
+fi
+mise trust "$REPO_ROOT/mise.toml"
+mise --version
+echo "mise ready (${SECONDS}s)."
+
+# Do not run install.sh or install Brewfile tiers: they configure a real Mac.
+# There are no project runtimes, package dependencies, or services to restore.

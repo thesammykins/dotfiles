@@ -38,3 +38,7 @@ see that repo's AGENTS.md for the questions to ask before setting up a Mac.
 mise run check
 DOTFILES_DRY_RUN=1 bash scripts/install.sh
 ```
+
+## Standing approvals
+
+- Push the orb-setup change to `origin/main`, validating what Linux supports ([Sammy's approval](https://ampcode.com/threads/T-01a1c8f1-be51-7339-aea5-b07db8a009a4)).

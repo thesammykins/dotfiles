@@ -71,4 +71,18 @@ trusts configs by real path), and rerun `scripts/install.sh` if it was this repo
 mise run check
 ```
 
+## Orbs
+
+`.agents/setup` installs missing Linux validation tools and mise for Amp's cached
+orb snapshot. Warm runs reuse installed tools. It does not link dotfiles, install
+Homebrew tiers, or change disks. No resume hook or services are needed.
+
+`mise run check` runs the full suite, but `test/07-install.bats` requires macOS
+and the PATH test in `test/02-mise.bats` assumes `/opt/homebrew` exists. The
+installer's dry run also rejects Linux. In an orb, run the portable suites with:
+
+```bash
+mise exec -- bats test/05-repo-contract.bats test/08-brew-tiers.bats test/10-tool-storage.bats
+```
+
 Type `keys` in a shell for a shortcut reference.
