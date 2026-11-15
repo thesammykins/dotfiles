@@ -1,5 +1,7 @@
-[settings]
-task.run_auto_install = false
+# This repo's own check tools. Nothing here is installed globally.
+[tools]
+bats = "1.14.0"
+shellcheck = "0.11.0"
 
 [tasks.check]
 description = "Run dotfiles validation."

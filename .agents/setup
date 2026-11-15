@@ -7,7 +7,7 @@ cd "$REPO_ROOT"
 SECONDS=0
 echo "Preparing Linux validation tools..."
 missing=()
-for package in bats ca-certificates curl git python3 ripgrep shellcheck zsh; do
+for package in ca-certificates curl git python3 ripgrep zsh; do
     if [[ "$(dpkg-query -W -f='${Status}' "$package" 2>/dev/null || true)" != "install ok installed" ]]; then
         missing+=("$package")
     fi
@@ -25,6 +25,7 @@ if ! command -v mise >/dev/null 2>&1; then
     curl -fsSL https://mise.run | sudo env MISE_INSTALL_PATH=/usr/local/bin/mise sh
 fi
 mise trust "$REPO_ROOT/mise.toml"
+mise install
 mise --version
 echo "mise ready (${SECONDS}s)."
 

@@ -92,6 +92,10 @@ trusts configs by real path), and rerun `scripts/install.sh` if it was this repo
 mise run check
 ```
 
+`mise.toml` pins the two tools the checks need, bats and ShellCheck; mise
+installs them on first run. Homebrew installs no language runtimes or project
+tools: each project pins its own in its `mise.toml`.
+
 ## Orbs
 
 `.agents/setup` installs missing Linux validation tools and mise for Amp's cached
