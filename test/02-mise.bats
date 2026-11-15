@@ -37,3 +37,14 @@ setup() {
   [ "$status" -eq 0 ]
   [ "$output" = /opt/homebrew/bin/brew ]
 }
+
+@test ".zprofile alone finds commands in ~/.local/bin, after Homebrew" {
+  mkdir -p "$BATS_TEST_TMPDIR/home/.local/bin"
+  printf '#!/bin/sh\n' > "$BATS_TEST_TMPDIR/home/.local/bin/mine"
+  chmod +x "$BATS_TEST_TMPDIR/home/.local/bin/mine"
+  run env -i HOME="$BATS_TEST_TMPDIR/home" PATH="/usr/bin:/bin" DOTFILES="$DOTFILES_DIR" \
+    /bin/zsh -c 'source "$DOTFILES/.zprofile"; command -v mine; print -rl -- $path'
+  [ "$status" -eq 0 ]
+  [ "${lines[0]}" = "$BATS_TEST_TMPDIR/home/.local/bin/mine" ]
+  [ "$(printf '%s\n' "$output" | sed -n 2,4p | tr '\n' ' ')" = "/opt/homebrew/bin /opt/homebrew/sbin $BATS_TEST_TMPDIR/home/.local/bin " ]
+}
