@@ -7,7 +7,8 @@ Defaults for every project on this Mac. The user's request and the repository's 
 - Repositories live in `~/repos`. Clone, build and run there, inside the project's checkout. Put scratch work in a temporary folder, not elsewhere in the home folder.
 - `~/repos/.tools` holds mise's installs and the tool caches; the usual paths in the home folder link to it. Leave those links in place.
 - Nothing for development is installed globally. A project's runtimes and CLIs are pinned in its own `mise.toml` and run with `mise exec --` or `mise run`. When a tool is missing, add it to that `mise.toml`; do not use `brew install`, `npm -g`, `pipx` or `uv tool` for it.
-- The only global developer tools are Xcode (installed with `xcodes`) and `adb`. Homebrew is for system tools and GUI apps, and those are listed in the dotfiles Brewfiles.
+- The only global developer tools are Xcode (installed with `xcodes`) and the Android platform tools (`adb`). Homebrew is for system tools and GUI apps, and those are listed in the dotfiles Brewfiles.
+- A runtime on the global PATH is not for project work: Homebrew's `node` is there only because varlock depends on it, and `/usr/bin` has Apple's old `python3` and `ruby`. Pin the project's own in `mise.toml`.
 - Secrets come from 1Password through varlock references. Never write one to a tracked file or paste one into a command that gets logged.
 
 ## Git
