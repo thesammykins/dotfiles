@@ -80,6 +80,11 @@ done < "$DOTFILES/scripts/managed-paths.txt"
 if [[ ! -e "$HOME/.zshrc.local" ]]; then
     run touch "$HOME/.zshrc.local"
 fi
+# Without this file, `git config --global` (gh auth login, for one) writes
+# through the ~/.config/git/config link into this repo.
+if [[ ! -e "$HOME/.gitconfig" ]]; then
+    run touch "$HOME/.gitconfig"
+fi
 
 if [[ "$APPLY_MACOS_DEFAULTS" == 1 ]]; then
     run mkdir -p "$HOME/Pictures/Screenshots"

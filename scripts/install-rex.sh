@@ -23,7 +23,7 @@ if [[ "$(uname -m)" != arm64 ]]; then
 fi
 
 # Builds are named Rex-<version>-<build>.dmg; version sort puts the newest last.
-url="$(curl -fsSL "$FEED" | grep -o 'https://[^"]*\.dmg' | sort -V | tail -n 1)"
+url="$(curl -fsSL "$FEED" | grep -o 'https://[^"]*\.dmg' | sort -V | tail -n 1 || true)"
 if [[ "$url" != https://blob.superlogical.com/* ]]; then
     echo "No Rex download found in $FEED" >&2
     exit 1
