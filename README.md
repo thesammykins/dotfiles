@@ -11,8 +11,10 @@ git clone https://github.com/thesammykins/new-mac.git /tmp/new-mac && /tmp/new-m
 `scripts/install.sh` links every path in `scripts/managed-paths.txt` into
 `$HOME`, copying anything it replaces to `~/.dotfiles.backup/<timestamp>`.
 Commit signing is linked only on Macs with the 1Password app.
-Machine-only settings go in `~/.zshrc.local`. Skills, secrets and terminal-app
-themes live elsewhere. Type `keys` in a shell for a shortcut reference.
+Machine-only settings go in `~/.zshrc.local` and `~/.gitconfig`, which the
+script creates empty. Skills, secrets and terminal-app themes live elsewhere.
+macOS defaults (dark mode, Dock, Finder, trackpad, clock) are written only with
+`DOTFILES_APPLY_MACOS_DEFAULTS=1`; log out afterwards. Type `keys` in a shell for a shortcut reference.
 
 ## Rex
 
@@ -35,7 +37,7 @@ Codex or OpenCode; see `.config/zsh/ask.zsh` for the settings.
 | --- | --- | --- |
 | `core` | `Brewfile` | Every Mac except CI runners |
 | `workstation` | `Brewfile.workstation` | Personal apps |
-| `dev` | `Brewfile.dev` | Developer tools and agent CLIs, on top of workstation |
+| `dev` | `Brewfile.dev` | Developer tools and agent CLIs |
 | `ci` | `Brewfile.ci` | CI runner Macs, on their own |
 
 ```bash
@@ -51,7 +53,8 @@ Brewfile covers.
 
 ## Repos volume
 
-Optional, run by hand. Adapted from
+new-mac runs `repos-volume.sh` on personal and work Macs; `tool-storage.sh` is
+always run by hand. Adapted from
 [elithrar/dotfiles](https://github.com/elithrar/dotfiles/tree/main#macos-repos-volume)
 (MIT). Read upstream's README for the full recovery notes.
 

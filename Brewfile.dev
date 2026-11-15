@@ -1,5 +1,5 @@
 # Developer-machine additions.
-# Layers on top of workstation. Install with:
+# Developer tools and agent CLIs. Install with:
 #   scripts/brew-tiers.sh install core workstation dev
 
 tap "anomalyco/tap"
@@ -37,7 +37,6 @@ cask "cuadriver"
 cask "google-chrome"
 cask "opencode-desktop"
 cask "openpencil"
-cask "openusage"
 cask "orbstack"
 cask "temurin"
 
