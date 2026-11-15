@@ -1,0 +1,13 @@
+# Which 1Password items the SSH agent offers, in order. Without this file the
+# agent serves only the Personal vault.
+# https://developer.1password.com/docs/ssh/agent/config
+
+# Git signing and GitHub authentication.
+[[ssh-keys]]
+item = "GitHub Signing"
+vault = "Keys"
+
+# Other devices and servers.
+[[ssh-keys]]
+item = "SSH Key"
+vault = "Keys"

@@ -57,10 +57,12 @@ parse_brewfile_entries() {
   ' "$file"
 }
 
+# $@: Brewfile names; default is every tier.
 tracked_entries() {
   local file
 
-  for file in "$REPO_ROOT/Brewfile" "$REPO_ROOT/Brewfile.dev" "$REPO_ROOT/Brewfile.workstation" "$REPO_ROOT/Brewfile.ci"; do
+  [[ "$#" -gt 0 ]] || set -- Brewfile Brewfile.dev Brewfile.workstation Brewfile.ci
+  for file in "${@/#/$REPO_ROOT/}"; do
     [[ -f "$file" ]] || continue
     parse_brewfile_entries "$file"
   done | sort -u
@@ -143,7 +145,13 @@ main() {
 
   comm -23 "$current_file" "$tracked_file" > "$untracked_brew_file"
   comm -23 "$current_mas_file" "$tracked_file" > "$untracked_mas_file"
-  comm -23 "$tracked_file" "$installed_file" > "$tracked_missing_file"
+  # The ci tier installs on its own, so its entries are not missing from a
+  # Mac that has any other tier's shell prompt.
+  if brew list --formula starship >/dev/null 2>&1; then
+    tracked_entries Brewfile Brewfile.dev Brewfile.workstation
+  else
+    tracked_entries Brewfile.ci
+  fi | comm -23 - "$installed_file" > "$tracked_missing_file"
   { brew outdated --formula; brew outdated --cask; } | awk '{name = $1; sub(/^.*\//, "", name); print name}' | sort -u > "$outdated_file"
   awk -F: '/^(brew|cask):/ {print $2}' "$tracked_file" | sort -u | comm -12 - "$outdated_file" > "$tracked_outdated_file"
 

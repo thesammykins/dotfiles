@@ -84,3 +84,12 @@ fake_signer() {
   [ "$(readlink "$TEST_HOME/.config/starship.toml")" = "$real/.config/starship.toml" ]
   [ ! -e "$TEST_HOME/.dotfiles.backup" ]
 }
+
+@test "Aside gets 1Password's browser helper file once 1Password has written one" {
+  support="$TEST_HOME/Library/Application Support"
+  mkdir -p "$support/Aside" "$support/Google/Chrome Beta/NativeMessagingHosts"
+  printf '{"name":"com.1password.1password"}\n' > "$support/Google/Chrome Beta/NativeMessagingHosts/com.1password.1password.json"
+  install_into_test_home "$BATS_TEST_TMPDIR/no-such-signer"
+  [ "$status" -eq 0 ]
+  [ "$(cat "$support/Aside/NativeMessagingHosts/com.1password.1password.json")" = '{"name":"com.1password.1password"}' ]
+}

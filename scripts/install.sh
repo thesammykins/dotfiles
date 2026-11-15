@@ -86,6 +86,19 @@ if [[ ! -e "$HOME/.gitconfig" ]]; then
     run touch "$HOME/.gitconfig"
 fi
 
+# 1Password registers its browser helper with the Chromium browsers it knows.
+# Aside is not one of them, so hand it the same file once 1Password has run.
+aside="$HOME/Library/Application Support/Aside"
+if [[ -d "$aside" && ! -e "$aside/NativeMessagingHosts/com.1password.1password.json" ]]; then
+    for host in "$HOME/Library/Application Support/Google"/Chrome*/NativeMessagingHosts/com.1password.1password.json; do
+        [[ -f "$host" ]] || continue
+        run mkdir -p "$aside/NativeMessagingHosts"
+        run cp "$host" "$aside/NativeMessagingHosts/"
+        echo "connected 1Password to Aside"
+        break
+    done
+fi
+
 if [[ "$APPLY_MACOS_DEFAULTS" == 1 ]]; then
     run mkdir -p "$HOME/Pictures/Screenshots"
     run defaults write NSGlobalDomain AppleShowAllExtensions -bool true

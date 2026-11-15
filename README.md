@@ -10,7 +10,10 @@ git clone https://github.com/thesammykins/new-mac.git /tmp/new-mac && /tmp/new-m
 
 `scripts/install.sh` links every path in `scripts/managed-paths.txt` into
 `$HOME`, copying anything it replaces to `~/.dotfiles.backup/<timestamp>`.
-Commit signing is linked only on Macs with the 1Password app.
+Commit signing is linked only on Macs with the 1Password app; the SSH agent
+offers the "GitHub Signing" and "SSH Key" items from the "Keys" vault
+(`.config/1Password/ssh/agent.toml`). Rerun it once 1Password and Aside have
+each been opened, and it connects 1Password to Aside.
 Machine-only settings go in `~/.zshrc.local` and `~/.gitconfig`, which the
 script creates empty. Skills, secrets and terminal-app themes live elsewhere.
 macOS defaults (dark mode, Dock, Finder, trackpad, clock) are written only with
