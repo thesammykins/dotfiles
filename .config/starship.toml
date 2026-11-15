@@ -1,74 +1,94 @@
+# Two-line powerline prompt: path on the left; git, status and tool chips
+# right-aligned by $fill; input below.
+# Tool chips only appear in directories with matching project files, and each chip
+# draws its own end caps so absent modules leave no gaps. Needs a Nerd Font for
+# the icons and chip glyphs (the core Brewfile installs JetBrainsMono). Icons: `starship preset nerd-font-symbols`;
+# palette: Tokyo Night.
 add_newline = true
 command_timeout = 500
 scan_timeout = 10
 
-format = "$username$hostname$directory$git_branch$git_status$python$nodejs$rust$golang$terraform$docker_context$cmd_duration$line_break$status$character"
+format = """
+$username$hostname$directory$fill\
+$git_branch$git_status$cmd_duration$status\
+$python$nodejs$bun$deno$rust$golang$java$terraform$docker_context
+$character"""
 
-[character]
-success_symbol = "[>](bold green)"
-error_symbol = "[>](bold red)"
-vimcmd_symbol = "[<](bold yellow)"
+[bun]
+format = "[\ue0b6](fg:#212736)[ $symbol($version) ](fg:#f5e6d3 bg:#212736)[\ue0b4](fg:#212736) "
+symbol = " "
+
+[deno]
+format = "[\ue0b6](fg:#212736)[ $symbol($version) ](fg:#c0caf5 bg:#212736)[\ue0b4](fg:#212736) "
+symbol = " "
 
 [directory]
-format = "[$path]($style)[$read_only]($read_only_style) "
-style = "bold blue"
-truncation_length = 3
-truncation_symbol = ".../"
-truncate_to_repo = true
+format = "[\ue0b6](fg:#769ff0)[ $path$read_only ](fg:#1a1b26 bg:#769ff0)[\ue0b4](fg:#769ff0) "
+truncation_length = 0
+truncate_to_repo = false
 read_only = " 󰌾"
 
+[docker_context]
+format = "[\ue0b6](fg:#212736)[ $symbol$context ](fg:#7aa2f7 bg:#212736)[\ue0b4](fg:#212736) "
+only_with_files = true
+detect_files = ["docker-compose.yml", "docker-compose.yaml", "Dockerfile", "compose.yml", "compose.yaml"]
+symbol = " "
+
 [git_branch]
-format = "[$symbol$branch]($style) "
-style = "purple"
-symbol = " "
+format = "[\ue0b6](fg:#394260)[ $symbol$branch(:$remote_branch) ](fg:#bb9af7 bg:#394260)[\ue0b4](fg:#394260) "
 truncation_length = 28
-truncation_symbol = "..."
-
-[git_status]
-format = "([$all_status$ahead_behind]($style) )"
-style = "yellow"
-
-[cmd_duration]
-format = "[$duration]($style) "
-min_time = 1000
-style = "dimmed white"
-
-[python]
-format = "[py $version( $virtualenv)]($style) "
-style = "yellow"
-
-[nodejs]
-format = "[node $version]($style) "
-style = "green"
-
-[rust]
-format = "[rs $version]($style) "
-style = "red"
+truncation_symbol = "…"
+symbol = " "
 
 [golang]
-format = "[go $version]($style) "
-style = "cyan"
-
-[terraform]
-format = "[tf $version( $workspace)]($style) "
-style = "purple"
-
-[docker_context]
-format = "[docker $context]($style) "
-style = "blue"
-only_with_files = false
-detect_files = ["docker-compose.yml", "docker-compose.yaml", "Dockerfile", "compose.yml", "compose.yaml"]
-
-[username]
-show_always = false
+format = "[\ue0b6](fg:#212736)[ $symbol($version) ](fg:#7dcfff bg:#212736)[\ue0b4](fg:#212736) "
+symbol = " "
 
 [hostname]
 ssh_only = true
-format = "[$hostname]($style) "
+format = "[\ue0b6](fg:#bb9af7)[ $ssh_symbol$hostname ](fg:#1a1b26 bg:#bb9af7)[\ue0b4](fg:#bb9af7) "
+ssh_symbol = " "
+
+[java]
+format = "[\ue0b6](fg:#212736)[ $symbol($version) ](fg:#f7768e bg:#212736)[\ue0b4](fg:#212736) "
+symbol = " "
+
+[nodejs]
+format = "[\ue0b6](fg:#212736)[ $symbol($version) ](fg:#9ece6a bg:#212736)[\ue0b4](fg:#212736) "
+symbol = " "
+
+[python]
+format = "[\ue0b6](fg:#212736)[ ${symbol}${pyenv_prefix}(${version})(\\($virtualenv\\)) ](fg:#e0af68 bg:#212736)[\ue0b4](fg:#212736) "
+symbol = " "
+
+[rust]
+format = "[\ue0b6](fg:#212736)[ $symbol($version) ](fg:#f7768e bg:#212736)[\ue0b4](fg:#212736) "
+symbol = "󱘗 "
 
 [status]
 disabled = false
-format = "[exit $status]($style) "
+format = "[\ue0b6](fg:#f7768e)[ ✘ $status ](fg:#1a1b26 bg:#f7768e)[\ue0b4](fg:#f7768e) "
+symbol = " "
 
-[package]
-disabled = true
+[terraform]
+format = "[\ue0b6](fg:#212736)[ $symbol$version( $workspace) ](fg:#bb9af7 bg:#212736)[\ue0b4](fg:#212736) "
+symbol = " "
+
+
+[fill]
+symbol = " "
+
+[character]
+success_symbol = "[❯](bold #9ece6a)"
+error_symbol = "[❯](bold #f7768e)"
+vimcmd_symbol = "[❮](bold #e0af68)"
+
+[git_status]
+format = "([\ue0b6](fg:#394260)[ $all_status$ahead_behind ](fg:#e0af68 bg:#394260)[\ue0b4](fg:#394260) )"
+
+[cmd_duration]
+format = "[\ue0b6](fg:#2a2f45)[ 󰔛 $duration ](fg:#a9b1d6 bg:#2a2f45)[\ue0b4](fg:#2a2f45) "
+min_time = 2000
+
+[username]
+show_always = false
