@@ -15,6 +15,18 @@ setup() {
   [ "${lines[-1]}" = 'what is in *.nomatch?' ]
 }
 
+# `source ~/.zshrc` in a running shell meets the noglob aliases from the first load.
+@test "ask and ax still work after the shell config is sourced a second time" {
+  mkdir -p "$TEST_HOME/bin"
+  printf '#!/bin/sh\n' > "$TEST_HOME/bin/rex"
+  chmod +x "$TEST_HOME/bin/rex"
+  run env HOME="$TEST_HOME" PATH="$TEST_HOME/bin:$PATH" REX_SESSION=1 ASK_AGENT=custom ASK_COMMAND='print -r --' zsh -f -c \
+    "source '$DOTFILES_DIR/.config/zsh/ask.zsh'; source '$DOTFILES_DIR/.config/zsh/ask.zsh' && eval 'ask is it *.nomatch?' && whence -w ax"
+  [ "$status" -eq 0 ]
+  [ "${lines[-2]}" = 'is it *.nomatch?' ]
+  [ "${lines[-1]}" = 'ax: alias' ]
+}
+
 # This repo is public. Saved commands carry hostnames, so they go to the Mac's
 # own copy, reached through the link install.sh makes, never the tracked list.
 @test "saving a command writes this Mac's list, not the tracked one" {

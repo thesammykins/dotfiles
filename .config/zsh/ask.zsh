@@ -63,14 +63,16 @@ _ask_run() {
     esac
 }
 
-ask() {
+# `function NAME` on purpose: once the noglob alias below exists, sourcing this
+# file again would expand `ask()` to `noglob ask()` and fail to parse.
+function ask {
     [[ $# -gt 0 ]] || { print -u2 'usage: ask QUESTION'; return 2 }
     _ask_run answer "$*"
 }
 alias ask='noglob ask'
 
 if [[ -n "${REX_SESSION:-}" ]] && (( $+commands[rex] )); then
-    ax() {
+    function ax {
         [[ $# -gt 0 ]] || { print -u2 'usage: ax TASK'; return 2 }
         local agent
         agent="$(_ask_agent)" || { print -u2 'ax: no agent found'; return 1 }
