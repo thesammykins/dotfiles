@@ -77,13 +77,6 @@ while IFS= read -r relative; do
     link "$relative"
 done < "$DOTFILES/scripts/managed-paths.txt"
 
-# --global would write through ~/.config/git/config, a link into this repo,
-# when ~/.gitconfig doesn't exist yet; machine settings belong in ~/.gitconfig.
-dotfiles_alias="!git -C \"$DOTFILES\""
-if [[ "$(git config --file "$HOME/.gitconfig" --get alias.dotfiles 2>/dev/null)" != "$dotfiles_alias" ]]; then
-    run git config --file "$HOME/.gitconfig" alias.dotfiles "$dotfiles_alias"
-fi
-
 if [[ ! -e "$HOME/.zshrc.local" ]]; then
     run touch "$HOME/.zshrc.local"
 fi
@@ -94,7 +87,22 @@ if [[ "$APPLY_MACOS_DEFAULTS" == 1 ]]; then
     run defaults write com.apple.finder ShowPathbar -bool true
     run defaults write com.apple.finder ShowStatusBar -bool true
     run defaults write com.apple.finder _FXSortFoldersFirst -bool true
+    run defaults write NSGlobalDomain AppleInterfaceStyle -string Dark
+    run defaults write NSGlobalDomain ApplePressAndHoldEnabled -bool false
+    run defaults write NSGlobalDomain com.apple.trackpad.scaling -float 2.5
+    run defaults write com.apple.AppleMultitouchTrackpad Clicking -bool true
+    run defaults write com.apple.driver.AppleBluetoothMultitouch.trackpad Clicking -bool true
+    run defaults -currentHost write NSGlobalDomain com.apple.mouse.tapBehavior -int 1
+    run defaults write com.apple.finder FXPreferredViewStyle -string Nlsv
+    run defaults write com.apple.finder ShowHardDrivesOnDesktop -bool true
+    run defaults write com.apple.finder ShowExternalHardDrivesOnDesktop -bool true
+    run defaults write com.apple.menuextra.clock ShowSeconds -bool true
+    run defaults write com.apple.menuextra.clock ShowDate -int 1
+    run defaults write com.apple.menuextra.clock ShowDayOfWeek -bool true
     run defaults write com.apple.dock show-recents -bool false
+    run defaults write com.apple.dock tilesize -int 62
+    run defaults write com.apple.dock magnification -bool true
+    run defaults write com.apple.dock largesize -int 78
     run defaults write com.apple.screencapture type -string png
     run defaults write com.apple.screencapture location -string "$HOME/Pictures/Screenshots"
     [[ "$DRY_RUN" == 1 ]] || killall Finder Dock SystemUIServer >/dev/null 2>&1 || true

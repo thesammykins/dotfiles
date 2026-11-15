@@ -70,15 +70,6 @@ fake_signer() {
   [ ! -e "$TEST_HOME/.config/git/signing.gitconfig" ]
 }
 
-@test "the git alias goes to ~/.gitconfig, not the tracked config" {
-  before="$(git -C "$DOTFILES_DIR" hash-object .config/git/config)"
-  install_into_test_home "$BATS_TEST_TMPDIR/no-such-signer"
-  [ "$status" -eq 0 ]
-  run git config --file "$TEST_HOME/.gitconfig" --get alias.dotfiles
-  [ "$status" -eq 0 ]
-  [ "$(git -C "$DOTFILES_DIR" hash-object .config/git/config)" = "$before" ]
-}
-
 @test "links into the repo spelled another way are repointed, not backed up" {
   real="$(cd "$DOTFILES_DIR" && pwd -P)"
   # Old-style link through a symlinked parent, like ~/Development -> ~/repos.
@@ -92,6 +83,4 @@ fake_signer() {
   [ "$(readlink "$TEST_HOME/.zshrc")" = "$real/.zshrc" ]
   [ "$(readlink "$TEST_HOME/.config/starship.toml")" = "$real/.config/starship.toml" ]
   [ ! -e "$TEST_HOME/.dotfiles.backup" ]
-  run git config --file "$TEST_HOME/.gitconfig" --get alias.dotfiles
-  [ "$output" = "!git -C \"$real\"" ]
 }

@@ -19,7 +19,9 @@ see that repo's AGENTS.md for the questions to ask before setting up a Mac.
   before running it with `--apply`.
 - `scripts/repos-volume.sh` and `scripts/tool-storage.sh --apply` change disks
   and move data: never run them without a yes. They stay out of `install.sh`.
-- Do not add bespoke terminal themes, generated shell widgets, or local browser profiles here.
+- Do not add terminal themes or local browser profiles here. Shell helpers and
+  Rex config (`.config/zsh`, `.config/rex`) are tracked; a Mac's own Rex actions
+  go in `~/.config/rex/local.lua` and its saved commands stay out of the repo.
 - Do not store secrets in tracked files. Use 1Password and varlock references.
 - Keep machine-specific overrides in `~/.zshrc.local`.
 - Keep `.agents/skills/` out of this repo; skills come from `thesammykins/skills`
@@ -42,3 +44,4 @@ DOTFILES_DRY_RUN=1 bash scripts/install.sh
 ## Standing approvals
 
 - Push the orb-setup change to `origin/main`, validating what Linux supports ([Sammy's approval](https://ampcode.com/threads/T-01a1c8f1-be51-7339-aea5-b07db8a009a4)).
+- Push the Rex, Brewfile and macOS-defaults changes for the Tachi rebuild to `origin/main`, after a secret scan ([Sammy's approval](https://ampcode.com/threads/T-01a1c938-4f02-75a8-a875-fc8987a93641)).

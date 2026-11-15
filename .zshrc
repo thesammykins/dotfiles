@@ -7,30 +7,25 @@ export DOTFILES="${DOTFILES:-$HOME/repos/dotfiles}"
 export EDITOR="${EDITOR:-vim}"
 typeset -U path PATH
 
-if [[ -d "$HOME/.local/bin" ]]; then
-    path=("$HOME/.local/bin" $path)
+# Login shells get Homebrew from ~/.zprofile; this covers interactive shells
+# started without one.
+if [[ -z "${HOMEBREW_PREFIX:-}" ]]; then
+    for _brew in /opt/homebrew/bin/brew /usr/local/bin/brew; do
+        [[ -x "$_brew" ]] && eval "$("$_brew" shellenv)" && break
+    done
+    unset _brew
 fi
 
-if [[ -d /opt/homebrew/bin ]]; then
-    export HOMEBREW_PREFIX="/opt/homebrew"
-    path=("$HOMEBREW_PREFIX/bin" "$HOMEBREW_PREFIX/sbin" $path)
-elif [[ -d /usr/local/bin ]]; then
-    export HOMEBREW_PREFIX="/usr/local"
-    path=("$HOMEBREW_PREFIX/bin" "$HOMEBREW_PREFIX/sbin" $path)
-fi
+# Homebrew first, then ~/.local/bin, then the system.
+path=(${HOMEBREW_PREFIX:+$HOMEBREW_PREFIX/bin} ${HOMEBREW_PREFIX:+$HOMEBREW_PREFIX/sbin} $HOME/.local/bin(N/) $path)
 
-# ~/.ssh/config already routes ssh through 1Password; this also points ssh-add
-# and other tools that read SSH_AUTH_SOCK at the same agent. Inside an SSH
-# session, keep any forwarded agent instead.
+# Point ssh, ssh-add and git at the 1Password agent. Inside an SSH session,
+# keep any forwarded agent instead.
 _op_agent="$HOME/Library/Group Containers/2BUA8C4S2C.com.1password/t/agent.sock"
 if [[ -z "${SSH_CONNECTION:-}" && -S "$_op_agent" ]]; then
     export SSH_AUTH_SOCK="$_op_agent"
 fi
 unset _op_agent
-
-if command -v nvim >/dev/null 2>&1; then
-    export EDITOR="nvim"
-fi
 
 HISTFILE="$HOME/.zsh_history"
 HISTSIZE=100000
@@ -54,6 +49,18 @@ if [[ -n "${HOMEBREW_PREFIX:-}" && -d "$HOMEBREW_PREFIX/share/zsh-completions" ]
     fpath=("$HOMEBREW_PREFIX/share/zsh-completions" $fpath)
 fi
 
+# Rex ships its own completion script. Cache it, regenerating when rex is
+# upgraded, instead of running rex on every shell start.
+if (( $+commands[rex] )); then
+    _rex_comp_dir="${XDG_CACHE_HOME:-$HOME/.cache}/zsh/completions"
+    if [[ ! -s "$_rex_comp_dir/_rex" || "$_rex_comp_dir/_rex" -ot "${commands[rex]:A}" ]]; then
+        mkdir -p "$_rex_comp_dir" && rex completion zsh >| "$_rex_comp_dir/_rex"
+        rm -f "$HOME/.zcompdump" # compinit -C would otherwise never see the new function
+    fi
+    fpath=("$_rex_comp_dir" $fpath)
+    unset _rex_comp_dir
+fi
+
 # Run the full compinit security check at most once a day. The (#q) glob
 # qualifier needs extended_glob; without it the test is always true.
 autoload -Uz compinit
@@ -69,8 +76,7 @@ autoload -Uz compinit
 zstyle ':completion:*' menu select
 zstyle ':completion:*' matcher-list 'm:{a-zA-Z}={A-Za-z}'
 
-# Warp owns input rendering; ordinary terminals use Zsh's line editor.
-if [[ "$TERM_PROGRAM" != WarpTerminal && -n "${HOMEBREW_PREFIX:-}" ]]; then
+if [[ -n "${HOMEBREW_PREFIX:-}" ]]; then
     [[ -f "$HOMEBREW_PREFIX/share/zsh-autosuggestions/zsh-autosuggestions.zsh" ]] &&
         source "$HOMEBREW_PREFIX/share/zsh-autosuggestions/zsh-autosuggestions.zsh"
 fi
@@ -83,7 +89,7 @@ if command -v direnv >/dev/null 2>&1; then
     eval "$(direnv hook zsh)"
 fi
 
-if [[ "$TERM_PROGRAM" != WarpTerminal ]] && command -v fzf >/dev/null 2>&1; then
+if command -v fzf >/dev/null 2>&1; then
     # Atuin owns history search when installed; fzf owns files and directories.
     command -v atuin >/dev/null 2>&1 && export FZF_CTRL_R_COMMAND=''
     command -v bat >/dev/null 2>&1 &&
@@ -94,11 +100,7 @@ if [[ "$TERM_PROGRAM" != WarpTerminal ]] && command -v fzf >/dev/null 2>&1; then
 fi
 
 if command -v atuin >/dev/null 2>&1; then
-    if [[ "$TERM_PROGRAM" == WarpTerminal ]]; then
-        eval "$(atuin init zsh --disable-up-arrow --disable-ctrl-r --disable-ai)"
-    else
-        eval "$(atuin init zsh --disable-up-arrow --disable-ai)"
-    fi
+    eval "$(atuin init zsh --disable-up-arrow --disable-ai)"
 fi
 
 if command -v zoxide >/dev/null 2>&1; then
@@ -138,54 +140,53 @@ vrun() {
 }
 
 keys() {
-    if [[ "$TERM_PROGRAM" == WarpTerminal ]]; then
-        printf '%s\n' \
-            'WARP SHORTCUTS (defaults; remappable in Settings)' \
-            '  Cmd-P             Search actions and keyboard shortcuts' \
-            '  Ctrl-R            Search command history' \
-            '  Cmd-O             Search files' \
-            '  Cmd-D             Split pane right' \
-            '  Cmd-,             Settings > Keyboard shortcuts'
-    else
-        printf '%s\n' \
-            'ZSH SHORTCUTS (this dotfiles setup)' \
-            '  Ctrl-R            Search history with Atuin' \
-            '  Ctrl-T            Find a file and insert its path' \
-            '  Esc, then c       Pick a directory and change into it' \
-            '  Option-C          Same, if Option is configured as Meta' \
-            '  Right arrow       Accept a suggestion at end of line'
-    fi
     printf '%s\n' \
-        '' \
-        'COMMANDS TO TYPE' \
-        '  z project         Jump to a previously visited directory' \
-        '  zi                Pick a previously visited directory' \
-        '  ll / lt           Detailed listing / two-level file tree' \
-        '  bat FILE          Read a file with highlighting' \
-        '  yazi              Browse files (press ~ for help, q to quit)' \
-        '  btop              CPU, memory and processes (q to quit)' \
-        '  gs / gd / gl      Git status / diff / history' \
-        '  open .            Open this directory in Finder' \
-        '  COMMAND | pbcopy  Copy command output to the clipboard' \
-        '  caffeinate CMD    Keep the Mac awake while CMD runs' \
-        '  man COMMAND       Read the full manual (q to quit)' \
-        '' \
-        'Type keys or shortcuts to show this again. Nothing here is executed.'
+        'Ctrl-R            Search history (Atuin)' \
+        'Ctrl-T            Find a file and insert its path' \
+        'Esc, then c       Pick a directory and change into it' \
+        'Right arrow       Accept a suggestion at end of line' \
+        '# DESCRIPTION     Enter swaps it for a suggested command' \
+        'ask QUESTION      One-shot answer from an agent, read-only' \
+        'z NAME / zi       Jump to / pick a visited directory' \
+        'll / lt           Detailed listing / two-level tree' \
+        'gs / gd / gl      Git status / diff / history' \
+        'fresh / yazi      Editor with file tree / file browser' \
+        'btop              System monitor' \
+        'vrun CMD          Run CMD with secrets from varlock'
+    [[ "$TERM_PROGRAM" == rex ]] && printf '%s\n' \
+        'ax TASK           Hand a task to an agent in a split below' \
+        'Ctrl-Shift-R      Saved commands (Ctrl-A add, Ctrl-D delete, Ctrl-E edit)' \
+        'Ctrl-X Ctrl-A     Save the typed line as a saved command' \
+        'Ctrl-X Ctrl-E     Edit the command line in $EDITOR' \
+        'Cmd-Up / Cmd-Down Jump to previous / next prompt' \
+        'Cmd-B             Files in fresh beside this pane' \
+        'Cmd-Shift-B       Pick a file or directory with yazi'
+    return 0
 }
-alias shortcuts='keys'
 
-if [[ "$TERM_PROGRAM" != WarpTerminal ]] && command -v starship >/dev/null 2>&1; then
+[[ -r "$HOME/.config/zsh/ask.zsh" ]] && source "$HOME/.config/zsh/ask.zsh"
+
+# Tab title: the directory at the prompt, the running command while it executes.
+autoload -Uz add-zsh-hook
+_title_precmd() { print -Pn '\e]0;%~\a' }
+_title_preexec() { print -rn -- $'\e]0;'"${1[(w)1]} · ${PWD/#$HOME/~}"$'\a' }
+add-zsh-hook precmd _title_precmd
+add-zsh-hook preexec _title_preexec
+
+if command -v starship >/dev/null 2>&1; then
     eval "$(starship init zsh)"
+fi
+
+# Rex prompt marks, long-command status and saved-command keys. After starship,
+# because it appends the prompt-end mark to starship's prompt.
+if [[ "$TERM_PROGRAM" == rex && -r "$HOME/.config/rex/shell/rex.zsh" ]]; then
+    source "$HOME/.config/rex/shell/rex.zsh"
 fi
 
 [[ -f "$HOME/.zshrc.local" ]] && source "$HOME/.zshrc.local"
 
 # Load after integrations and local overrides have registered their widgets.
-if [[ "$TERM_PROGRAM" != WarpTerminal && -n "${HOMEBREW_PREFIX:-}" ]]; then
+if [[ -n "${HOMEBREW_PREFIX:-}" ]]; then
     [[ -f "$HOMEBREW_PREFIX/share/zsh-fast-syntax-highlighting/fast-syntax-highlighting.plugin.zsh" ]] &&
         source "$HOMEBREW_PREFIX/share/zsh-fast-syntax-highlighting/fast-syntax-highlighting.plugin.zsh"
-fi
-
-if [[ -o interactive && -o login && -t 1 ]]; then
-    print -r -- 'Shell shortcuts: type keys (or shortcuts).'
 fi

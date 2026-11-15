@@ -1,0 +1,16 @@
+# Used only by the Rex file manager pane (YAZI_CONFIG_HOME in launch.sh).
+# Opening a directory enters it (yazi's default would launch $EDITOR on it).
+# Opening anything else records its path for the launcher and quits.
+[opener]
+enter = [
+  { run = 'ya emit enter', desc = "Enter directory", for = "unix", block = false },
+]
+pick = [
+  { run = 'printf "%s" "$1" > "$REX_PICK_FILE"; ya emit quit', desc = "Insert path in terminal", for = "unix", block = false },
+]
+
+[open]
+prepend_rules = [
+  { mime = "folder/*", use = "enter" },
+  { url = "*", use = "pick" },
+]

@@ -12,7 +12,22 @@ git clone https://github.com/thesammykins/new-mac.git /tmp/new-mac && /tmp/new-m
 `$HOME`, copying anything it replaces to `~/.dotfiles.backup/<timestamp>`.
 Commit signing is linked only on Macs with the 1Password app.
 Machine-only settings go in `~/.zshrc.local`. Skills, secrets and terminal-app
-themes live elsewhere.
+themes live elsewhere. Type `keys` in a shell for a shortcut reference.
+
+## Rex
+
+`.config/rex` is the [Rex](https://www.superlogical.com/rex) terminal setup:
+files in `fresh` beside the pane (Cmd-B), a `yazi` file picker (Cmd-Shift-B),
+saved commands (Ctrl-Shift-R), prompt jumps and done/failed status for long
+commands. Rex has no Homebrew cask, so `scripts/install-rex.sh` installs the
+newest build from Rex's update feed when the app is missing; `new-mac` runs it
+for desktop profiles. After changing `init.lua`, run
+`rex config check && rex config reload`. A Mac's own actions go in
+`~/.config/rex/local.lua`; saved commands are copied from
+`workflows/commands.txt` on first use and then belong to that Mac.
+
+`ask QUESTION` and a line starting with `# ` send plain English to Claude Code,
+Codex or OpenCode; see `.config/zsh/ask.zsh` for the settings.
 
 ## Brewfile tiers
 
@@ -59,8 +74,8 @@ and Xcode DerivedData onto `~/repos/.tools`. Quit Xcode and Android Studio and r
 `gradle --stop` first, and run it from Terminal, not from a mise-installed tool.
 Rerun after installing a new toolchain.
 
-new-mac creates this volume before cloning anything into `~/repos` (personal,
-work and agent-dev profiles), which is why the bootstrap clone above goes to
+new-mac creates this volume before cloning anything into `~/repos` (personal and
+work profiles), which is why the bootstrap clone above goes to
 `/tmp`. CI and minimal profiles use a plain `~/repos` folder. To move a project
 in by hand, `ditto` it into `~/repos`, verify it, run `mise trust` in it (mise
 trusts configs by real path), and rerun `scripts/install.sh` if it was this repo.
@@ -78,11 +93,9 @@ orb snapshot. Warm runs reuse installed tools. It does not link dotfiles, instal
 Homebrew tiers, or change disks. No resume hook or services are needed.
 
 `mise run check` runs the full suite, but `test/07-install.bats` requires macOS
-and the PATH test in `test/02-mise.bats` assumes `/opt/homebrew` exists. The
+and the PATH tests in `test/02-mise.bats` assume `/opt/homebrew` exists. The
 installer's dry run also rejects Linux. In an orb, run the portable suites with:
 
 ```bash
-mise exec -- bats test/05-repo-contract.bats test/08-brew-tiers.bats test/10-tool-storage.bats
+mise exec -- bats test/05-repo-contract.bats test/08-brew-tiers.bats test/10-tool-storage.bats test/11-ask-and-rex.bats
 ```
-
-Type `keys` in a shell for a shortcut reference.

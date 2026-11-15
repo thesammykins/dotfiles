@@ -19,11 +19,12 @@ setup() {
   done
 }
 
-@test "dev tier installs the Buildkite CLI and agent" {
-  run rg -F -x 'brew "buildkite/buildkite/buildkite-agent@3"' "$DOTFILES_DIR/Brewfile.dev"
-  [ "$status" -eq 0 ]
+# The agent runs builds, so it belongs to CI runners only; dev Macs get the CLI.
+@test "dev tier installs the Buildkite CLI but not the agent" {
   run rg -F -x 'brew "buildkite/buildkite/bk@3"' "$DOTFILES_DIR/Brewfile.dev"
   [ "$status" -eq 0 ]
+  run rg -F 'buildkite-agent' "$DOTFILES_DIR/Brewfile.dev"
+  [ "$status" -ne 0 ]
 }
 
 @test "ci tier stays free of shell extras and desktop apps" {
@@ -44,7 +45,7 @@ setup() {
 @test "removing dev keeps anything core or workstation also lists" {
   run env PATH="$FAKE_BIN:$PATH" /bin/bash "$TIERS" uninstall dev
   [ "$status" -eq 0 ]
-  [[ "$output" == *"brew uninstall --formula actionlint"* ]]
+  [[ "$output" == *"brew uninstall --formula shellcheck"* ]]
   [[ "$output" != *"--formula jq"* ]]
   [[ "$output" == *"Preview only"* ]]
   [ ! -e "$BATS_TEST_TMPDIR/brew.log" ]
@@ -52,9 +53,10 @@ setup() {
 
 @test "removing ci keeps layered tiers unless told to keep none" {
   run /bin/bash "$TIERS" uninstall ci
-  [[ "$output" == *"Nothing to remove"* ]]
-  run /bin/bash "$TIERS" uninstall --keep none ci
   [[ "$output" == *"brew uninstall --formula buildkite/buildkite/buildkite-agent@3"* ]]
+  [[ "$output" != *"bk@3"* ]]
+  run /bin/bash "$TIERS" uninstall --keep none ci
+  [[ "$output" == *"brew uninstall --formula buildkite/buildkite/bk@3"* ]]
 }
 
 @test "unknown tiers are rejected" {

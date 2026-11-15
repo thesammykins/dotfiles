@@ -6,6 +6,10 @@
 manual	Cider	Apple Music client, from cider.sh
 manual	CrossOver Preview	CodeWeavers preview build (CrossOver itself is a cask)
 manual	Hermes	Vendor download
+manual	Rex Beta	Terminal; no cask, installed by scripts/install-rex.sh
+manual	Hubble	Markdown viewer; vendor download
+manual	LGTVMenuBar	Own app; from its GitHub releases
+manual	MacCarUnlock	Own app; built from its repository
 manual	HuddlyWarp	Huddly download
 manual	Tern	Vendor download
 manual	UHF	Vendor download

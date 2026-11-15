@@ -12,16 +12,15 @@ brew "bat"
 brew "btop"
 brew "direnv"
 brew "eza"
-brew "fd"
 brew "fzf"
 brew "git-delta"
 brew "jq"
 brew "ripgrep"
-brew "wget"
 brew "zoxide"
 
 # Shell history and file navigation
 brew "atuin"
+brew "fresh-editor"
 brew "yazi"
 
 # GitHub, App Store, auth, and VPN
@@ -31,3 +30,6 @@ brew "mas"
 cask "1password"
 cask "1password-cli"
 cask "tailscale-app"
+
+# The prompt and eza icons need Nerd Font glyphs
+cask "font-jetbrains-mono-nerd-font"

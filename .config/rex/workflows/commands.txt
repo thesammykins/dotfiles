@@ -1,0 +1,17 @@
+# Saved commands for the Rex "Saved Commands" picker (ctrl+shift+r).
+# One per line:  COMMAND  ## description
+# {{name}} placeholders are asked for when you pick the command.
+# The command is typed at your prompt but not run, so you can still edit it.
+# In the picker: ctrl-a adds, ctrl-d deletes, ctrl-e opens this file.
+# At a prompt, Ctrl-X Ctrl-A saves the line you have typed.
+
+git log --oneline --graph --decorate -n {{count}}  ## Git: recent history graph
+git switch -c {{branch}}  ## Git: new branch
+gh pr create --fill  ## GitHub: open a PR from this branch
+gh pr checks --watch  ## GitHub: watch PR checks
+
+mise run {{task}}  ## mise: run a task
+mise outdated  ## mise: outdated tools
+lsof -nP -iTCP:{{port}} -sTCP:LISTEN  ## Network: what is listening on a port
+dscacheutil -flushcache && sudo killall -HUP mDNSResponder  ## macOS: flush DNS
+du -sh -- * | sort -h  ## Disk: size of everything here

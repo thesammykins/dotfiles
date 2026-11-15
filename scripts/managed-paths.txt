@@ -3,6 +3,12 @@
 .config/starship.toml
 .config/mise/config.toml
 .config/atuin/config.toml
+.config/zsh/ask.zsh
+.config/rex/init.lua
+.config/rex/shell/rex.zsh
+.config/rex/workflows/pick.sh
+.config/rex/files/launch.sh
+.config/rex/files/yazi.toml
 .config/git/ignore
 .config/git/config
 .config/git/allowed_signers

@@ -27,7 +27,7 @@ log_info "All scripts parse under $(/bin/bash -c 'echo "$BASH_VERSION"')."
 
 log_step "Running ShellCheck on scripts..."
 if command -v shellcheck >/dev/null 2>&1; then
-    shellcheck "$REPO_ROOT"/scripts/*.sh
+    shellcheck "$REPO_ROOT"/scripts/*.sh "$REPO_ROOT/.config/rex/files/launch.sh"
     log_info "ShellCheck passed."
 else
     missing_tool shellcheck
@@ -35,7 +35,8 @@ fi
 
 log_step "Running zsh syntax checks..."
 if command -v zsh >/dev/null 2>&1; then
-    zsh -n "$REPO_ROOT/.zshrc" "$REPO_ROOT/.zprofile"
+    zsh -n "$REPO_ROOT/.zshrc" "$REPO_ROOT/.zprofile" "$REPO_ROOT/.config/zsh/ask.zsh" \
+        "$REPO_ROOT/.config/rex/shell/rex.zsh" "$REPO_ROOT/.config/rex/workflows/pick.sh"
     log_info "zsh syntax checks passed."
 else
     echo "zsh not found, skipping."
