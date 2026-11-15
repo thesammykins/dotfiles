@@ -116,6 +116,13 @@ cmd_install() {
     for tier in "${tiers[@]}"; do
         run brew bundle install --no-upgrade --file="$(brewfile_for "$tier")"
     done
+
+    # Homebrew leaves its share folder group-writable on a fresh Mac, and zsh's
+    # compinit refuses to load completions from a directory like that.
+    local share="${HOMEBREW_PREFIX:-/opt/homebrew}/share"
+    if [[ -d "$share" && -O "$share" ]]; then
+        run chmod g-w "$share"
+    fi
 }
 
 cmd_uninstall() {

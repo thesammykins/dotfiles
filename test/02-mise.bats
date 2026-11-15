@@ -19,10 +19,11 @@ setup() {
 
 # macOS only: needs Homebrew at /opt/homebrew. mise, where installed, puts its
 # shims and the current project's tools ahead of Homebrew; that is intended.
+# stderr is dropped: with no terminal, compinit and starship complain there.
 @test "interactive shells put Homebrew first, once, even when sourced twice" {
   mkdir -p "$BATS_TEST_TMPDIR/home/.local/bin"
   run env -i HOME="$BATS_TEST_TMPDIR/home" PATH="/usr/bin:/bin" DOTFILES="$DOTFILES_DIR" \
-    /bin/zsh -c 'cd "$HOME"; source "$DOTFILES/.zshrc"; source "$DOTFILES/.zshrc"; print -rl -- $path'
+    /bin/zsh -c 'cd "$HOME"; source "$DOTFILES/.zshrc" 2>/dev/null; source "$DOTFILES/.zshrc" 2>/dev/null; print -rl -- $path'
   [ "$status" -eq 0 ]
   [ "$(printf '%s\n' "$output" | grep -v '/mise/' | sed -n 1,3p | tr '\n' ' ')" = "/opt/homebrew/bin /opt/homebrew/sbin $BATS_TEST_TMPDIR/home/.local/bin " ]
   [ "$(printf '%s\n' "$output" | grep -c '^/opt/homebrew/bin$')" -eq 1 ]
