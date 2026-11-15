@@ -45,3 +45,4 @@ DOTFILES_DRY_RUN=1 bash scripts/install.sh
 
 - Push the orb-setup change to `origin/main`, validating what Linux supports ([Sammy's approval](https://ampcode.com/threads/T-01a1c8f1-be51-7339-aea5-b07db8a009a4)).
 - Push the Rex, Brewfile and macOS-defaults changes for the Tachi rebuild to `origin/main`, after a secret scan ([Sammy's approval](https://ampcode.com/threads/T-01a1c938-4f02-75a8-a875-fc8987a93641)).
+- Push the shared `.agents/AGENTS.md` rewrite to `origin/main` ([Sammy's approval](https://ampcode.com/threads/T-01a1c938-4f02-75a8-a875-fc8987a93641)).

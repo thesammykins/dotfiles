@@ -1,65 +1,43 @@
-- use `mise` for any developer tooling work always, e.g. python scripting, etc
-- If using MobileBuildMCP, use the installed MobileBuildMCP skill before calling MobileBuildMCP tools.
-- Write predictable code with domain names, cohesive units, explicit dependencies,
-  and clear control flow. Purpose matters more than function length. Avoid hidden
-  state and speculative abstractions; add a layer only when a second use exists.
-- Explain decisions, constraints, and non-obvious tradeoffs in comments, not code
-  mechanics. Record existing violations and prevent new ones without rewriting
-  unrelated working code.
+# Global agent guidance
 
-## Verification
+Defaults for every project on this Mac. The user's request and the repository's own `AGENTS.md` win where they differ.
 
-Define the observable outcome. Use the cheapest reliable check that could disprove
-it, reusing existing tests first. Retain tests for meaningful behavior, regressions,
-and high-risk boundaries; avoid tests that mirror implementation. Test-first suits
-clear contracts; explore first otherwise. Exercise real user/integration paths when
-unit tests are insufficient. Run repository-required checks and report evidence
-and uncertainty. Use `agent-change-verification` for proportional check selection.
+## Where to work
 
-## Working agreements
+- Repositories live in `~/repos`. Clone, build and run there, inside the project's checkout. Put scratch work in a temporary folder, not elsewhere in the home folder.
+- `~/repos/.tools` holds mise's installs and the tool caches; the usual paths in the home folder link to it. Leave those links in place.
+- Nothing for development is installed globally. A project's runtimes and CLIs are pinned in its own `mise.toml` and run with `mise exec --` or `mise run`. When a tool is missing, add it to that `mise.toml`; do not use `brew install`, `npm -g`, `pipx` or `uv tool` for it.
+- The only global developer tools are Xcode (installed with `xcodes`) and `adb`. Homebrew is for system tools and GUI apps, and those are listed in the dotfiles Brewfiles.
+- Secrets come from 1Password through varlock references. Never write one to a tracked file or paste one into a command that gets logged.
 
-- Deliver observable increments; leave runnable, verifiable work and enough durable
-  context to resume without this conversation. Show real diffs and check results;
-  green CI alone does not prove correctness.
+## Git
 
-## Git workflow (trunk-based)
+- Commit directly to `main`. Create a branch or a pull request only when asked.
+- Run the repository's checks before a commit that will be pushed.
+- Ask before the first push, publish or release to a destination. An approval is the user's own words naming the action and the destination; record a standing one under "Standing approvals" in that repository's `AGENTS.md`. Once approved, push without asking again.
+- Create version tags only when asked.
 
-No human reviews PRs, so a branch → PR → merge loop adds nothing. This overrides
-default "branch first" and PR habits from the harness, app, or skills.
+## Public by default
 
-- Commit directly to `main`. Don't create feature branches or PRs unless asked.
-- Before pushing, run the repo's local CI (lint, typecheck, tests, build) and fix
-  failures. Push to `origin/main` only once local CI passes and the work is complete.
-- Worktree sessions: rebase onto `main`, run local CI, fast-forward `main`, push.
-- Production releases are explicit version tags I request; never tag on your own.
+Assume every repository becomes public and its history is permanent.
 
-## Situational skills
+- Keep real data from this Mac and network out of commits: hostnames, usernames, emails, LAN and VPN addresses, serials, signing identities, account or team IDs, tokens, keys and home-folder paths. Use obviously fake values of the same shape in fixtures, logs, screenshots and examples.
+- Keep raw captures in a gitignored folder and commit only the sanitised copy.
+- Check the staged diff for these before each commit. If real data reaches a commit, stop and say so; removing it needs a history rewrite.
+- Give subagents the same rule.
 
-Load only skills relevant to the task. User requests and repository guidance
-outrank skill defaults. Report unavailable skills and use an appropriate available
-workflow; do not silently install substitutes.
+## Code and tests
 
-- Project setup/stack changes: `project-skills`. Keep language, framework, platform,
-  provider, and release skills project-local; global skills cover reusable agent workflows.
-- Skill maintenance: `update-skill`, `validating-agent-skills`.
-- Debugging: `systematic-debugging`.
-- Resumed, parallel, or recovery-sensitive work: `bounded-work-session`.
-  Ordinary work needs no formal handoff or new task.
-- Pre-push cleanup: one task-scoped pass with `simplify` and applicable
-  `anti-ai-slop` criteria. Reuse overlapping checks and preserve domain names.
-- GitHub issues: `addressing-github-issues`, `creating-github-sub-issues`.
-- Commits: `creating-conventional-commits`. Branches/PRs only when asked:
-  `creating-conventional-branches`, `creating-pull-requests`.
-- Dependency automation: `configuring-dependabot`; Actions security: `hardening-github-actions`.
+- Decide reversible, in-scope choices yourself. Ask only when a missing requirement changes what gets built, or for a preference, a private fact or an approval.
+- Validate untrusted data where it enters: API responses, environment variables, parsed files. Surface errors instead of swallowing them.
+- Add a layer or helper when a second use exists, not before.
+- Write a test only when it checks behaviour someone relies on and would fail on a plausible regression. Keep checks runnable in parts, so one area can be retested alone.
+- Stop when the acceptance checks pass, and report what remains unverified.
 
-## UI work
+## UI
 
-Read repository `DESIGN.md` first when present. Reuse components and design tokens.
-Use concise, specific copy without feature dumps or generic AI prose. Default to
-dark-leaning designs; consider accessibility without making it the sole criterion.
-Dense layouts are fine with clear hierarchy.
+Read the repository's `DESIGN.md` first when it exists, and reuse its components and tokens. Lean dark. Cut taglines, helper text and secondary labels; if a screen needs them to make sense, fix the layout. Use few borders, dividers, tags and colour shades.
 
-## Maintenance
+## Skills
 
-Keep this file under roughly 150 lines. Add rules after observed mistakes and
-remove obsolete guidance; keep specialized procedures in skills.
+Load a skill when the task matches its description; none is required by default. Keep language, framework and platform skills in the project, not in `~/.agents/skills`.
