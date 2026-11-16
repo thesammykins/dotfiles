@@ -127,3 +127,10 @@ installer's dry run also rejects Linux. In an orb, run the portable suites with:
 ```bash
 mise exec -- bats test/05-repo-contract.bats test/08-brew-tiers.bats test/10-tool-storage.bats test/11-ask-and-rex.bats
 ```
+
+## Device authentication
+
+See [device authentication](docs/device-authentication.md) for per-host
+1Password key selection, a Secure Enclave SSH trial, recovery access and
+Touch ID for sudo. Preview the native sudo setup with
+`bash scripts/touchid-sudo.sh`; applying it is a separate local step.

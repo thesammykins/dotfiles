@@ -117,6 +117,7 @@ if command -v op >/dev/null 2>&1; then
 fi
 
 alias dotfiles='git -C "$DOTFILES"'
+alias ssh-device-add='bash "$DOTFILES/scripts/ssh-enroll-device.sh"'
 alias g='git'
 alias gs='git status --short --branch'
 alias ga='git add'
