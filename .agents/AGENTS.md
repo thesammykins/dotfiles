@@ -15,7 +15,14 @@ Defaults for every project on this Mac. The user's request and the repository's 
 
 - Commit directly to `main`. Create a branch or a pull request only when asked.
 - Run the repository's checks before a commit that will be pushed.
-- Ask before the first push, publish or release to a destination. An approval is the user's own words naming the action and the destination; record a standing one under "Standing approvals" in that repository's `AGENTS.md`. Once approved, push without asking again.
+- Work autonomously on bounded tasks: commit and push to `main` of the user's own repos once checks pass, without asking. Ask first only for things that are hard to undo or reach other people:
+  - App Store submission, release or external TestFlight
+  - deploying or publishing a public website or package
+  - deleting data, repos or branches; force-push or history rewrites
+  - spending money, or changing accounts, permissions or security settings
+  - touching the user's own devices, app data or settings
+  - messaging or emailing anyone other than the user
+- When one of those is needed, finish everything else first and ask once. A "yes" covers what you asked. Never claim an approval the user didn't give.
 - Create version tags only when asked.
 
 ## Public by default
