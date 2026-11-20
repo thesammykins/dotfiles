@@ -31,6 +31,17 @@ for desktop profiles. After changing `init.lua`, run
 `~/.config/rex/local.lua`; saved commands are copied from
 `workflows/commands.txt` on first use and then belong to that Mac.
 
+It also opens an agent beside the pane (Cmd-Shift-A: Claude Code, Codex,
+OpenCode or any typed command), previews Markdown with `mddog`
+(Cmd-Shift-M), shows `rex-fingers` hints over paths and URLs (Cmd-Shift-H),
+and arranges a `milo` file rail (Cmd-Shift-E; Cmd-E edits the file milo's
+reader shows). `scripts/install-rex.sh` installs `rex-fingers`; run
+`milo setup` once per Mac to save the rail.
+
+Remote hosts are not tracked here. Each Mac follows one Rex server, its home,
+for hosts and shortcuts: add hosts once on the home Mac, and point other
+devices at it with `rex home set <its Rex address>`.
+
 `ask QUESTION` and a line starting with `# ` send plain English to Claude Code,
 Codex or OpenCode; see `.config/zsh/ask.zsh` for the settings.
 

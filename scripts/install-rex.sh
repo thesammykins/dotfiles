@@ -7,6 +7,10 @@
 # shells, hooks and agents can't find it. This links it into ~/.local/bin,
 # which is where Rex itself installs the command on remote machines.
 #
+# It also installs rex-fingers (letter hints over paths and URLs, bound in
+# init.lua), which has no prebuilt download: the Go program and its Lua plugin
+# at one pinned tag.
+#
 #   scripts/install-rex.sh            install if missing
 #   DOTFILES_DRY_RUN=1 scripts/...    say what would be downloaded
 set -euo pipefail
@@ -35,9 +39,30 @@ link_cli() {
     fi
 }
 
+FINGERS_VERSION="v0.4.1"
+FINGERS_PLUGIN="$HOME/.config/rex/plugins/rex-fingers"
+
+install_fingers() {
+    if [[ "${DOTFILES_DRY_RUN:-0}" == 1 ]]; then
+        echo "[dry-run] install rex-fingers $FINGERS_VERSION"
+        return
+    fi
+    if [[ "$("$HOME/.local/bin/rex-fingers" version 2>/dev/null)" != "$FINGERS_VERSION" ]]; then
+        GOBIN="$HOME/.local/bin" mise exec go@1.26 -- \
+            go install "github.com/xeind/rex-fingers@$FINGERS_VERSION"
+    fi
+    if [[ "$(git -C "$FINGERS_PLUGIN" describe --tags 2>/dev/null)" != "$FINGERS_VERSION" ]]; then
+        rm -rf "$FINGERS_PLUGIN"
+        git clone -q --branch "$FINGERS_VERSION" --depth 1 \
+            https://github.com/xeind/rex-fingers "$FINGERS_PLUGIN"
+    fi
+    echo "rex-fingers $FINGERS_VERSION ready"
+}
+
 if [[ -d "$APP" ]]; then
     echo "Rex is already installed; it updates itself."
     link_cli
+    install_fingers
     exit 0
 fi
 if [[ "$(uname -m)" != arm64 ]]; then
@@ -54,6 +79,7 @@ fi
 if [[ "${DOTFILES_DRY_RUN:-0}" == 1 ]]; then
     echo "[dry-run] install $APP from $url"
     link_cli
+    install_fingers
     exit 0
 fi
 
@@ -81,3 +107,4 @@ spctl --assess --type execute "$source_app"
 ditto "$source_app" "$APP"
 echo "Installed $APP"
 link_cli
+install_fingers
