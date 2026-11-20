@@ -15,16 +15,22 @@
 #   DOTFILES_DRY_RUN=1 scripts/...    say what would be downloaded
 set -euo pipefail
 
-# SUFeedURL from Rex Beta.app's Info.plist.
+# SUFeedURL from the app's Info.plist.
 FEED="https://blob.superlogical.com/public/rex-app/preview-arm64/appcast.xml"
 # Superlogical, Inc. The app must be signed by this team and notarized.
 TEAM_ID="AG92C3PT77"
-APP="/Applications/Rex Beta.app"
-# Inside the signed app, which Rex updates in place, so the link survives updates.
-CLI="$APP/Contents/Helpers/Rex Server.rex/Contents/MacOS/rex"
+# The app was "Rex Beta" until preview.32 renamed it "Rex"; an installed copy
+# keeps whichever name it had, so accept either.
+APP_NAMES=("Rex.app" "Rex Beta.app")
+APP="/Applications/${APP_NAMES[0]}"
+for name in "${APP_NAMES[@]}"; do
+    [[ -d "/Applications/$name" ]] && { APP="/Applications/$name"; break; }
+done
 LINK="$HOME/.local/bin/rex"
 
 link_cli() {
+    # Inside the signed app, which Rex updates in place, so the link survives updates.
+    local CLI="$APP/Contents/Helpers/Rex Server.rex/Contents/MacOS/rex"
     if [[ "${DOTFILES_DRY_RUN:-0}" == 1 ]]; then
         echo "[dry-run] link $LINK -> $CLI"
     elif [[ ! -x "$CLI" ]]; then
@@ -95,7 +101,15 @@ curl -fL --progress-bar -o "$work/rex.dmg" "$url"
 mkdir "$work/mount"
 hdiutil attach -quiet -nobrowse -readonly -mountpoint "$work/mount" "$work/rex.dmg"
 
-source_app="$work/mount/$(basename "$APP")"
+source_app=""
+for name in "${APP_NAMES[@]}"; do
+    [[ -d "$work/mount/$name" ]] && { source_app="$work/mount/$name"; break; }
+done
+if [[ -z "$source_app" ]]; then
+    echo "The Rex download has no ${APP_NAMES[*]}." >&2
+    exit 1
+fi
+APP="/Applications/$(basename "$source_app")"
 codesign --verify --deep --strict "$source_app"
 team="$(codesign -dv --verbose=2 "$source_app" 2>&1 | sed -n 's/^TeamIdentifier=//p')"
 if [[ "$team" != "$TEAM_ID" ]]; then
