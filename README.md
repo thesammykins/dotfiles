@@ -42,6 +42,13 @@ Remote hosts are not tracked here. Each Mac follows one Rex server, its home,
 for hosts and shortcuts: add hosts once on the home Mac, and point other
 devices at it with `rex home set <its Rex address>`.
 
+Every host on the tailnet (`100.*`, `*.ts.net`) logs in with the "SSH Key"
+item and nothing else: `.ssh/tailnet.conf`, which `install.sh` includes at the
+top of `~/.ssh/config`. A new host needs that item's public key
+(`.ssh/ssh-key.pub`) in its `authorized_keys` and no config here. Password
+login is off for these hosts, so a Rex login before 1Password is running fails
+at once and retries instead of hanging on a password prompt.
+
 `ask QUESTION` and a line starting with `# ` send plain English to Claude Code,
 Codex or OpenCode; see `.config/zsh/ask.zsh` for the settings.
 

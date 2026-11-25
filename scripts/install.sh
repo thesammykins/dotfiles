@@ -86,6 +86,21 @@ if [[ ! -e "$HOME/.gitconfig" ]]; then
     run touch "$HOME/.gitconfig"
 fi
 
+# ~/.ssh/config stays this Mac's own (Rex and OrbStack write to it too), so
+# include the tracked tailnet hosts instead of linking it. ssh takes the first
+# value it sees, so the include goes at the top.
+ssh_include="Include ~/.ssh/tailnet.conf"
+if ! grep -qxF "$ssh_include" "$HOME/.ssh/config" 2>/dev/null; then
+    if [[ "$DRY_RUN" == 1 ]]; then
+        echo "[dry-run] add '$ssh_include' to the top of ~/.ssh/config"
+    else
+        existing="$(cat "$HOME/.ssh/config" 2>/dev/null || true)"
+        printf '%s\n%s\n' "$ssh_include" "$existing" > "$HOME/.ssh/config"
+        chmod 600 "$HOME/.ssh/config"
+        echo "included tailnet hosts in ~/.ssh/config"
+    fi
+fi
+
 # 1Password registers its browser helper with the Chromium browsers it knows.
 # Aside is not one of them, so hand it the same file once 1Password has run.
 aside="$HOME/Library/Application Support/Aside"

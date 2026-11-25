@@ -14,5 +14,7 @@
 .config/git/allowed_signers
 .config/git/signing.gitconfig
 .config/1Password/ssh/agent.toml
+.ssh/tailnet.conf
+.ssh/ssh-key.pub
 .config/varlock/.env.schema
 .agents/AGENTS.md
