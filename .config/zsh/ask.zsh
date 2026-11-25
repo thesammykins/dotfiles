@@ -89,24 +89,24 @@ if [[ -n "${REX_BLOCK:-}" ]] && (( $+commands[rex] )); then
         [[ $# -gt 0 ]] || { print -u2 'usage: ax TASK'; return 2 }
         local agent
         agent="$(_ask_agent)" || { print -u2 'ax: no agent found'; return 1 }
-        local -a argv
+        local -a launch
         local dir="$PWD"
         case "$agent" in
             claude)
-                argv=("${commands[claude]}" "$*")
+                launch=("${commands[claude]}" "$*")
                 # Claude never remembers trusting the home folder, so a task
                 # typed there would wait on its trust prompt every time. Start
                 # in a folder trusted once instead, with home added to it.
                 if [[ "$PWD" == "$HOME" ]]; then
                     dir="${XDG_STATE_HOME:-$HOME/.local/state}/ax"
                     mkdir -p "$dir"
-                    argv=("${commands[claude]}" --add-dir "$HOME" "In $HOME: $*")
+                    launch=("${commands[claude]}" --add-dir "$HOME" -- "In $HOME: $*")
                 fi ;;
-            codex) argv=("${commands[codex]}" "$*") ;;
-            opencode) argv=("${commands[opencode]}" --prompt "$*") ;;
+            codex) launch=("${commands[codex]}" "$*") ;;
+            opencode) launch=("${commands[opencode]}" --prompt "$*") ;;
             *) print -u2 "ax: $agent has no interactive mode here"; return 1 ;;
         esac
-        rex run -b "$REX_BLOCK" --split=below --ratio 45 --cwd "$dir" --shell=none -- "${argv[@]}"
+        rex run -b "$REX_BLOCK" --split=below --ratio 45 --cwd "$dir" --shell=none -- "${launch[@]}"
     }
     alias ax='noglob ax'
 fi
