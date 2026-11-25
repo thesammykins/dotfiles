@@ -141,6 +141,41 @@ rex.action{
 
 rex.bind("shift+cmd+k", "browser")
 
+-- A Mac's screen in a split, drawn with kitty graphics by krd over ssh
+-- (github.com/zzjcool/krd, installed on that Mac in ~/.local/bin). Lists
+-- the ssh hosts from `rex hosts`; Ctrl-\ quits.
+local function ssh_hosts()
+  local out = rex.exec{ HOME .. "/.local/bin/rex", "hosts", "list", "--json" }
+  local ok, list = pcall(rex.json.decode, out and out.stdout or "")
+  local items = {}
+  for _, h in ipairs(ok and list and list.hosts or {}) do
+    for _, e in ipairs(h.host.endpoints or {}) do
+      local dest = e:match("^ssh://(.+)$")
+      if dest then items[#items + 1] = { id = dest, title = h.host.label } break end
+    end
+  end
+  return items
+end
+
+rex.action{
+  name     = "screen",
+  title    = "View Screen…",
+  keywords = "screen share remote desktop vnc mac krd view",
+  args     = { host = "string?" },
+  run      = function(ctx, args)
+    local dest = args.host
+    if dest == nil then
+      dest = rex.ui.pick{ title = "View screen", placeholder = "Host", items = ssh_hosts() }
+      if dest == nil then return end
+    end
+    local host, port = dest:match("^(.-):(%d+)$")
+    local target = port and ("-p " .. port .. " " .. host) or dest
+    split_beside(ctx, "screen", "ssh -t " .. target .. " '\"$HOME\"/.local/bin/krd'", 0.6)
+  end,
+}
+
+rex.bind("alt+cmd+v", "screen")
+
 -- rex-fingers: letter hints over paths, URLs and hashes. Its default
 -- alt+f would shadow zsh's forward-word, so it lives on cmd+shift+h.
 -- scripts/install-rex.sh puts the plugin at this pinned path.
