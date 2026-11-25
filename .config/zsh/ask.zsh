@@ -27,10 +27,18 @@ _ask_agent() {
     return 1
 }
 
-# _ask_run MODE PROMPT: MODE is "answer" (read-only file access) or "command"
-# (no tools; the reply is a single command).
+# Commands ask may run to answer: they look, never change anything. claude
+# refuses any other command in a scripted run, as there is no one to ask.
+_ASK_READ_ONLY=(du df ls stat file wc ps uptime sw_vers uname whoami vm_stat
+    mdfind which 'diskutil list' 'git status' 'git log' 'git diff' 'brew list'
+    'brew info')
+
+# _ask_run MODE PROMPT: MODE is "answer" (reads files, runs _ASK_READ_ONLY) or
+# "command" (no tools; the reply is a single command).
 _ask_run() {
-    local mode="$1" prompt="$2" agent sys tools=Read,Grep,Glob
+    local mode="$1" prompt="$2" agent sys tools=Read,Grep,Glob,Bash cmd
+    local -a allowed=()
+    for cmd in "${_ASK_READ_ONLY[@]}"; do allowed+=("Bash($cmd:*)"); done
     agent="$(_ask_agent)" || {
         print -u2 'ask: no agent found; install claude, codex or opencode, or set ASK_AGENT'
         return 1
@@ -44,8 +52,9 @@ _ask_run() {
     case "$agent" in
         claude)
             command claude -p --model "${ASK_MODEL:-haiku}" --tools "$tools" \
+                --allowedTools "${allowed[@]}" \
                 --no-session-persistence --disable-slash-commands \
-                --append-system-prompt "$sys" -- "$prompt" ;;
+                --append-system-prompt "$sys" -- "$prompt" </dev/null ;;
         codex)
             # codex narrates its run on stdout and stderr; keep only the final message.
             local reply
@@ -121,7 +130,8 @@ _ask_accept_line() {
 zle -N accept-line _ask_accept_line
 
 # True when LINE reads as English rather than a command: three or more words,
-# no shell operators, and a first word the shell can't run or a question word.
+# no shell operators, and a first word that is a question word, or one the
+# shell can't run, or a command followed by English rather than arguments.
 _ask_is_prose() {
     [[ "${ASK_AUTO:-1}" != 0 ]] || return 1
     local -a words=(${=1})
@@ -134,6 +144,16 @@ _ask_is_prose() {
         [[ "$1" == *'?'* || $#words -ge 4 ]]; then
         return 0
     fi
-    whence -- "$first" >/dev/null 2>&1 && return 1
-    return 0
+    whence -- "$first" >/dev/null 2>&1 || return 0
+    # A real command followed by plain words that address you ("tidy up my
+    # downloads folder": tidy is HTML Tidy) is still English. No flags or
+    # quoted arguments, and at least one word a command line rarely has.
+    local w
+    for w in "${words[@]:1}"; do
+        [[ "$w" == [-\'\"]* ]] && return 1
+    done
+    for w in "${words[@]:1}"; do
+        [[ "${(L)${w//[[:punct:]]/}}" == (my|me|our|your|the|please|this|these|those|everything|anything|something) ]] && return 0
+    done
+    return 1
 }

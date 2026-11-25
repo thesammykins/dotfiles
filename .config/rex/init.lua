@@ -212,13 +212,17 @@ rex.action{
   run      = function(ctx, args)
     local dir = args.dir
     if dir == nil then
-      local items = {}
+      -- The picker refuses duplicate ids, and "This folder" is often Home or a repo.
+      local items, seen = {}, {}
+      local function add(item)
+        if not seen[item.id] then seen[item.id] = true; items[#items + 1] = item end
+      end
       local here = focused_dir(ctx)
-      if here then items[#items + 1] = { id = here, title = "This folder", subtitle = here } end
-      items[#items + 1] = { id = HOME, title = "Home" }
+      if here then add{ id = here, title = "This folder", subtitle = here } end
+      add{ id = HOME, title = "Home" }
       local ls = rex.exec{ "ls", HOME .. "/repos" }
       for name in ((ls and ls.stdout) or ""):gmatch("[^\n]+") do
-        items[#items + 1] = { id = HOME .. "/repos/" .. name, title = name }
+        add{ id = HOME .. "/repos/" .. name, title = name }
       end
       local pick = rex.ui.pick{ title = "Open project", placeholder = "Project, or type a path", items = items, allow_other = true }
       if pick == nil then return end
