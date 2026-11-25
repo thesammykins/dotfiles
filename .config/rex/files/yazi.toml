@@ -1,6 +1,7 @@
 # Used only by the Rex file manager pane (YAZI_CONFIG_HOME in launch.sh).
 # Opening a directory enters it (yazi's default would launch $EDITOR on it).
 # Opening anything else records its path for the launcher and quits.
+# Shift-O lists the other openers: Finder, or the file's default app.
 [opener]
 enter = [
   { run = 'ya emit enter', desc = "Enter directory", for = "unix", block = false },
@@ -8,9 +9,15 @@ enter = [
 pick = [
   { run = 'printf "%s" "$1" > "$REX_PICK_FILE"; ya emit quit', desc = "Insert path in terminal", for = "unix", block = false },
 ]
+reveal = [
+  { run = 'open -R "$1"', desc = "Reveal in Finder", for = "macos", orphan = true },
+]
+default = [
+  { run = 'open "$1"', desc = "Open with default app", for = "macos", orphan = true },
+]
 
 [open]
 prepend_rules = [
-  { mime = "folder/*", use = "enter" },
-  { url = "*", use = "pick" },
+  { mime = "folder/*", use = ["enter", "reveal", "default"] },
+  { url = "*", use = ["pick", "default", "reveal"] },
 ]

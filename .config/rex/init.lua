@@ -1,6 +1,6 @@
 -- Managed by milo setup.
-pcall(dofile, "/Users/samanthamyers/.config/milo/rex.lua")
 local HOME  = os.getenv("HOME")
+local has_milo = pcall(dofile, HOME .. "/.config/milo/rex.lua")
 local SHELL = "com.superlogical.terminal.shell"
 
 -- File manager pane in a split beside the focused terminal: fresh on Cmd-B,
@@ -127,6 +127,22 @@ rex.action{
 
 rex.bind("shift+cmd+m", "markdown")
 
+-- A real browser in a split (terminal-browser draws pages with kitty
+-- graphics). Asks for a URL, or a file or localhost port.
+rex.action{
+  name     = "browser",
+  title    = "Open Browser…",
+  keywords = "web url browse terminal-browser localhost",
+  args     = { url = "string?" },
+  run      = function(ctx, args)
+    local url = args.url or rex.ui.input{ title = "Open in browser", placeholder = "URL, file or localhost:3000" }
+    if url == nil then return end
+    split_beside(ctx, "browser", "terminal-browser open " .. string.format("%q", url), 0.5)
+  end,
+}
+
+rex.bind("shift+cmd+k", "browser")
+
 -- rex-fingers: letter hints over paths, URLs and hashes. Its default
 -- alt+f would shadow zsh's forward-word, so it lives on cmd+shift+h.
 -- scripts/install-rex.sh puts the plugin at this pinned path.
@@ -146,8 +162,10 @@ end
 
 -- Milo: Warp-style project rail (outline, history, usage) on the left.
 -- Its actions come from the managed dofile at the top of this file.
-rex.bind("shift+cmd+e", "milo_layout")
-rex.bind("shift+cmd+o", "milo_peek_outline")
+if has_milo then
+  rex.bind("shift+cmd+e", "milo_layout")
+  rex.bind("shift+cmd+o", "milo_peek_outline")
+end
 
 -- Edit the file milo's reader is showing. Milo has no editor setting, but
 -- its floating reader runs `milo view PATH`, so this swaps the reader for
