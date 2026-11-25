@@ -71,7 +71,7 @@ function ask {
 }
 alias ask='noglob ask'
 
-if [[ -n "${REX_SESSION:-}" ]] && (( $+commands[rex] )); then
+if [[ -n "${REX_BLOCK:-}" ]] && (( $+commands[rex] )); then
     function ax {
         [[ $# -gt 0 ]] || { print -u2 'usage: ax TASK'; return 2 }
         local agent
@@ -82,7 +82,7 @@ if [[ -n "${REX_SESSION:-}" ]] && (( $+commands[rex] )); then
             opencode) argv=("${commands[opencode]}" --prompt "$*") ;;
             *) print -u2 "ax: $agent has no interactive mode here"; return 1 ;;
         esac
-        rex run --split=below --ratio 45 --cwd "$PWD" --shell=none -- "${argv[@]}"
+        rex run -b "$REX_BLOCK" --split=below --ratio 45 --cwd "$PWD" --shell=none -- "${argv[@]}"
     }
     alias ax='noglob ax'
 fi

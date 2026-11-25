@@ -20,7 +20,7 @@ setup() {
   mkdir -p "$TEST_HOME/bin"
   printf '#!/bin/sh\n' > "$TEST_HOME/bin/rex"
   chmod +x "$TEST_HOME/bin/rex"
-  run env HOME="$TEST_HOME" PATH="$TEST_HOME/bin:$PATH" REX_SESSION=1 ASK_AGENT=custom ASK_COMMAND='print -r --' zsh -f -c \
+  run env HOME="$TEST_HOME" PATH="$TEST_HOME/bin:$PATH" REX_BLOCK=block:test ASK_AGENT=custom ASK_COMMAND='print -r --' zsh -f -c \
     "source '$DOTFILES_DIR/.config/zsh/ask.zsh'; source '$DOTFILES_DIR/.config/zsh/ask.zsh' && eval 'ask is it *.nomatch?' && whence -w ax"
   [ "$status" -eq 0 ]
   [ "${lines[-2]}" = 'is it *.nomatch?' ]
