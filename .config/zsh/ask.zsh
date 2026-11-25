@@ -90,12 +90,23 @@ if [[ -n "${REX_BLOCK:-}" ]] && (( $+commands[rex] )); then
         local agent
         agent="$(_ask_agent)" || { print -u2 'ax: no agent found'; return 1 }
         local -a argv
+        local dir="$PWD"
         case "$agent" in
-            claude | codex) argv=("${commands[$agent]}" "$*") ;;
+            claude)
+                argv=("${commands[claude]}" "$*")
+                # Claude never remembers trusting the home folder, so a task
+                # typed there would wait on its trust prompt every time. Start
+                # in a folder trusted once instead, with home added to it.
+                if [[ "$PWD" == "$HOME" ]]; then
+                    dir="${XDG_STATE_HOME:-$HOME/.local/state}/ax"
+                    mkdir -p "$dir"
+                    argv=("${commands[claude]}" --add-dir "$HOME" "In $HOME: $*")
+                fi ;;
+            codex) argv=("${commands[codex]}" "$*") ;;
             opencode) argv=("${commands[opencode]}" --prompt "$*") ;;
             *) print -u2 "ax: $agent has no interactive mode here"; return 1 ;;
         esac
-        rex run -b "$REX_BLOCK" --split=below --ratio 45 --cwd "$PWD" --shell=none -- "${argv[@]}"
+        rex run -b "$REX_BLOCK" --split=below --ratio 45 --cwd "$dir" --shell=none -- "${argv[@]}"
     }
     alias ax='noglob ax'
 fi
