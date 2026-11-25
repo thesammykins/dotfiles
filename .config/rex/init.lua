@@ -1,6 +1,4 @@
--- Managed by milo setup.
 local HOME  = os.getenv("HOME")
-local has_milo = pcall(dofile, HOME .. "/.config/milo/rex.lua")
 local SHELL = "com.superlogical.terminal.shell"
 
 -- File manager pane in a split beside the focused terminal: fresh on Cmd-B,
@@ -160,58 +158,78 @@ if fingers_file then
   }
 end
 
--- Milo: Warp-style project rail (outline, history, usage) on the left.
--- Its actions come from the managed dofile at the top of this file.
-if has_milo then
-  rex.bind("shift+cmd+e", "milo_layout")
-  rex.bind("shift+cmd+o", "milo_peek_outline")
+-- Projects. Open a folder as its own session, laid out by where it lives:
+-- the first LAYOUTS entry whose root contains the folder wins. Opening a
+-- folder that already has a session goes back to that session instead.
+local L = rex.layout
+
+local function pane(dir, input)
+  return L.block{
+    flavor  = SHELL,
+    options = { cwd = dir, initial_input = input and (input .. "\n") or nil },
+  }
 end
 
--- Edit the file milo's reader is showing. Milo has no editor setting, but
--- its floating reader runs `milo view PATH`, so this swaps the reader for
--- $EDITOR (set in .zshrc, hence zsh -i) on the same file, in the same spot.
-local function milo_reader_path(ctx)
-  local proc, err = rex.call("block.method", {
-    session_id = ctx.session_id, block_id = ctx.block_id, method = "process",
-  })
-  if err ~= nil then error(err, 0) end
-  local pid = proc and proc.child and proc.child.pid
-  if pid == nil then return nil end
-  local kids = rex.exec{ "pgrep", "-P", tostring(math.floor(pid)) }
-  local child = kids and kids.stdout:match("%d+")
-  if child == nil then return nil end
-  local ps = rex.exec{ "ps", "-o", "args=", "-p", child }
-  local args = ps and ps.stdout or ""
-  if args:find(" %-%-commit ") then return nil, "This is a past version from History; open it from the outline to edit." end
-  return args:match("milo view (.-)%s*$")
+local LAYOUTS = {
+  -- A repo: agent on the left, shell over files on the right.
+  { root = HOME .. "/repos/", layout = function(dir)
+      return L.horizontal(0.55, pane(dir, "claude"), L.vertical(0.5, pane(dir), pane(dir, "yazi")))
+    end },
+  -- Anywhere else: a shell beside files.
+  { root = "/", layout = function(dir)
+      return L.horizontal(0.6, pane(dir), pane(dir, "yazi"))
+    end },
+}
+
+local function open_project(dir)
+  dir = dir:gsub("/$", "")
+  local label = dir == HOME and "home" or dir:match("[^/]+$")
+  local list = rex.call("session.list") or {}
+  for _, s in ipairs(list.sessions or {}) do
+    if s.label == label then
+      rex.client.queue("session.select", { session_id = s.session_id })
+      return
+    end
+  end
+  for _, rule in ipairs(LAYOUTS) do
+    if (dir .. "/"):sub(1, #rule.root) == rule.root then
+      local created, err = rex.call("session.create", {
+        label = label,
+        initial_windows = { { window_label = label, layout = rule.layout(dir) } },
+      })
+      if err ~= nil then error(err, 0) end
+      rex.client.queue("session.select", { session_id = created.session_id })
+      return
+    end
+  end
 end
 
 rex.action{
-  name     = "milo_edit",
-  title    = "Milo: Edit File in $EDITOR",
-  keywords = "milo reader editor open edit",
-  run      = function(ctx)
-    local path, why = milo_reader_path(ctx)
-    if path == nil then error(why or "Focus a milo reader first.", 0) end
-    local _, err = rex.session.new_layer{
-      bounds = { 0.12, 0.08, 0.76, 0.84 },
-      focus  = true,
-      layout = rex.layout.block{
-        flavor  = SHELL,
-        label   = path:match("[^/]+$"),
-        options = {
-          shell   = "none",
-          command = { "/bin/zsh", "-ic", 'exec "${VISUAL:-$EDITOR}" "$1"', "edit", path },
-          exit    = { on_completion = true },
-        },
-      },
-    }
-    if err ~= nil then error(err, 0) end
-    rex.call("block.close", { session_id = ctx.session_id, block_id = ctx.block_id })
+  name     = "project",
+  title    = "Open Project…",
+  keywords = "project session layout folder repo workspace",
+  args     = { dir = "string?" },
+  run      = function(ctx, args)
+    local dir = args.dir
+    if dir == nil then
+      local items = {}
+      local here = focused_dir(ctx)
+      if here then items[#items + 1] = { id = here, title = "This folder", subtitle = here } end
+      items[#items + 1] = { id = HOME, title = "Home" }
+      local ls = rex.exec{ "ls", HOME .. "/repos" }
+      for name in ((ls and ls.stdout) or ""):gmatch("[^\n]+") do
+        items[#items + 1] = { id = HOME .. "/repos/" .. name, title = name }
+      end
+      local pick = rex.ui.pick{ title = "Open project", placeholder = "Project, or type a path", items = items, allow_other = true }
+      if pick == nil then return end
+      dir = type(pick) == "table" and (pick.id or pick.text) or pick
+      dir = dir:gsub("^~", HOME)
+    end
+    open_project(dir)
   end,
 }
 
-rex.bind("cmd+e", "milo_edit")
+rex.bind("alt+cmd+n", "project")
 
 -- This Mac's own actions and bindings (launch sessions, hosts) go in
 -- ~/.config/rex/local.lua, which the dotfiles repo does not track.

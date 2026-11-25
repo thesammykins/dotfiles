@@ -34,9 +34,9 @@ for desktop profiles. After changing `init.lua`, run
 It also opens an agent beside the pane (Cmd-Shift-A: Claude Code, Codex,
 OpenCode or any typed command), previews Markdown with `mddog`
 (Cmd-Shift-M), shows `rex-fingers` hints over paths and URLs (Cmd-Shift-H),
-and arranges a `milo` file rail (Cmd-Shift-E; Cmd-E edits the file milo's
-reader shows). `scripts/install-rex.sh` installs `rex-fingers`; run
-`milo setup` once per Mac to save the rail.
+opens a page in `terminal-browser` (Cmd-Shift-K), and opens a folder as its
+own session, laid out by where it lives (Opt-Cmd-N; the rules are `LAYOUTS`
+in `init.lua`). `scripts/install-rex.sh` installs `rex-fingers`.
 
 Remote hosts are not tracked here. Each Mac follows one Rex server, its home,
 for hosts and shortcuts: add hosts once on the home Mac, and point other
