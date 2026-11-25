@@ -27,6 +27,21 @@ setup() {
   [ "${lines[-1]}" = 'ax: alias' ]
 }
 
+# Enter sends English to an agent; anything the shell can run stays a command.
+@test "plain English goes to an agent and commands stay commands" {
+  run zsh -f -c "source '$DOTFILES_DIR/.config/zsh/ask.zsh' 2>/dev/null
+    for l in 'what is taking up disk space' 'clean up my downloads folder' 'who owns this?'; do
+      _ask_is_prose \"\$l\" || print -r -- \"missed: \$l\"
+    done
+    for l in 'git status now please' 'which python3 node' 'ls -la foo bar' 'how do I | grep' 'two words'; do
+      _ask_is_prose \"\$l\" && print -r -- \"wrongly sent: \$l\"
+    done
+    ASK_AUTO=0 _ask_is_prose 'clean up my downloads folder' && print -r -- 'ASK_AUTO=0 ignored'
+    true"
+  [ "$status" -eq 0 ]
+  [ -z "$output" ]
+}
+
 # This repo is public. Saved commands carry hostnames, so they go to the Mac's
 # own copy, reached through the link install.sh makes, never the tracked list.
 @test "saving a command writes this Mac's list, not the tracked one" {

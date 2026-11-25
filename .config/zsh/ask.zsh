@@ -4,6 +4,10 @@
 #   ax TASK        hand a task to an interactive agent in a Rex split, here
 #   # DESCRIPTION  press Enter to swap the line for a suggested command; it is
 #                  never run until you press Enter again
+#   plain English  a line of three or more words whose first word isn't a
+#                  command, alias, function or path goes to an agent: a
+#                  question (ends in ? or starts with how, what...) to ask,
+#                  anything else to ax when in Rex. ASK_AUTO=0 turns this off.
 # Settings (export in ~/.zshrc.local):
 #   ASK_AGENT    claude | codex | opencode | custom (default: first one found)
 #   ASK_MODEL    the agent's model name; unset uses its default (haiku for claude)
@@ -103,6 +107,33 @@ _ask_accept_line() {
         zle redisplay
         return
     fi
+    if _ask_is_prose "$BUFFER"; then
+        local text="${BUFFER%"${BUFFER##*[![:space:]]}"}"
+        if [[ "$text" == *'?' || "${${(L)text}%% *}" == (how|what|why|when|where|who|which|is|are|can|does|should|could|would) ]] ||
+            (( ! $+functions[ax] )); then
+            BUFFER="ask ${(qq)text}"
+        else
+            BUFFER="ax ${(qq)text}"
+        fi
+    fi
     zle .accept-line
 }
 zle -N accept-line _ask_accept_line
+
+# True when LINE reads as English rather than a command: three or more words,
+# no shell operators, and a first word the shell can't run or a question word.
+_ask_is_prose() {
+    [[ "${ASK_AUTO:-1}" != 0 ]] || return 1
+    local -a words=(${=1})
+    (( $#words >= 3 )) || return 1
+    [[ "$1" != *[\|\;\&\<\>\$\`]* ]] || return 1
+    local first="${words[1]}"
+    [[ "$first" != *[/=~]* ]] || return 1
+    # what, which and who are also commands, but rarely take three arguments.
+    if [[ "${(L)first}" == (how|what|why|when|where|who|which) ]] &&
+        [[ "$1" == *'?'* || $#words -ge 4 ]]; then
+        return 0
+    fi
+    whence -- "$first" >/dev/null 2>&1 && return 1
+    return 0
+}

@@ -125,3 +125,34 @@ _rex_save_command() {
 }
 zle -N _rex_save_command
 bindkey '^X^A' _rex_save_command
+
+# cd into a repo (a folder directly in ~/repos) from a pane that is alone in
+# its tab lays the tab out like Opt-Cmd-N does: the agent on the left, this
+# shell top right, yazi below it, and the tab named after the repo. Once per
+# shell, and never in a tab that is already split. REX_REPO_AGENT picks the
+# agent (empty for none); REX_REPO_LAYOUT=0 turns it off.
+_rex_repo_layout() {
+  [[ ${REX_REPO_LAYOUT:-1} != 0 && -n $REX_BLOCK && -z $_rex_laid_out ]] || return
+  [[ ${PWD:h} == $HOME/repos && ${PWD:t} != .* ]] || return
+  (( $+commands[rex] && $+commands[jq] )) || return
+  typeset -g _rex_laid_out=1
+  local dir=$PWD agent=${REX_REPO_AGENT-claude}
+  {
+    local win
+    win=$(rex block ls --json | jq -er --arg b "$REX_BLOCK" '
+      [.blocks[] | select(.placement == "placed")] as $all
+      | ($all[] | select(.block_id == $b) | .window_id) as $w
+      | select([$all[] | select(.window_id == $w)] | length == 1) | $w') || return
+    rex window rename "$win" "${dir:t}" >/dev/null
+    _rex_split() { # $1 side, $2 direction, $3 ratio, $4 command typed into the new shell
+      rex api call -s "$REX_BLOCK" session.new_split "$(jq -n --arg a "$REX_BLOCK" --arg cwd "$dir" \
+        --arg side "$1" --arg dir "$2" --argjson r "$3" --arg in "$4" '{
+          anchor_id: $a, side: $side, direction: $dir, ratio: $r,
+          layout: {block: {flavor: "com.superlogical.terminal.shell",
+                           options: ({cwd: $cwd} + (if $in == "" then {} else {initial_input: ($in + "\n")} end))}}}')" >/dev/null
+    }
+    [[ -n $agent ]] && _rex_split before horizontal 0.55 "$agent"
+    _rex_split after vertical 0.5 yazi
+  } &>/dev/null &!
+}
+add-zsh-hook chpwd _rex_repo_layout
