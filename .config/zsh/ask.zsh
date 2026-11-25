@@ -1,13 +1,13 @@
 # Natural language in the shell, through whichever coding agent is installed.
 # Sourced from ~/.zshrc.
 #   ask QUESTION   one-shot answer; the agent can read files but not change them
-#   ax TASK        hand a task to an interactive agent in a Rex split, here
+#   ax TASK        hand a task to an interactive agent, which takes over this terminal
 #   # DESCRIPTION  press Enter to swap the line for a suggested command; it is
 #                  never run until you press Enter again
 #   plain English  a line of three or more words whose first word isn't a
 #                  command, alias, function or path goes to an agent: a
 #                  question (ends in ? or starts with how, what...) to ask,
-#                  anything else to ax when in Rex. ASK_AUTO=0 turns this off.
+#                  anything else to ax. ASK_AUTO=0 turns this off.
 # Settings (export in ~/.zshrc.local):
 #   ASK_AGENT    claude | codex | opencode | custom (default: first one found)
 #   ASK_MODEL    the agent's model name; unset uses its default (haiku for claude)
@@ -84,32 +84,37 @@ function ask {
 }
 alias ask='noglob ask'
 
-if [[ -n "${REX_BLOCK:-}" ]] && (( $+commands[rex] )); then
-    function ax {
-        [[ $# -gt 0 ]] || { print -u2 'usage: ax TASK'; return 2 }
-        local agent
-        agent="$(_ask_agent)" || { print -u2 'ax: no agent found'; return 1 }
-        local -a launch
-        local dir="$PWD"
-        case "$agent" in
-            claude)
-                launch=("${commands[claude]}" "$*")
-                # Claude never remembers trusting the home folder, so a task
-                # typed there would wait on its trust prompt every time. Start
-                # in a folder trusted once instead, with home added to it.
-                if [[ "$PWD" == "$HOME" ]]; then
-                    dir="${XDG_STATE_HOME:-$HOME/.local/state}/ax"
-                    mkdir -p "$dir"
-                    launch=("${commands[claude]}" --add-dir "$HOME" -- "In $HOME: $*")
-                fi ;;
-            codex) launch=("${commands[codex]}" "$*") ;;
-            opencode) launch=("${commands[opencode]}" --prompt "$*") ;;
-            *) print -u2 "ax: $agent has no interactive mode here"; return 1 ;;
-        esac
-        rex run -b "$REX_BLOCK" --split=below --ratio 45 --cwd "$dir" --shell=none -- "${launch[@]}"
-    }
-    alias ax='noglob ax'
-fi
+# The agent takes over this terminal, on a cleared screen, and quitting it
+# returns to the prompt in the same folder.
+function ax {
+    [[ $# -gt 0 ]] || { print -u2 'usage: ax TASK'; return 2 }
+    local agent
+    agent="$(_ask_agent)" || { print -u2 'ax: no agent found'; return 1 }
+    local -a launch
+    local dir="$PWD"
+    case "$agent" in
+        claude)
+            launch=("${commands[claude]}" "$*")
+            # Claude never remembers trusting the home folder, and asks again
+            # each session for one passed with --add-dir, so a task typed at ~
+            # would always wait on a prompt. Start in a folder trusted once
+            # whose settings add home instead.
+            if [[ "$PWD" == "$HOME" ]]; then
+                dir="${XDG_STATE_HOME:-$HOME/.local/state}/ax"
+                if [[ ! -f "$dir/.claude/settings.json" ]]; then
+                    mkdir -p "$dir/.claude"
+                    print -r -- "{\"permissions\": {\"additionalDirectories\": [\"$HOME\"]}}" > "$dir/.claude/settings.json"
+                fi
+                launch=("${commands[claude]}" -- "In $HOME: $*")
+            fi ;;
+        codex) launch=("${commands[codex]}" "$*") ;;
+        opencode) launch=("${commands[opencode]}" --prompt "$*") ;;
+        *) print -u2 "ax: $agent has no interactive mode here"; return 1 ;;
+    esac
+    clear
+    (cd -q -- "$dir" && "${launch[@]}")
+}
+alias ax='noglob ax'
 
 _ask_accept_line() {
     if [[ "$BUFFER" == '# '* ]]; then
@@ -129,8 +134,7 @@ _ask_accept_line() {
     fi
     if _ask_is_prose "$BUFFER"; then
         local text="${BUFFER%"${BUFFER##*[![:space:]]}"}"
-        if [[ "$text" == *'?' || "${${(L)text}%% *}" == (how|what|why|when|where|who|which|is|are|can|does|should|could|would) ]] ||
-            (( ! $+functions[ax] )); then
+        if [[ "$text" == *'?' || "${${(L)text}%% *}" == (how|what|why|when|where|who|which|is|are|can|does|should|could|would) ]]; then
             BUFFER="ask ${(qq)text}"
         else
             BUFFER="ax ${(qq)text}"
