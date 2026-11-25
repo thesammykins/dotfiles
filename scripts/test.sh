@@ -27,7 +27,7 @@ log_info "All scripts parse under $(/bin/bash -c 'echo "$BASH_VERSION"')."
 
 log_step "Running ShellCheck on scripts..."
 if command -v shellcheck >/dev/null 2>&1; then
-    shellcheck "$REPO_ROOT"/scripts/*.sh "$REPO_ROOT/.config/rex/files/launch.sh"
+    shellcheck "$REPO_ROOT"/scripts/*.sh "$REPO_ROOT/.config/rex/files/launch.sh" "$REPO_ROOT/.local/bin/fleet"
     log_info "ShellCheck passed."
 else
     missing_tool shellcheck

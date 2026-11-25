@@ -18,3 +18,4 @@
 .ssh/ssh-key.pub
 .config/varlock/.env.schema
 .agents/AGENTS.md
+.local/bin/fleet

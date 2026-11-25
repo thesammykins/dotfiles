@@ -1,0 +1,84 @@
+#!/usr/bin/env bash
+# Rex across every host this Mac knows (rex hosts).
+#   fleet           each host's account, server version and Mac app version
+#   fleet update    upgrade Rex on each host with apt on Debian and Ubuntu; for
+#                   a Mac, show its versions (the app updates itself);
+#                   anything else is listed as manual
+# Host names and addresses come from rex hosts, never from this file.
+set -uo pipefail
+
+TIMEOUT=30s
+
+hosts() { rex hosts list --json | jq -r '.hosts[].host.label'; }
+
+version() { # $1 host label, or empty for this Mac
+  rex ${1:+-S "$1"} --timeout "$TIMEOUT" whoami --json 2>/dev/null |
+    jq -r '"\(.account)\t\(.rex_version)"'
+}
+
+# Run a shell command on host $1 in a throwaway session and print its output.
+on_host() {
+  local host="$1" cmd="$2" session block
+  session=$(rex -S "$host" --timeout "$TIMEOUT" new fleet --json | jq -er .session_id) || return 1
+  block=$(rex -S "$host" run -s "$session" --keep-open --focus=false --json --wait -- sh -c "$cmd" |
+    jq -er '.block_ids[0]')
+  rex -S "$host" capture -s "$session" -b "$block" --trim | sed '/^$/d'
+  rex -S "$host" kill "$session" >/dev/null
+}
+
+# The installed Rex app's version on a Mac, or "-" elsewhere. Runs on host $1,
+# or here when $1 is empty.
+# shellcheck disable=SC2016 # expands where it runs
+APP_VERSION='[ "$(uname -s)" = Darwin ] || { echo -; exit; }
+  for app in "/Applications/Rex.app" "/Applications/Rex Beta.app"; do
+    [ -d "$app" ] && exec defaults read "$app/Contents/Info" RexVersion
+  done; echo -'
+
+app_version() {
+  if [[ -n "$1" ]]; then on_host "$1" "$APP_VERSION" | tail -n 1; else sh -c "$APP_VERSION"; fi
+}
+
+row() { # $1 label, $2 host or empty
+  local account server
+  if IFS=$'\t' read -r account server < <(version "$2") && [[ -n "$server" ]]; then
+    printf '%-20s %-16s %-26s %s\n' "$1" "$account" "$server" "$(app_version "$2")"
+  else
+    printf '%-20s %s\n' "$1" "not answering"
+  fi
+}
+
+status() {
+  printf '%-20s %-16s %-26s %s\n' HOST ACCOUNT SERVER APP
+  row "this Mac" ""
+  while IFS= read -r host; do row "$host" "$host"; done < <(hosts)
+}
+
+# A Mac's Rex app updates itself and brings its own server build, so there is
+# nothing to run there; show what it has.
+update_mac() {
+  echo "  app $(app_version "$1"), server $(version "$1" | cut -f2); the app updates itself"
+}
+
+update() {
+  local host os
+  while IFS= read -r host; do
+    echo "$host"
+    if ! version "$host" >/dev/null; then echo "  not answering"; continue; fi
+    os=$(on_host "$host" 'uname -s; test -f /etc/apt/sources.list.d/rex.sources && echo apt' | tr '\n' ' ')
+    case "$os" in
+      Darwin*) update_mac "$host" ;;
+      *apt*)
+        # shellcheck disable=SC2016 # expands on the host
+        on_host "$host" 'sudo=; [ "$(id -u)" = 0 ] || sudo=sudo
+          $sudo apt-get update -qq && $sudo apt-get install -y -qq --only-upgrade rex && dpkg-query -W rex' |
+          tail -n 1 | sed 's/^/  /' ;;
+      *) echo "  manual: no package manager this script knows (${os% })" ;;
+    esac
+  done < <(hosts)
+}
+
+case "${1:-status}" in
+  status) status ;;
+  update) update ;;
+  *) echo "usage: fleet [status|update]" >&2; exit 2 ;;
+esac
